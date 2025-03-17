@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="127.0" prefWidth="209.0" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.kneitzel.MainWindow">
+   <children>
+      <Button fx:id="button" layoutX="44.0" layoutY="70.0" mnemonicParsing="false" onAction="#onButtonClick" text="Click Me" />
+      <TextField fx:id="textField" layoutX="14.0" layoutY="24.0" />
+   </children>
+</AnchorPane>

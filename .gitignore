@@ -1,0 +1,6 @@
+.idea
+*.iml
+target
+debug.out
+/nbactions.xml
+dependency-reduced-pom.xml
