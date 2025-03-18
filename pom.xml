@@ -25,6 +25,8 @@
         <junit.version>5.10.2</junit.version>
         <lombok.version>1.18.32</lombok.version>
         <mockito.version>5.12.0</mockito.version>
+        <reflections.version>0.10.2</reflections.version>
+        <slf4j.version></slf4j.version>
 
         <!-- Plugin dependencies -->
         <codehaus.version.plugin>2.16.2</codehaus.version.plugin>

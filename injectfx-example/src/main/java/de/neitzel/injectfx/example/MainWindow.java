@@ -1,4 +1,4 @@
-package de.kneitzel;
+package de.neitzel.injectfx.example;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -9,7 +9,6 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class MainWindow implements Initializable {
-
 
     private int counter = 0;
 

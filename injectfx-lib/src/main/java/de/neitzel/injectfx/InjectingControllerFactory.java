@@ -3,15 +3,16 @@ package de.neitzel.injectfx;
 import javafx.util.Callback;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class InjectingControllerFactory implements Callback<Class<?>, Object> {
-    private final Map<Class<?>, Object> parameterMap;
+    private final Map<Class<?>, Object> parameterMap = new HashMap<>();
 
-    public InjectingControllerFactory(Map<Class<?>, Object> parameterMap) {
-        this.parameterMap = parameterMap;
+    public void addInjectingData(Class<?> clazz, Object object) {
+        parameterMap.put(clazz, object);
     }
 
     @Override

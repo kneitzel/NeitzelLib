@@ -1,4 +1,4 @@
-package de.kneitzel;
+package de.neitzel.injectfx.example;
 
 /**
  * Another Main class as workaround when the JavaFX Application ist started without

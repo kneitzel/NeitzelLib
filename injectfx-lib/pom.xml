@@ -17,10 +17,17 @@
         <link.name>${project.artifactId}</link.name>
         <launcher>${project.artifactId}</launcher>
         <appName>${project.artifactId}</appName>
-        <main.class>de.kneitzel.Main</main.class>
+        <main.class>de.neitzel.injectfx.example.Main</main.class>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>${reflections.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <finalName>${jar.filename}</finalName>
