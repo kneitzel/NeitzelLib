@@ -16,7 +16,7 @@
         <link.name>${project.artifactId}</link.name>
         <launcher>${project.artifactId}</launcher>
         <appName>${project.artifactId}</appName>
-        <main.class>de.neitzel.injectfx.example.Main</main.class>
+        <main.class>de.neitzel.neitzelfx.injectfx.example.Main</main.class>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
     </properties>
 
