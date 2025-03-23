@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.neitzel</groupId>
-    <artifactId>injectfx</artifactId>
+    <artifactId>neitzelfx</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
     <modules>
-        <module>injectfx-lib</module>
-        <module>injectfx-example</module>
+        <module>neitzelfx-lib</module>
+        <module>neitzelfx-example</module>
     </modules>
 
     <properties>
