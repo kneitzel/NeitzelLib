@@ -18,7 +18,7 @@ public class FXMLComponentInstances {
     /**
      * Constructs an FXMLComponentInstances manager and initializes all component instances.
      *
-     * @param injectableComponents The InjectableComponents instance containing resolved component types.
+     * @param injectableScanner The InjectableComponents instance containing resolved component types.
      */
     public FXMLComponentInstances(InjectableComponentScanner injectableScanner) {
         this.injectableScanner = injectableScanner;
