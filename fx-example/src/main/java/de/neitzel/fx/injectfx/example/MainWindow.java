@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.injectfx.example;
+package de.neitzel.fx.injectfx.example;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

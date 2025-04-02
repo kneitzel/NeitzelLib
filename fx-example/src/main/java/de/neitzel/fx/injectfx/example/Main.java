@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.component.example;
+package de.neitzel.fx.injectfx.example;
 
 /**
  * Another Main class as workaround when the JavaFX Application ist started without
@@ -10,6 +10,6 @@ public class Main {
      * @param args Commandline Arguments.
      */
     public static void main(String[] args) {
-        ExampleApp.main(args);
+        JavaFXApp.main(args);
     }
 }

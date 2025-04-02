@@ -1,29 +1,23 @@
-# JavaFX Maven Project
+# NeitzelLib Maven Project
 
-Example Maven Project for a JavaFX Application.
+Small Library with classes that I found helpfully or interesting.
 
-**Update**: Added profile fatjar
+The idea is not to diretly use anything from this library. It is only meant to provide some code which could be a quick start when required inside a project. So simply copy the classes that you need.
 
-**Update**: Added reporting to create a site (html documentation of project)
+## Components
 
-**Update**: Java 21 is now fully supported
+### core
 
-This projects includes multiple plugins:
-- Build of an App-Image using JPackage (Profile: image)
-- Build of an fat jar (Profile: fatjar)
-- Use of Maven Wrapper
-- Static code analysis with PMD and Spotbugs
-- Check of dependency updates during build
-- JavaFX plugin to start application
+This is the core library that does not have special dependencies like JavaFX.
 
-**Requirements**
-To use this Template, all you need is a local Java Installation. 
-My current advice is to use a long term supported (LTS) version of either Java 17 or Java 21.
+It contains:
+- **inject** Some small, basic Injection Library (Just a quick start)
+- **sql** Helper classes to work with SQL in Java
 
-**[Documentation in English](documentation/en/_Index.md)**
+### fx
+Library that extends JavaFX or helps with it.
 
-**[Dokumentation in Deutsch](documentation/de/_Index.md)**
-
-**Important: ChatGPT was utilized to generate the documentation based on 
-predefined content specifications, as it represents the fastest way to produce 
-comprehensive documentation.**
+It contains:
+- **component** Just a quick start where I experiment with the idea to have JavaFX components which means that we have a View to display a specific Model.
+- **injectfx** Injection inside JavaFX, main idea is to use constructor injection on FXML controller to include required Elements.
+- **mvvm** The mvvmFX project seems to get no more updates / is no longer maintained. In this area I am simply playing around with some helper classes to make the use of the mvvm pattern easier through generation of ViewModels. **Currently not really useable**  

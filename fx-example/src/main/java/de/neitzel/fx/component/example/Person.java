@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.component.example;
+package de.neitzel.fx.component.example;
 
 import lombok.Getter;
 import lombok.Setter;

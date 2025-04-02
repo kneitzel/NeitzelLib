@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.mvvm;
+package de.neitzel.fx.mvvm;
 
 import javafx.beans.property.Property;
 import javafx.beans.property.StringProperty;

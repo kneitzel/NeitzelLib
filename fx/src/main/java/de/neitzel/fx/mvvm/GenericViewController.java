@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.mvvm;
+package de.neitzel.fx.mvvm;
 
 import javafx.fxml.Initializable;
 import java.net.URL;

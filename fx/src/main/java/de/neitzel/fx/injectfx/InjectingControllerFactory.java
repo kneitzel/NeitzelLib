@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.injectfx;
+package de.neitzel.fx.injectfx;
 
 import javafx.util.Callback;
 

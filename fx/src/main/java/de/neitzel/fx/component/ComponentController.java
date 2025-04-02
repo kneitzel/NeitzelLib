@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.component;
+package de.neitzel.fx.component;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

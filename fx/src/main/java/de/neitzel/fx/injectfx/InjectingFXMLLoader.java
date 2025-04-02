@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.injectfx;
+package de.neitzel.fx.injectfx;
 
 import de.neitzel.core.inject.InjectableComponentScanner;
 import javafx.fxml.FXMLLoader;

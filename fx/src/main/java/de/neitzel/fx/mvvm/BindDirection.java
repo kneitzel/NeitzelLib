@@ -1,4 +1,4 @@
-package de.neitzel.core.fx.mvvm;
+package de.neitzel.fx.mvvm;
 
 /**
  * Enum representing the direction of data binding between a JavaFX control and a ViewModel property.

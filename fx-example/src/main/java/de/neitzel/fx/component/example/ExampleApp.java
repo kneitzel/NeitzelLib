@@ -1,6 +1,6 @@
-package de.neitzel.core.fx.component.example;
+package de.neitzel.fx.component.example;
 
-import de.neitzel.core.fx.component.ComponentLoader;
+import de.neitzel.fx.component.ComponentLoader;
 import javafx.application.Application;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
