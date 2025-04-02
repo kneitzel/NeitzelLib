@@ -10,7 +10,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>fx</artifactId>
+    <artifactId>encryption</artifactId>
 
     <properties>
         <!-- Application Properties -->
@@ -21,33 +21,10 @@
     </properties>
 
     <dependencies>
-        <!-- JavaFX dependencies -->
         <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-graphics</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-web</artifactId>
-        </dependency>
-
-        <!-- NeitzelLib dependencies -->
-        <dependency>
-            <groupId>de.neitzel.lib</groupId>
-            <artifactId>core</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.idealista</groupId>
+            <artifactId>format-preserving-encryption</artifactId>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 

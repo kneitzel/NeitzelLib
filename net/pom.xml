@@ -10,7 +10,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>fx</artifactId>
+    <artifactId>net</artifactId>
 
     <properties>
         <!-- Application Properties -->
@@ -18,36 +18,16 @@
         <launcher>${project.artifactId}</launcher>
         <appName>${project.artifactId}</appName>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
+
+        <!-- Dependency versions -->
+        <javax.mail.version>1.6.2</javax.mail.version>
     </properties>
 
     <dependencies>
-        <!-- JavaFX dependencies -->
         <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-controls</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-graphics</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-fxml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-web</artifactId>
-        </dependency>
-
-        <!-- NeitzelLib dependencies -->
-        <dependency>
-            <groupId>de.neitzel.lib</groupId>
-            <artifactId>core</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>${javax.mail.version}</version>
         </dependency>
     </dependencies>
 
