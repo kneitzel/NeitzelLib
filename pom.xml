@@ -11,7 +11,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>inject</module>
+        <module>core</module>
         <module>fx</module>
         <module>fx-example</module>
     </modules>
