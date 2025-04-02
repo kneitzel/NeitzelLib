@@ -4,15 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.neitzel</groupId>
-    <artifactId>injectfx</artifactId>
+    <groupId>de.neitzel.lib</groupId>
+    <artifactId>neitzellib</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
     <modules>
-        <module>injectfx-lib</module>
-        <module>injectfx-example</module>
+        <module>inject</module>
+        <module>fx</module>
+        <module>fx-example</module>
     </modules>
 
     <properties>
@@ -61,6 +62,11 @@
 
     <dependencies>
         <!-- JavaFX dependencies -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>

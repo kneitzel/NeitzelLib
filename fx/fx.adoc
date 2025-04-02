@@ -1,0 +1,29 @@
+== Komponenten
+
+=== injectfx
+
+`injectfx` adressiert das Problem, dass man bei bestimmten Controllern gerne Konstruktorparameter übergeben möchte. Möchte man die Controller-Klasse direkt im Code verwenden, ist das relativ einfach. Wenn man jedoch Code, Controller und FXML strikt voneinander trennen möchte, wird die Umsetzung deutlich komplexer.
+
+Ein möglicher Ansatz besteht in einer universellen `ControllerFactory` (InjectingControllerFactory), der man potenzielle Parameter übergeben kann. Zur Instanzierung prüft die Factory die vorhandenen Konstruktoren und gleicht sie mit den verfügbaren Parametern ab, um anschließend den passenden Konstruktor aufzurufen.
+
+Dieses Prinzip lässt sich noch erweitern:
+- Ein universeller `FXMLLoader` kann den Code vereinfachen, da keine separate InjectingControllerFactory mehr erstellt und zugewiesen werden muss.
+- Anstatt Parameter manuell bereitzustellen, könnten Klassen durch Markierungen als potenzielle Parameter erkannt werden – vergleichbar mit bekannten Injection-Frameworks wie z. B. Spring Boot.
+
+=== component
+
+Ähnlich wie in anderen UI-Frameworks (z. B. React) versuche ich, ein komponentenbasiertes Modell zu etablieren, um datengetriebene Oberflächen schnell und modular zusammenstellen zu können.
+
+Die Grundidee ist, mit möglichst geringem Aufwand Kombinationen aus Datenmodell und FXML zu erzeugen. So lässt sich z. B. eine FXML-Datei definieren, die eine Adresse darstellt – inklusive Felder und der zugehörigen Bindings. Möchte man nun einen Datensatz mit einer Adresse anzeigen, kann für das Adressfeld eine Pane erzeugt werden, die sowohl das Binding auf die Adresse als auch den Verweis auf die FXML-Datei enthält.
+
+Dabei wird das MVVM-Pattern verwendet: Ausgehend vom Model wird ein passendes ViewModel automatisch generiert.
+
+Die Bindings werden allerdings zunehmend komplex, sobald nicht ausschließlich einfache Typen wie `StringProperty` verwendet werden.
+
+=== mvvm
+
+Ein Ansatz, das MVVM-Pattern in JavaFX möglichst einfach zugänglich zu machen.
+
+Die zentralen Herausforderungen, die hier gelöst werden sollen, sind:
+- die automatische Erstellung eines Controllers, der das Binding zwischen View und ViewModel übernimmt
+- Unterstützung bei der Erzeugung von ViewModel-Elementen auf Basis vorhandener Model-Klassen
