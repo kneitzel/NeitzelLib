@@ -14,3 +14,33 @@ Feel free to explore, copy, modify, and improve whatever you find useful.
 
 ## License
 This is free and unencumbered software released into the public domain. Please see the [License](LICENSE.md) for details.
+
+---
+
+## Components
+
+### core
+
+Core classes that require no additional dependencies
+
+### encryption
+
+Some encryption classes that use format-preserving-encryption.
+
+**Important** This is not for production use! Please use secure encryption in production!
+
+### fx
+
+Some JavaFX additions.
+
+### fx-example
+
+Some example programs that use the fx component
+
+### log4j
+
+Stuff for log4j (Version 1). Please use log4j2 if you want to use log4j! (Or log with slf4j as I do in all other modules!)
+
+### net
+
+Some network stuff using javax.mail as dependency.
