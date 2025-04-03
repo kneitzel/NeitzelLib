@@ -5,26 +5,76 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 
 /**
- * A parser of the CommandLine.
- * <br>
- *     Parameter are defined. Each parameter will start with either - or /.
+ * The Parser class is responsible for parsing and handling command-line arguments.
+ * It allows for the registration of known parameters and provides mechanisms
+ * to validate and process command-line input.
  */
 @Slf4j
 public class Parser {
 
     /**
-     * Parameters known by the CommandLineParser.
+     * A map to store parameters where the key is a string representing
+     * the parameter name and the value is the corresponding {@link Parameter} object.
+     *
+     * This map serves as a registry for defining, organizing, and accessing
+     * command-line parameters. Each entry holds a parameter's metadata and
+     * its associated configuration to facilitate effective command-line parsing.
+     *
+     * Key considerations:
+     * - The key represents the primary name of the parameter.
+     * - The value, encapsulated as a {@link Parameter} object, includes
+     *   details such as descriptions, value constraints, aliases, and processing logic.
      */
     private Map<String, Parameter> parameters = new HashMap<>();
 
     /**
-     * The default parameter.
+     * The `defaultParameter` variable represents the default command-line parameter for a parser.
+     *
+     * This parameter is used to capture arguments that do not explicitly match any named parameter
+     * or alias. It acts as a catch-all for unnamed command-line input, often simplifying the handling
+     * of positional arguments or other free-form input provided by the user.
+     *
+     * It is essential to note:
+     * - Only one parameter can be designated as the default parameter in a command-line parser.
+     * - The parameter must allow values to be processed (e.g., its `minNumberValues` or `maxNumberValues`
+     *   should not disallow input).
+     * - This parameter is automatically invoked if an input does not match any explicitly named
+     *   parameter or alias in the parser configuration.
+     *
+     * When set to `null`, the parser does not handle unmatched arguments, and unrecognized inputs
+     * may result in an error or exception, depending on the parser's implementation.
      */
     private Parameter defaultParameter = null;
 
     /**
-     * Adds a parameter to the list of known parameters.
-     * @param parameter
+     * Constructs a new instance of the `Parser` class.
+     *
+     * The `Parser` class is responsible for parsing and processing
+     * command-line arguments. It interprets input data based on defined
+     * parameters and provides structured access to arguments, enabling
+     * streamlined application configuration and execution.
+     *
+     * This constructor initializes the parser without any predefined
+     * configuration or parameters. Users can define parameters,
+     * add handlers, and parse command-line arguments using available
+     * methods in the class.
+     */
+    public Parser() {
+    }
+
+    /**
+     * Adds a new parameter to the internal parameter map. The method registers the parameter
+     * using its primary name and all specified aliases (case-insensitive). It also sets up
+     * specific behaviors for help and default parameters based on the parameter's configuration.
+     *
+     * @param parameter the Parameter object to be added. It contains the primary name, aliases,
+     *                  and other metadata such as whether it is a help command or default parameter.
+     *                  The parameter must fulfill specific constraints if defined as the default
+     *                  parameter (e.g., accepting values).
+     *
+     * @throws IllegalArgumentException if the parameter is defined as a default parameter and
+     *                                  does not accept values (both minNumberValues and maxNumberValues
+     *                                  are set to 0).
      */
     public void addParameter(final Parameter parameter) {
         // Add by name
@@ -48,13 +98,12 @@ public class Parser {
     }
 
     /**
-     * Checks if param is a parameter.
-     * <br>
-     *     - When the parameter is known as a parameter, then it is true.
-     *     - Everything that starts with a - must be a known parameter -> false
-     *     - Parameter is not known and does not start with a -? -> Default parameter if available.
-     * @param param Parameter in lower case to check.
-     * @return true if it is either a known parameter or an argument for the default parameter.
+     * Checks whether a given parameter string matches a valid parameter within the defined constraints.
+     *
+     * @param param the parameter string to be checked. This can either be a key defined in the `parameters` map
+     *              or a potential default parameter if it does not start with a dash ("-").
+     * @return {@code true} if the parameter is a valid entry in the `parameters` map or matches the default parameter;
+     *         {@code false} otherwise, including when the parameter starts with a dash ("-").
      */
     protected boolean isParameter(final String param) {
         if (parameters.containsKey(param)) return true;
@@ -63,8 +112,15 @@ public class Parser {
     }
 
     /**
-     * Parse the given commandline arguments.
-     * @param args Commandline Arguments to parse.
+     * Parses an array of command-line arguments and processes them as defined by the application's parameters.
+     *
+     * The method iteratively checks each argument in the provided array, validates it against
+     * the registered parameters, and invokes the corresponding processing callback if applicable.
+     * Unrecognized parameters or missing required values will result in an {@code IllegalArgumentException}.
+     *
+     * @param args the array of command-line arguments to be parsed and processed. Each element in this
+     *             array represents a single input argument provided to the application. The format and
+     *             content of the arguments are expected to conform to the application's parameter definitions.
      */
     public void parse(final String[] args) {
         ArgumentProvider provider = new ArgumentProvider(args);
@@ -96,11 +152,19 @@ public class Parser {
     }
 
     /**
-     * Get the given optional data of a parameter-
-     * @param provider Provider of token.
-     * @param min Minimum number of elements to get.
-     * @param max Maximum number of elements to get.
-     * @return List of token of the Parameter.
+     * Retrieves a list of options by consuming arguments from the provided {@link ArgumentProvider}
+     * within the range specified by the minimum and maximum values.
+     *
+     * @param provider The source providing the command-line arguments. This object allows
+     *                 retrieving and examining argument strings in sequence.
+     * @param min      The minimum number of arguments to be retrieved. If fewer arguments
+     *                 are available, no arguments will be added to the result.
+     * @param max      The maximum number of arguments to be retrieved. If `max` is smaller
+     *                 than `min`, it will be adjusted to match `min`. Only up to `max`
+     *                 arguments will be added to the result.
+     * @return A list of argument strings, containing up to `max` elements and at least `min`
+     *         elements if sufficient arguments are available. The list will not include
+     *         arguments already recognized in the `parameters` map.
      */
     private List<String> getOptions(ArgumentProvider provider, int min, int max) {
         if (max < min) max = min;
@@ -120,8 +184,15 @@ public class Parser {
     }
 
     /**
-     * Callback for help command.
-     * @param arguments null for general help or name of a command.
+     * Handles the help command when invoked in the command-line interface, providing information about available parameters.
+     * If no arguments are provided, it lists all possible parameters and their short descriptions.
+     * If specific arguments are supplied, it provides the detailed description of the corresponding parameter.
+     * In case an unknown parameter is specified, it indicates so to the user.
+     *
+     * @param arguments a list of strings representing the user-provided arguments. If empty or {@code null},
+     *                  the method lists all available parameters with their short descriptions. If a parameter name
+     *                  is provided in the list, its detailed information is displayed. If an unrecognized parameter
+     *                  is provided, a corresponding message is shown.
      */
     public void helpCommandCallback(final List<String> arguments) {
         if (arguments == null || arguments.size() == 0) {

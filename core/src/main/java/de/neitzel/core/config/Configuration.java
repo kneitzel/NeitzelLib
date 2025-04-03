@@ -16,21 +16,49 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Base class for a simple configuration.
+ * Provides a utility class for managing configuration properties in an
+ * application. This class allows loading properties from files, accessing
+ * values with various types including environment variable substitution,
+ * and updating properties.
  */
 @Slf4j
 public class Configuration {
 
     /**
-     * Properties with configuration data.
+     * A {@link Properties} object that stores a set of key-value pairs.
+     * This variable can be used to manage configuration settings or other
+     * collections of properties within the application.
+     *
+     * It provides methods to load, retrieve, and modify properties
+     * as necessary for the application's requirements.
      */
-    private Properties properties = new Properties();
+    private final Properties properties;
 
     /**
-     * Gets a boolean property
-     * @param defaultValue Default value to return if key is not present.
-     * @param key Key of the property to get.
-     * @return The value of the property if it exists or the default value.
+     * Constructs a new Configuration instance with default properties.
+     * This constructor initializes the Configuration object using an
+     * empty set of {@code Properties}.
+     */
+    public Configuration() {
+        this(new Properties());
+    }
+
+    /**
+     * Constructs a new Configuration instance using the provided properties.
+     *
+     * @param properties the Properties object containing configuration key-value pairs
+     */
+    public Configuration(Properties properties) {
+        this.properties = properties;
+    }
+
+    /**
+     * Retrieves a boolean property value associated with the specified key. If the key does not exist in the properties,
+     * the provided default value is returned. The method also supports interpreting specific string values as true.
+     *
+     * @param key the key used to retrieve the boolean property
+     * @param defaultValue the default value returned if the key is not found in the properties
+     * @return the boolean value associated with the key, or the defaultValue if the key does not exist
      */
     protected boolean getBooleanProperty(final String key, final boolean defaultValue) {
         if (!properties.containsKey(key)) return defaultValue;
@@ -38,10 +66,12 @@ public class Configuration {
     }
 
     /**
-     * Gets a String property
-     * @param key Key of the property to query.
-     * @param defaultValue Default value to return if property not available.
-     * @return The property if it exists, else the default value.
+     * Retrieves the value of the specified property as a trimmed string.
+     * If the property is not found, the default value is returned.
+     *
+     * @param key the key of the property to retrieve
+     * @param defaultValue the default value to return if the property is not found
+     * @return the trimmed string value of the property, or the default value if the property is not found
      */
     protected String getStringProperty(final String key, final String defaultValue) {
         if (!properties.containsKey(key)) return defaultValue;
@@ -49,13 +79,13 @@ public class Configuration {
     }
 
     /**
-     * Gets a String property with all environment variables replaced
-     * <p>
-     *     Environment variable can be included with ${variable name}.
-     * </p>
-     * @param key Key of the property to query.
-     * @param defaultValue Default value to return if property not available.
-     * @return The property if it exists, else the default value.
+     * Retrieves a string property value associated with the specified key, applies
+     * environment variable expansion on the value, and returns the processed result.
+     *
+     * @param key the key identifying the property to retrieve.
+     * @param defaultValue the default value to use if the property is not found.
+     * @return the processed property value with expanded environment variables, or
+     *         the defaultValue if the property is not found.
      */
     protected String getStringPropertyWithEnv(final String key, final String defaultValue) {
         String result = getStringProperty(key, defaultValue);
@@ -63,26 +93,25 @@ public class Configuration {
     }
 
     /**
-     * Gets a String property without quotes.
-     * <p>
-     *     If the value is put in quotes, then the quote signs are replaced.
-     * </p>
-     * @param key Key of the property to query.
-     * @param defaultValue Default value to return if property not available.
-     * @return The property if it exists, else the default value (without leading/ending quote signs).
+     * Retrieves the value of a string property associated with the specified key,
+     * removes any surrounding quotes from the value, and returns the resultant string.
+     *
+     * @param key the key associated with the desired property
+     * @param defaultValue the default value to return if the property is not found or is null
+     * @return the string property without surrounding quotes, or the defaultValue if the property is not found
      */
     protected String getStringPropertyWithoutQuotes(final String key, final String defaultValue) {
         return Strings.removeQuotes(getStringProperty(key, defaultValue));
     }
 
     /**
-     * Gets a String property without quotes.
-     * <p>
-     *     If the value is put in quotes, then the quote signs are replaced.
-     * </p>
-     * @param key Key of the property to query.
-     * @param defaultValue Default value to return if property not available.
-     * @return The property if it exists, else the default value (without leading/ending quote signs).
+     * Retrieves the string value of a configuration property identified by the given key,
+     * removes surrounding quotes if present, and expands any environment variables found
+     * within the string. If the property is not found, a default value is used.
+     *
+     * @param key the key identifying the configuration property
+     * @param defaultValue the default value to use if the property is not found
+     * @return the processed string property with quotes removed and environment variables expanded
      */
     protected String getStringPropertyWithoutQuotesWithEnv(final String key, final String defaultValue) {
         String result = getStringPropertyWithoutQuotes(key, defaultValue);
@@ -90,12 +119,15 @@ public class Configuration {
     }
 
     /**
-     * Gets an Integer property.
-     * <br>
-     *     Supports null as value.
-     * @param defaultValue Default value to return if key is not present.
-     * @param key Key of the property to get.
-     * @return The value of the property if it exists or the default value.
+     * Retrieves the integer value for the specified property key. If the key does
+     * not exist in the properties or the value is null/empty, the provided default
+     * value is returned.
+     *
+     * @param key the property key to retrieve the value for
+     * @param defaultValue the default value to return if the key is not present
+     *                     or the value is null/empty
+     * @return the integer value associated with the key, or the defaultValue if
+     *         the key does not exist or its value is null/empty
      */
     protected Integer getIntegerProperty(final String key, final Integer defaultValue) {
         if (!properties.containsKey(key)) return defaultValue;
@@ -104,9 +136,11 @@ public class Configuration {
     }
 
     /**
-     * Sets an Integer property.
-     * @param key Key of the property to set.
-     * @param value Value to set.
+     * Sets an integer property in the properties object. If the provided value is null,
+     * an empty string will be stored as the property's value.
+     *
+     * @param key the key under which the property will be stored
+     * @param value the integer value to be stored; if null, an empty string will be used
      */
     protected void setIntegerProperty(final String key, final Integer value) {
         if (value == null) {
@@ -117,13 +151,14 @@ public class Configuration {
     }
 
     /**
-     * Gets the property as LocalDate.
-     * <br>
-     *     An null value or an empty String is given as null.
-     * @param key Key of the property.
-     * @param defaultValue default Value.
-     * @param formatString Format String to use.
-     * @return The LocalDate stored the property or the default value if property unknown or couldn't be parsed.
+     * Retrieves a LocalDate value from the properties based on the provided key.
+     * If the key does not exist or the value is invalid, a default value is returned.
+     *
+     * @param key the key to look up the property in the properties map
+     * @param defaultValue the default LocalDate value to return if the key is not found
+     * @param formatString the format string to parse the LocalDate value
+     * @return the LocalDate value from the properties if available and valid,
+     *         otherwise the defaultValue
      */
     protected LocalDate getLocalDateProperty(final String key, final LocalDate defaultValue, final String formatString) {
         if (!properties.containsKey(key)) return defaultValue;
@@ -134,12 +169,12 @@ public class Configuration {
     }
 
     /**
-     * Sets the LocalDate using the provided format String.
-     * <br>
-     *     Null is allowed and is stored as empty string.
-     * @param key Key of the property to set.
-     * @param value Value to set.
-     * @param formatString Format string to use.
+     * Sets a property with the given key and a formatted LocalDate value.
+     * If the provided value is null, the property will be set to an empty string.
+     *
+     * @param key the key of the property to set
+     * @param value the LocalDate value to format and set as the property value
+     * @param formatString the pattern string used to format the LocalDate value
      */
     protected void setLocalDateProperty(final String key, final LocalDate value, final String formatString) {
         if (value == null) {
@@ -150,9 +185,11 @@ public class Configuration {
     }
 
     /**
-     * Sets a property to a new value.
-     * @param key Key of property to set.
-     * @param value New value of property.
+     * Sets a property with the specified key to the given value. If the value is null,
+     * it defaults to an empty string. Logs the operation and updates the property.
+     *
+     * @param key the key of the property to be set
+     * @param value the value to be associated with the specified key; defaults to an empty string if null
      */
     public void setProperty(final String key, final String value) {
         String newValue = value == null ? "" : value;
@@ -161,14 +198,22 @@ public class Configuration {
     }
 
     /**
-     * Loads the configuration of the file.
+     * Loads the content of the specified file using the provided file name.
+     *
+     * @param fileName the name of the file to be loaded
      */
     public void load(final String fileName) {
         load(fileName, Charset.defaultCharset().name(), true);
     }
 
     /**
-     * Loads the configuration of the file.
+     * Loads the configuration from a specified file. If the file does not exist in the
+     * specified location, it attempts to find the file alongside the JAR file of the application.
+     * Reads the configuration with the provided encoding and an option to accept UTF-8 encoding.
+     *
+     * @param fileName    the name of the configuration file to be loaded
+     * @param encoding    the encoding format to be used while reading the configuration file
+     * @param acceptUTF8  a boolean flag indicating whether to accept UTF-8 encoding
      */
     public void load(final String fileName, final String encoding, final boolean acceptUTF8) {
         log.info("Reading Config: " + fileName + " with encoding: " + encoding + "accepting UTF-8: " + acceptUTF8);
@@ -201,8 +246,9 @@ public class Configuration {
     }
 
     /**
-     * Insert the configuration settings of the given config.
-     * @param config Configuration to merge into this instance.
+     * Merges the properties from the provided configuration into the current configuration.
+     *
+     * @param config the Configuration object whose properties will be merged into this instance
      */
     public void merge(final Configuration config) {
         for(Map.Entry<Object, Object> entry: config.properties.entrySet()) {
@@ -211,8 +257,9 @@ public class Configuration {
     }
 
     /**
-     * Removes a key from the configuration.
-     * @param key
+     * Removes the specified key-value pair from the properties map if the key exists.
+     *
+     * @param key the key to be removed from the properties map
      */
     public void remove(final String key){
         if (properties.containsKey(key)) properties.remove(key);

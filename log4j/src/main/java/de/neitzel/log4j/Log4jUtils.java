@@ -6,40 +6,53 @@ import java.io.File;
 import java.net.URISyntaxException;
 
 /**
- * Adds Utility Methods for log4j.
+ * Utility class for managing Log4j configurations. Provides methods to set up
+ * Log4j configurations from default files, resources, or command line arguments.
  */
 public class Log4jUtils {
 
     /**
-     * Default Logfile that should be read.
-     * Must be a relative path that is checked from the current directory and also from the location of the jar file.
+     * The default path to the Log4j configuration file.
+     * This variable is used to specify the local file path for the Log4j configuration
+     * when no custom configuration is provided.
      */
     public static final String DEFAULT_LOG4J_LOGFILE = "./log4j.properties";
 
     /**
-     * Resource to use when no file is found.
+     * The default resource path to the Log4j configuration file included in the classpath.
+     * This path is used as a fallback when no other Log4j configuration is explicitly set.
      */
     public static final String DEFAULT_LOG4J_RESOURCE = "/log4j.default.properties";
 
     /**
-     * Checks if a log4j config file was set on command line with -Dlog4j.configuration
-     * @return true if log4j.configuration was set.
+     * Checks if the system property "log4j.configuration" is set.
+     *
+     * @return true if the "log4j.configuration" property is defined, false otherwise.
      */
     public static boolean isLog4jConfigFileSet() {
         return System.getProperty("log4j.configuration") != null;
     }
 
     /**
-     * Uses the default configurations if no config file was set.
+     * Configures Log4j using default configuration settings.
+     * This method leverages a default configuration file path and a default resource path
+     * to set up Log4j logging if a configuration file is not already specified via
+     * a system property. If a valid configuration file or resource is found, it will be applied.
+     *
+     * Delegates to the overloaded {@code setLog4jConfiguration(String log4jConfigFile, String defaultResource)}
+     * method using predefined defaults.
      */
     public static void setLog4jConfiguration() {
         setLog4jConfiguration(DEFAULT_LOG4J_LOGFILE, DEFAULT_LOG4J_RESOURCE);
     }
 
     /**
-     * Gets the file with path relative to the jar file.
-     * @param log4jConfigFile log4j config file.
-     * @return Path if possible or null.
+     * Constructs the absolute path to the specified Log4j configuration file located
+     * in the same directory as the JAR file of the application.
+     *
+     * @param log4jConfigFile The name of the Log4j configuration file.
+     * @return The absolute path to the specified Log4j configuration file if the
+     *         path is successfully constructed; otherwise, returns null in case of an error.
      */
     public static String getLog4jLogfileAtJar(final String log4jConfigFile) {
         try {
@@ -50,13 +63,13 @@ public class Log4jUtils {
     }
 
     /**
-     * Uses the default configurations if no config file was set.
-     * <p>
-     *     A log4j configuration can be set using -Dlog4j.configuration. If no configuration was set,
-     *     we look for the log4jConfigFile. If it does not exist, we read the defaultResource.
-     * </p>
-     * @param log4jConfigFile Default file to look for.
-     * @param defaultResource Resource path to use if config file wasn't found.
+     * Sets the Log4j configuration using the specified configuration file or a default resource
+     * if the configuration file is not found. If a Log4j configuration is already set, the method
+     * does nothing.
+     *
+     * @param log4jConfigFile the path to the Log4j configuration file to be used.
+     * @param defaultResource the fallback resource to be used as the configuration if the file
+     *                        is not found or accessible.
      */
     public static void setLog4jConfiguration(final String log4jConfigFile, final String defaultResource) {
         if (isLog4jConfigFileSet()) return;

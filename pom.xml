@@ -25,10 +25,10 @@
 
         <!-- Dependency versions -->
         <javafx.version>21.0.3</javafx.version>
-        <jetbrains.annotations.version>24.1.0</jetbrains.annotations.version>
-        <junit.version>5.10.2</junit.version>
-        <lombok.version>1.18.32</lombok.version>
-        <mockito.version>5.12.0</mockito.version>
+        <jetbrains.annotations.version>26.0.2</jetbrains.annotations.version>
+        <junit.version>5.12.1</junit.version>
+        <lombok.version>1.18.38</lombok.version>
+        <mockito.version>5.16.1</mockito.version>
         <reflections.version>0.10.2</reflections.version>
         <slf4j.version>2.0.17</slf4j.version>
 
@@ -142,6 +142,13 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Logging implementation -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
         </dependency>
 

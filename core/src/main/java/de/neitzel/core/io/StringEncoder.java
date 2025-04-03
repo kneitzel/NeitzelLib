@@ -1,17 +1,33 @@
 package de.neitzel.core.io;
 
 /**
- * An encoder for Strings.
- * <p>
- *     All characters with unicode number less than 32 or greater than 127 or 38 (Ampersend)
- *     will be encoded with &#number; with number as the decimal unicode number.
+ * Utility class for encoding and decoding strings.
+ * This class provides methods for transforming strings into encoded representations
+ * and decoding them back to the original representation.
  */
 public class StringEncoder {
 
     /**
-     * Decodes the encoded String.
-     * @param data Encoded string.
-     * @return Decoded String.
+     * Private constructor to prevent instantiation of the utility class.
+     * This utility class is not meant to be instantiated, as it only provides
+     * static utility methods for array-related operations.
+     *
+     * @throws UnsupportedOperationException always, to indicate that this class
+     *                                        should not be instantiated.
+     */
+    private StringEncoder() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
+    /**
+     * Decodes a string containing encoded characters back to its original representation.
+     * Encoded characters are expected to be in the format {@code "&amp;#<code>;<code>"}, where
+     * {@code <code>} is a numeric representation of the character to decode.
+     *
+     * @param data the string to decode; may contain encoded characters or regular text. If null, an empty string is returned.
+     * @return the decoded string with all encoded characters replaced by their original representations.
+     * @throws IllegalArgumentException if the input string has encoding markup
+     *         that is improperly formatted or incomplete.
      */
     public static String decodeData(final String data) {
         if (data == null) return "";
@@ -40,9 +56,13 @@ public class StringEncoder {
     }
 
     /**
-     * Decode a single character.
-     * @param data String in the form &#xxx; with xxx a decimal number.
-     * @return The decoded character.
+     * Decodes a character from its numeric character reference representation.
+     * The input string must represent an encoded character in the format {@code "&#<code_point>;"}.
+     *
+     * @param data the string containing the numeric character reference to decode.
+     *             It must start with {@code "&#"} and end with {@code ";"}.
+     * @return the decoded character represented by the numeric character reference.
+     * @throws IllegalArgumentException if the input string does not follow the expected format.
      */
     public static char decodeCharacter(final String data) {
         if (!data.startsWith("&#")) throw new IllegalArgumentException("Data does not start with &# (" + data + ")");
@@ -51,12 +71,13 @@ public class StringEncoder {
     }
 
     /**
-     * Encode data to a better String representation.
-     * <p>
-     *     All Characters between from ascii 32 to 127 (except 38 / &)
-     *     are replaced with a &#code; where code is the number of the character.
-     * @param data String that should be encoded.
-     * @return Encoded String.
+     * Encodes the provided string by converting characters outside the ASCII range (32-127)
+     * and the ampersand {@code "&"} character into their corresponding numeric character reference
+     * representation (e.g., {@code "&#38;"}).
+     *
+     * @param data the input string to encode; if null, an empty string is returned
+     * @return an encoded string where non-ASCII and ampersand characters
+     *         are replaced with numeric character references
      */
     public static String encodeData(final String data) {
         if (data == null) return "";

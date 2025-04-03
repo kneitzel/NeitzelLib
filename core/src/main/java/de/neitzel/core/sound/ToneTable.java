@@ -14,6 +14,18 @@ import java.util.HashMap;
  */
 public class ToneTable {
     /**
+     * Private constructor to prevent instantiation of the utility class.
+     * This utility class is not meant to be instantiated, as it only provides
+     * static utility methods for array-related operations.
+     *
+     * @throws UnsupportedOperationException always, to indicate that this class
+     *                                        should not be instantiated.
+     */
+    private ToneTable() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
+    /**
      * A static map that associates written tone names with their corresponding frequencies in hertz (Hz).
      * The keys represent tone names (e.g., "C4", "D#5"), and the values are their respective frequencies.
      * This map serves as a reference for converting tone names into their precise frequency values,

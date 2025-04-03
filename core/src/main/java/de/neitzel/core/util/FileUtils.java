@@ -10,37 +10,65 @@ import java.text.SimpleDateFormat;
 import java.util.stream.Collectors;
 
 /**
- * Utility Methods regarding files.
+ * Utility class for handling file operations, such as encoding checks, content reading/writing,
+ * path manipulations, and file conversions.
  */
 @Slf4j
 public class FileUtils {
+    /**
+     * Private constructor to prevent instantiation of the utility class.
+     * This utility class is not meant to be instantiated, as it only provides
+     * static utility methods for array-related operations.
+     *
+     * @throws UnsupportedOperationException always, to indicate that this class
+     *                                        should not be instantiated.
+     */
+    private FileUtils() {
+        throw new UnsupportedOperationException("Utility class");
+    }
 
     /**
-     * Date/Time format to add to request files.
+     * Defines a standardized timestamp format for debugging purposes, specifically used for naming
+     * or identifying files with precise timestamps. The format is "yyyy-MM-dd_HH_mm_ss_SSS", which
+     * includes:
+     * - Year in four digits (yyyy)
+     * - Month in two digits (MM)
+     * - Day of the month in two digits (dd)
+     * - Hour in 24-hour format with two digits (HH)
+     * - Minutes in two digits (mm)
+     * - Seconds in two digits (ss)
+     * - Milliseconds in three digits (SSS)
+     *
+     * This ensures timestamps are sortable and easily identifiable.
      */
     public static final SimpleDateFormat DEBUG_FILE_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss_SSS");
 
     /**
-     * Default encoding used to check the File
+     * Default encoding used for string checks and validations in the application.
+     *
+     * This constant represents the `ISO-8859-15` encoding, which is a standardized
+     * character set encoding, commonly used in contexts where backward compatibility
+     * with `ISO-8859-1` is required, but with support for certain additional characters,
+     * such as the euro currency symbol (€).
      */
     public static final String DEFAULT_CHECK_ENCODING = "ISO-8859-15";
 
     /**
-     * Default Buffer size.
+     * Specifies the default buffer size used for data processing operations.
+     *
+     * This constant represents the size of the buffer in bytes, set to 1024,
+     * and is typically utilized in input/output operations to optimize performance
+     * by reducing the number of read/write calls.
      */
     public static final int BUFFER_SIZE = 1024;
 
     /**
-     * Checks if a File is UTF-8 encoded.
-     * <p>
-     *     This method checks a file for
-     *     - first 3 bytes for UTF-8 BOM (0xEF 0xBB 0xBF)
-     *     - Existence of 0xC2 / 0xC3 character.
-     * </p>
-     * @param file File to check.
-     * @param checkEncoding Encoding to use for the check, e.g. ISO-8859-15.
-     * @return true if an UTF-8 file is found, else false.
-     * @throws IOException IOException is thrown if the file could not be read.
+     * Determines whether the given file is encoded in UTF-8.
+     *
+     * @param file The file to be checked for UTF-8 encoding.
+     * @param checkEncoding The character encoding to use while checking the file content.
+     * @return true if the file is determined to be encoded in UTF-8; false otherwise.
+     * @throws IOException If an I/O error occurs while reading the file.
      */
     public static boolean isUTF8(final File file, final String checkEncoding) throws IOException {
 
@@ -69,15 +97,14 @@ public class FileUtils {
     }
 
     /**
-     * Checks if the File has a UTF-8 BOM.
-     * <p>
-     *     This method checks a file for
-     *     - first 3 bytes for UTF-8 BOM (0xEF 0xBB 0xBF)
-     *     - Existence of 0xC2 / 0xC3 character.
-     * </p>
-     * @param file File to check.
-     * @return true if an UTF-8 BOM Header was found.
-     * @throws IOException IOException is thrown if the file could not be read.
+     * Checks if the provided file starts with a UTF-8 Byte Order Mark (BOM).
+     *
+     * This method reads the first character of the file using a reader that assumes
+     * UTF-8 encoding and checks if it matches the Unicode Byte Order Mark (U+FEFF).
+     *
+     * @param file The file to check for a UTF-8 BOM. Must not be null.
+     * @return true if the file starts with a UTF-8 BOM, false otherwise.
+     * @throws IOException If an input or output exception occurs while reading the file.
      */
     public static boolean hasUTF8BOM(final File file) throws IOException {
         try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
@@ -89,27 +116,27 @@ public class FileUtils {
     }
 
     /**
-     * Checks if a File is UTF-8 encoded.
-     * <p>
-     *     This method checks a file for
-     *     - first 3 bytes for UTF-8 BOM (0xEF 0xBB 0xBF)
-     *     - Existence of 0xC2 / 0xC3 character.
-     * </p>
-     * @param file File to check.
-     * @return true if an UTF-8 file is found, else false.
-     * @throws IOException IOException is thrown if the file could not be read.
+     * Determines if the content of the given file is encoded in UTF-8.
+     *
+     * @param file The file to check for UTF-8 encoding. Must not be null.
+     * @return true if the file content is in UTF-8 encoding; false otherwise.
+     * @throws IOException If an I/O error occurs while reading the file.
      */
     public static boolean isUTF8(final File file) throws IOException {
         return isUTF8(file, DEFAULT_CHECK_ENCODING);
     }
 
     /**
-     * Converts the given Textfile inFile to the outFile using the given encodings.
-     * @param inFile File to read as UTF-8.
-     * @param sourceFormat Format of the source file.
-     * @param outFile File to write with ISO-8859-15 format.
-     * @param targetFormat Format of the target file.
-     * @throws IOException Thrown when files couldn't be read / written.
+     * Converts the content of a text file from one character encoding format to another.
+     *
+     * This method reads the input text file using the specified source encoding and writes
+     * the content to the output text file in the specified target encoding.
+     *
+     * @param inFile The input text file to be converted. Must not be null.
+     * @param sourceFormat The character encoding of the input file. Must not be null or empty.
+     * @param outFile The output text file to write the converted content to. Must not be null.
+     * @param targetFormat The character encoding to be used for the output file. Must not be null or empty.
+     * @throws IOException If an I/O error occurs during reading or writing.
      */
     public static void convertTextFile(final File inFile, final String sourceFormat, final File outFile, final String targetFormat) throws IOException {
         char[] buffer = new char[BUFFER_SIZE];
@@ -142,48 +169,66 @@ public class FileUtils {
     }
 
     /**
-     * Creates a new InputStreamReader with the given format or UTF-8 if an UTF-8 file was recognized.
-     * @param filename Name of file to read.
-     * @return An InputStreamReader
+     * Creates a universal file reader for the specified file name.
+     * This method initializes and returns an InputStreamReader to read
+     * the content of the given file.
+     *
+     * @param filename The name or path of the file to be read.
+     * @return An InputStreamReader for reading the specified file.
+     * @throws IOException If an I/O error occurs while creating the file reader.
      */
     public static InputStreamReader createUniversalFileReader(final String filename) throws IOException {
         return createUniversalFileReader(new File(filename));
     }
 
     /**
-     * Creates a new InputStreamReader with the given format or UTF-8 if an UTF-8 file was recognized.
-     * @param filename Name of file to read.
-     * @param expectedFormat Expected format e.g. ISO-8859-15
-     * @return An InputStreamReader
+     * Creates a universal file reader for the specified file and format.
+     * The method resolves the file using its name and the expected format,
+     * returning an InputStreamReader for reading the file contents.
+     *
+     * @param filename the name of the file to be read.
+     * @param expectedFormat the format expected for the file content.
+     * @return an InputStreamReader for the specified file and format.
+     * @throws IOException if an I/O error occurs while opening or reading the file.
      */
     public static InputStreamReader createUniversalFileReader(final String filename, final String expectedFormat) throws IOException {
         return createUniversalFileReader(new File(filename), expectedFormat);
     }
 
     /**
-     * Creates a new InputStreamReader with the given format or UTF-8 if an UTF-8 file was recognized.
-     * @param file File to read.
-     * @return An InputStreamReader
+     * Creates a universal file reader for the specified file using the default encoding and configuration.
+     *
+     * @param file The file to be read. Must not be null.
+     * @return An InputStreamReader configured to read the specified file.
+     * @throws IOException If an I/O error occurs while creating the reader.
      */
     public static InputStreamReader createUniversalFileReader(final File file) throws IOException {
         return createUniversalFileReader(file, DEFAULT_CHECK_ENCODING, true);
     }
 
     /**
-     * Creates a new InputStreamReader with the given format or UTF-8 if an UTF-8 file was recognized.
-     * @param file File to read.
-     * @param expectedFormat Expected format e.g. ISO-8859-15
-     * @return An InputStreamReader
+     * Creates a universal file reader for the specified file with an expected format.
+     * This method wraps the given file in an InputStreamReader for consistent character stream manipulation.
+     *
+     * @param file The file to be read. Must not be null.
+     * @param expectedFormat The expected format of the file (e.g., encoding). Must not be null.
+     * @return An InputStreamReader for the specified file, allowing the caller to read the file
+     *         with the desired format applied.
+     * @throws IOException If an I/O error occurs during the creation of the reader.
      */
     public static InputStreamReader createUniversalFileReader(final File file, final String expectedFormat) throws IOException {
         return createUniversalFileReader(file, expectedFormat, true);
     }
 
     /**
-     * Creates a new InputStreamReader with the given format or UTF-8 if an UTF-8 file was recognized.
-     * @param file File to read.
-     * @param expectedFormat Expected format e.g. ISO-8859-15
-     * @return An InputStreamReader
+     * Creates an InputStreamReader for reading a file, considering the specified encoding format
+     * and whether UTF-8 should be accepted. Handles potential BOM for UTF-8 encoded files.
+     *
+     * @param file The file to be read.
+     * @param expectedFormat The expected encoding format of the file.
+     * @param acceptUTF8 Indicates whether UTF-8 encoding should be accepted if detected.
+     * @return An InputStreamReader for the specified file and encoding.
+     * @throws IOException If there is an error accessing the file or reading its content.
      */
     public static InputStreamReader createUniversalFileReader(final File file, final String expectedFormat, final boolean acceptUTF8) throws IOException {
         String encoding = acceptUTF8 && isUTF8(file, expectedFormat)
@@ -201,9 +246,13 @@ public class FileUtils {
     }
 
     /**
-     * Gets the parent directory of a file name.
-     * @param filename Name of file.
-     * @return Parent folder.
+     * Retrieves the parent directory of the given file or directory path.
+     *
+     * If the given path does not have a parent directory, it defaults to returning the
+     * current directory represented by ".".
+     *
+     * @param filename The file or directory path for which the parent directory is to be retrieved.
+     * @return The parent directory of the given path, or "." if no parent directory exists.
      */
     public static String getParentDirectory(final String filename) {
         File file = new File(filename);
@@ -211,9 +260,10 @@ public class FileUtils {
     }
 
     /**
-     * Gets the core name of the file without path.
-     * @param filename Filename with path.
-     * @return Filename without path.
+     * Extracts the name of a file from the given file path.
+     *
+     * @param filename The full path or name of the file. Must not be null.
+     * @return The name of the file without any directory path.
      */
     public static String getFilename(final String filename) {
         File file = new File(filename);
@@ -221,10 +271,11 @@ public class FileUtils {
     }
 
     /**
-     * Reads the content of a file (With the correct encoding!).
-     * @param filename Name of file to read.
-     * @return Content of the file or null in case of an error.
-     * @throws IOException Throes an IOException if the file cannot be read.
+     * Reads the content of a file and returns it as a string, joining all lines with the system line separator.
+     *
+     * @param filename The name of the file to be read.
+     * @return A string containing the content of the file with all lines joined by the system line separator.
+     * @throws IOException If an I/O error occurs while reading the file.
      */
     public static String readFileContent(final String filename) throws IOException {
         try (BufferedReader reader = new BufferedReader(createUniversalFileReader(filename))) {
@@ -233,10 +284,11 @@ public class FileUtils {
     }
 
     /**
-     * Writes the content given to a file.
-     * @param path Path of the file to write.
-     * @param content Content to write.
-     * @throws IOException Thrown if the file could not be written.
+     * Writes the given content to the specified file path. If the file already exists, it will be overwritten.
+     *
+     * @param path The path of the file to write to. Must not be null and must be writable.
+     * @param content The content to be written to the file. Must not be null.
+     * @throws IOException If an I/O error occurs during writing to the file.
      */
     public static void writeFile(final Path path, final String content) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(path.toFile()))) {
