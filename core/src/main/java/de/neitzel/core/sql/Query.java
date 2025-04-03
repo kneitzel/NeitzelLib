@@ -22,7 +22,6 @@ import java.util.stream.StreamSupport;
  * @param <T> The type of the objects returned by the query.
  */
 @Slf4j
-@RequiredArgsConstructor
 public class Query<T> {
 
   /**
@@ -68,6 +67,15 @@ public class Query<T> {
    * This variable stores the query string used for processing or execution purposes within the application.
    */
   private String queryText;
+
+  /**
+   * Constructs a new Query object with the given database connection.
+   *
+   * @param connection The Connection object used to interact with the database.
+   */
+  public Query(Connection connection) {
+    this.connection = connection;
+  }
 
   /**
    * Executes the given SQL query using the provided database connection.

@@ -11,6 +11,18 @@ import javax.sound.sampled.SourceDataLine;
  */
 public class ToneGenerator {
     /**
+     * Private constructor to prevent instantiation of the utility class.
+     * This utility class is not meant to be instantiated, as it only provides
+     * static utility methods for array-related operations.
+     *
+     * @throws UnsupportedOperationException always, to indicate that this class
+     *                                        should not be instantiated.
+     */
+    private ToneGenerator() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
+    /**
      * Plays a tone based on a predefined tone name for a specified duration.
      *
      * @param tone The name of the tone to play. Must correspond to a predefined tone in the tone table.

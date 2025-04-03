@@ -18,7 +18,6 @@ import java.util.Map;
  * If any additional behaviors or transformations are applied, they are documented
  * in the respective overridden method descriptions.
  */
-@RequiredArgsConstructor
 public class TrimmingResultSet implements ResultSet {
 
   /**
@@ -31,7 +30,16 @@ public class TrimmingResultSet implements ResultSet {
    * SQL query execution lifecycle.
    */
   private final ResultSet resultSet;
-    
+
+  /**
+   * Initializes a new instance of the TrimmingResultSet class, wrapping the provided ResultSet.
+   *
+   * @param resultSet the ResultSet to be wrapped and processed by this TrimmingResultSet instance
+   */
+  public TrimmingResultSet(ResultSet resultSet) {
+    this.resultSet = resultSet;
+  }
+
   /**
    * Retrieves the string value from the specified column index of the current row in the ResultSet.
    * The value is trimmed to remove leading and trailing whitespace. If the value is null, it returns null.
