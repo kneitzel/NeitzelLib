@@ -17,6 +17,12 @@ This is free and unencumbered software released into the public domain. Please s
 
 ---
 
+## Hinweis zu Inhalten
+
+Die Inhalte dieses Repositories – inklusive Quelltext, Dokumentation und Beispiele – wurden zum Teil mit Unterstützung von ChatGPT (einem KI-Modell von OpenAI) erstellt. Dabei wurden generierte Inhalte von mir redaktionell überprüft, angepasst und in den Gesamtkontext eingeordnet.
+
+Die Verantwortung für sämtliche Inhalte liegt vollständig bei mir. Etwaige generierte Inhalte unterliegen den [Nutzungsbedingungen von OpenAI](https://openai.com/policies/terms-of-use) und sind – soweit möglich – gemeinfrei oder unter einer mit der Projektlizenz kompatiblen Lizenz nutzbar.
+
 ## Components
 
 ### core
