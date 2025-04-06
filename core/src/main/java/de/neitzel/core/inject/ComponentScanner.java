@@ -1,6 +1,7 @@
 package de.neitzel.core.inject;
 
 import de.neitzel.core.inject.annotation.Component;
+import de.neitzel.core.inject.annotation.Inject;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
@@ -13,7 +14,7 @@ import java.util.stream.Collectors;
  * The resulting analysis identifies unique and shared interfaces/superclasses as well as
  * potentially instantiable components, collecting relevant errors if instantiation is not feasible.
  */
-public class InjectableComponentScanner {
+public class ComponentScanner {
 
     /**
      * A set that stores classes annotated with {@code @Component}, representing
@@ -30,7 +31,7 @@ public class InjectableComponentScanner {
      * This field is immutable, ensuring thread safety and consistent state
      * throughout the lifetime of the {@code InjectableComponentScanner}.
      */
-    private final Set<Class<?>> fxmlComponents = new HashSet<>();
+    private final Set<Class<?>> components = new HashSet<>();
 
     /**
      * A set of component types that are not uniquely associated with a single implementation.
@@ -75,7 +76,7 @@ public class InjectableComponentScanner {
      * The resolution process checks if a component can be instantiated based on its
      * constructor dependencies being resolvable using known types or other registered components.
      */
-    private final Map<Class<?>, Class<?>> instantiableComponents = new HashMap<>();
+    private final Map<Class<?>, ComponentData> instantiableComponents = new HashMap<>();
 
     /**
      * A list of error messages encountered during the scanning and analysis
@@ -96,7 +97,7 @@ public class InjectableComponentScanner {
      *
      * @param basePackage the base package to scan for injectable components
      */
-    public InjectableComponentScanner(String basePackage) {
+    public ComponentScanner(String basePackage) {
         scanForComponents(basePackage);
         analyzeComponentTypes();
         resolveInstantiableComponents();
@@ -110,7 +111,7 @@ public class InjectableComponentScanner {
      */
     private void scanForComponents(String basePackage) {
         Reflections reflections = new Reflections(basePackage);
-        fxmlComponents.addAll(reflections.getTypesAnnotatedWith(Component.class));
+        components.addAll(reflections.getTypesAnnotatedWith(Component.class));
     }
 
     /**
@@ -135,7 +136,7 @@ public class InjectableComponentScanner {
     private void analyzeComponentTypes() {
         Map<Class<?>, List<Class<?>>> superTypesMap = new HashMap<>();
 
-        for (Class<?> component : fxmlComponents) {
+        for (Class<?> component : components) {
             Set<Class<?>> allSuperTypes = getAllSuperTypes(component);
 
             for (Class<?> superType : allSuperTypes) {
@@ -156,44 +157,48 @@ public class InjectableComponentScanner {
     }
 
     /**
-     * Resolves components from the set of scanned classes that can be instantiated based on their constructors
-     * and existing known types. The method iteratively processes classes to identify those whose dependencies
-     * can be satisfied, marking them as resolved and registering them alongside their supertypes.
+     * Resolves and identifies instantiable components from a set of scanned components.
+     * This process determines which components can be instantiated based on their dependencies
+     * and class relationships, while tracking unresolved types and potential conflicts.
      *
-     * If progress is made during a pass (i.e., a component is resolved), the process continues until no more
-     * components can be resolved. Any components that remain unresolved are recorded for further inspection.
+     * The resolution process involves:
+     * 1. Iteratively determining which components can be instantiated using the known types
+     *    map. A component is resolvable if its dependencies can be satisfied by the current
+     *    set of known types.
+     * 2. Registering resolvable components and their superclasses/interfaces into the known
+     *    types map for future iterations.
+     * 3. Removing successfully resolved components from the unresolved set.
+     * 4. Repeating the process until no further components can be resolved in a given iteration.
      *
-     * The resolved components are stored in a map where each type and its supertypes are associated
-     * with the component class itself. This map allows for subsequent lookups when verifying dependency satisfiability.
+     * At the end of the resolution process:
+     * - Resolvable components are added to the `instantiableComponents` map, which maps types
+     *   to their corresponding instantiable implementations.
+     * - Unresolved components are identified, and error details are collected to highlight
+     *   dependencies or conflicts preventing their instantiation.
      *
-     * If unresolved components remain after the resolution process, detailed instantiation errors are collected
-     * for debugging or logging purposes.
-     *
-     * This method depends on the following utility methods:
-     * - {@link #canInstantiate(Class, Set)}: Determines if a component can be instantiated based on existing known types.
-     * - {@link #registerComponentWithSuperTypes(Class, Map)}: Registers a component and its supertypes in the known types map.
-     * - {@link #collectInstantiationErrors(Set)}: Collects detailed error messages for unresolved components.
+     * If errors are encountered due to unresolved components, they are logged for further analysis.
      */
     private void resolveInstantiableComponents() {
         Set<Class<?>> resolved = new HashSet<>();
-        Set<Class<?>> unresolved = new HashSet<>(fxmlComponents);
-        Map<Class<?>, Class<?>> knownTypes = new HashMap<>();
+        Set<Class<?>> unresolved = new HashSet<>(components);
+        Map<Class<?>, ComponentData> knownTypes = new HashMap<>();
+        Set<Class<?>> resolvableNow;
 
-        boolean progress;
         do {
-            progress = false;
-            Iterator<Class<?>> iterator = unresolved.iterator();
+            resolvableNow = unresolved.stream()
+                    .filter(c -> canInstantiate(c, knownTypes.keySet()))
+                    .collect(Collectors.toSet());
 
-            while (iterator.hasNext()) {
-                Class<?> component = iterator.next();
-                if (canInstantiate(component, knownTypes.keySet())) {
-                    resolved.add(component);
-                    registerComponentWithSuperTypes(component, knownTypes);
-                    iterator.remove();
-                    progress = true;
-                }
+            for (Class<?> clazz : resolvableNow) {
+                Component annotation = clazz.getAnnotation(Component.class);
+                ComponentData componentInfo = new ComponentData(clazz, annotation.scope());
+
+                resolved.add(clazz);
+                registerComponentWithSuperTypes(componentInfo, knownTypes);
             }
-        } while (progress);
+
+            unresolved.removeAll(resolvableNow);
+        } while (!resolvableNow.isEmpty());
 
         instantiableComponents.putAll(knownTypes);
 
@@ -203,16 +208,17 @@ public class InjectableComponentScanner {
     }
 
     /**
-     * Registers the given component class in the provided map. The component is registered along with all of its
-     * accessible superclasses and interfaces, unless those types are identified as non-unique.
+     * Registers a component and its superclasses or interfaces in the provided map of known types.
+     * This method ensures that the component and its inheritance hierarchy are associated with the
+     * component's data unless the supertype is marked as non-unique.
      *
-     * @param component the component class to register
-     * @param knownTypes the map where the component and its types will be registered
+     * @param component the {@code ComponentData} instance representing the component to be registered
+     * @param knownTypes the map where component types and their data are stored
      */
-    private void registerComponentWithSuperTypes(Class<?> component, Map<Class<?>, Class<?>> knownTypes) {
-        knownTypes.put(component, component);
+    private void registerComponentWithSuperTypes(ComponentData component, Map<Class<?>, ComponentData> knownTypes) {
+        knownTypes.put(component.getType(), component);
 
-        for (Class<?> superType : getAllSuperTypes(component)) {
+        for (Class<?> superType : getAllSuperTypes(component.getType())) {
             if (!notUniqueTypes.contains(superType)) {
                 knownTypes.put(superType, component);
             }
@@ -220,22 +226,38 @@ public class InjectableComponentScanner {
     }
 
     /**
-     * Determines whether a given class can be instantiated based on its constructors and
-     * the provided known types. A class is considered instantiable if it has a parameterless
-     * constructor or if all the parameter types of its constructors are present in the known types.
+     * Determines whether the specified component class can be instantiated based on the provided set
+     * of known types. A component is considered instantiable if it has at least one constructor where
+     * all parameter types are contained in the known types set or if it has a no-argument constructor.
+     * Additionally, all fields annotated with {@code @Inject} must have their types present in the
+     * known types set.
      *
-     * @param component  the class to check for instantiation eligibility
-     * @param knownTypes the set of types known to be instantiable and available for constructor injection
-     * @return true if the class can be instantiated; false otherwise
+     * @param component the class to check for instantiability
+     * @param knownTypes the set of currently known types that can be used to satisfy dependencies
+     * @return {@code true} if the component can be instantiated; {@code false} otherwise
      */
     private boolean canInstantiate(Class<?> component, Set<Class<?>> knownTypes) {
+        boolean hasValidConstructor = false;
+
         for (Constructor<?> constructor : component.getConstructors()) {
             Class<?>[] paramTypes = constructor.getParameterTypes();
             if (paramTypes.length == 0 || Arrays.stream(paramTypes).allMatch(knownTypes::contains)) {
-                return true;
+                hasValidConstructor = true;
+                break;
             }
         }
-        return false;
+
+        if (!hasValidConstructor) {
+            return false;
+        }
+
+        for (var field : component.getDeclaredFields()) {
+            if (field.isAnnotationPresent(Inject.class) && !knownTypes.contains(field.getType())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -256,7 +278,7 @@ public class InjectableComponentScanner {
                 Class<?>[] paramTypes = constructor.getParameterTypes();
                 List<Class<?>> problematicTypes = Arrays.stream(paramTypes)
                         .filter(t -> !instantiableComponents.containsKey(t) && !notUniqueTypes.contains(t))
-                        .collect(Collectors.toList());
+                        .toList();
 
                 if (problematicTypes.isEmpty()) {
                     possibleWithUniqueTypes = true;
@@ -317,7 +339,7 @@ public class InjectableComponentScanner {
      * @return A map where the key is a class type and the value is the corresponding class implementation
      *         that can be instantiated.
      */
-    public Map<Class<?>, Class<?>> getInstantiableComponents() {
+    public Map<Class<?>, ComponentData> getInstantiableComponents() {
         return instantiableComponents;
     }
 
