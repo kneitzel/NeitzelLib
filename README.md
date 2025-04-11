@@ -2,11 +2,9 @@
 
 ## A Java Utilities Library
 
-This repository is **not** a production-ready library, but rather a loose collection of small helpers, utilities, and ideas that might come in handy for Java developers.
+This repository is **not** a production-ready library, but rather a personal collection of small helpers, utilities, and ideas that I find useful or interesting as a Java developer.
 
-The code in this project is intended as a **starting point** or **inspiration** for your own solutions. It is often easier to copy and adapt individual classes as needed instead of using the whole library as a dependency.
-
-Feel free to explore, copy, modify, and improve whatever you find useful.
+It serves primarily as a **knowledge base** and **inspiration pool** for my own development work. You're welcome to explore, copy, modify, or improve whatever you find helpful.
 
 > ⚠️ Use at your own discretion — no guarantees of stability, backwards compatibility, or completeness.
 
@@ -17,11 +15,11 @@ This is free and unencumbered software released into the public domain. Please s
 
 ---
 
-## Hinweis zu Inhalten
+## Note on Content
 
-Die Inhalte dieses Repositories – inklusive Quelltext, Dokumentation und Beispiele – wurden zum Teil mit Unterstützung von ChatGPT (einem KI-Modell von OpenAI) erstellt. Dabei wurden generierte Inhalte von mir redaktionell überprüft, angepasst und in den Gesamtkontext eingeordnet.
+The content of this repository — including source code, documentation, and examples — was partially created with the assistance of ChatGPT (an AI model by OpenAI). The generated content has been reviewed, edited, and integrated into the overall context by me.
 
-Die Verantwortung für sämtliche Inhalte liegt vollständig bei mir. Etwaige generierte Inhalte unterliegen den [Nutzungsbedingungen von OpenAI](https://openai.com/policies/terms-of-use) und sind – soweit möglich – gemeinfrei oder unter einer mit der Projektlizenz kompatiblen Lizenz nutzbar.
+Responsibility for all content lies entirely with me. Any generated content is subject to [OpenAI’s Terms of Use](https://openai.com/policies/terms-of-use) and is — where possible — either in the public domain or usable under a license compatible with this project's license.
 
 ## Components
 
