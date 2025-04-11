@@ -14,6 +14,7 @@
         <module>core</module>
         <module>encryption</module>
         <module>fx</module>
+        <module>gson</module>
         <module>net</module>
         <module>log4j</module>
         <module>fx-example</module>

@@ -1,7 +1,5 @@
 package de.neitzel.core.sql;
 
-import lombok.RequiredArgsConstructor;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;

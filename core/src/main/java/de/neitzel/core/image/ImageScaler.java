@@ -1,16 +1,20 @@
 package de.neitzel.core.image;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
  * Utility class for scaling images while maintaining the aspect ratio.
  * Provides methods to create scaled images either as byte arrays or InputStreams.
  */
+@Slf4j
 public class ImageScaler {
 
     /**
@@ -148,7 +152,8 @@ public class ImageScaler {
                 ImageIO.write(scaledImage, TARGET_FORMAT, stream);
                 return stream.toByteArray();
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
+            log.error("IOException while scaling image.", ex);
             return null;
         }
     }

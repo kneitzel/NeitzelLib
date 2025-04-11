@@ -1,9 +1,13 @@
 package de.neitzel.fx.injectfx;
 
-import de.neitzel.core.inject.InjectableComponentScanner;
+import de.neitzel.core.inject.ComponentData;
+import de.neitzel.core.inject.ComponentScanner;
+import lombok.Getter;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Manages the creation and storage of singleton instances for all @FXMLComponent classes.
@@ -11,18 +15,19 @@ import java.util.*;
  */
 public class FXMLComponentInstances {
 
+    @Getter
     /** Map holding instances of all @FXMLComponent classes, indexed by class and its unique superclasses/interfaces. */
     private final Map<Class<?>, Object> instanceMap = new HashMap<>();
 
     /** The InjectableComponents instance that provides information about instantiable components. */
-    private final InjectableComponentScanner injectableScanner;
+    private final ComponentScanner injectableScanner;
 
     /**
      * Constructs an FXMLComponentInstances manager and initializes all component instances.
      *
      * @param injectableScanner The InjectableComponents instance containing resolved component types.
      */
-    public FXMLComponentInstances(InjectableComponentScanner injectableScanner) {
+    public FXMLComponentInstances(ComponentScanner injectableScanner) {
         this.injectableScanner = injectableScanner;
         createAllInstances();
     }
@@ -47,7 +52,7 @@ public class FXMLComponentInstances {
             return instanceMap.get(componentClass);
         }
 
-        Class<?> concreteClass = injectableScanner.getInstantiableComponents().get(componentClass);
+        Class<?> concreteClass = injectableScanner.getInstantiableComponents().get(componentClass).getType();
         if (concreteClass == null) {
             throw new IllegalStateException("No concrete implementation found for: " + componentClass.getName());
         }
@@ -122,19 +127,10 @@ public class FXMLComponentInstances {
     private void registerInstance(Class<?> concreteClass, Object instance) {
         instanceMap.put(concreteClass, instance);
 
-        for (Map.Entry<Class<?>, Class<?>> entry : injectableScanner.getInstantiableComponents().entrySet()) {
-            if (entry.getValue().equals(concreteClass)) {
+        for (Map.Entry<Class<?>, ComponentData> entry : injectableScanner.getInstantiableComponents().entrySet()) {
+            if (entry.getValue().getType().equals(concreteClass)) {
                 instanceMap.put(entry.getKey(), instance);
             }
         }
-    }
-
-    /**
-     * Retrieves the instance map containing all component instances.
-     *
-     * @return A map of class types to their instances.
-     */
-    public Map<Class<?>, Object> getInstanceMap() {
-        return instanceMap;
     }
 }

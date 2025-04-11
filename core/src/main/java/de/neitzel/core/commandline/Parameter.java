@@ -1,7 +1,9 @@
 package de.neitzel.core.commandline;
 
-import lombok.*;
-import lombok.extern.log4j.Log4j;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;

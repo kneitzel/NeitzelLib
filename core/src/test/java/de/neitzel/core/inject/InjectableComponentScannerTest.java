@@ -16,7 +16,7 @@ class InjectableComponentScannerTest {
      */
     @Test
     void testLoadComponents() {
-        InjectableComponentScanner scanner = new InjectableComponentScanner("de.neitzel.core.inject.testcomponents.test1ok");
+        ComponentScanner scanner = new ComponentScanner("de.neitzel.core.inject.testcomponents.test1ok");
         var instantiableComponents = scanner.getInstantiableComponents();
         var nonUniqueTypes = scanner.getNotUniqueTypes();
 
@@ -37,7 +37,7 @@ class InjectableComponentScannerTest {
      */
     @Test
     void testComponentsFailWithUnknownParameters() {
-        InjectableComponentScanner scanner = new InjectableComponentScanner("de.neitzel.core.inject.testcomponents.test2fail");
+        ComponentScanner scanner = new ComponentScanner("de.neitzel.core.inject.testcomponents.test2fail");
         var instantiableComponents = scanner.getInstantiableComponents();
         var nonUniqueTypes = scanner.getNotUniqueTypes();
 

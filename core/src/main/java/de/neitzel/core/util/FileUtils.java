@@ -1,6 +1,5 @@
 package de.neitzel.core.util;
 
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;

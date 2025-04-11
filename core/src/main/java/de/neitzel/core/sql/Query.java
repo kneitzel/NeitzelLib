@@ -1,6 +1,5 @@
 package de.neitzel.core.sql;
 
-import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,5 +1,7 @@
 package de.neitzel.core.inject.annotation;
 
+import de.neitzel.core.inject.Scope;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -24,4 +26,12 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Component {
+    /**
+     * Defines the scope of a component within the dependency injection framework.
+     * The scope determines whether the component is instantiated as a singleton or
+     * as a prototype.
+     *
+     * @return the scope of the component, defaulting to {@code Scope.SINGLETON}.
+     */
+    Scope scope() default Scope.SINGLETON;
 }

@@ -1,7 +1,6 @@
 package de.neitzel.core.util;
 
 import lombok.NonNull;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

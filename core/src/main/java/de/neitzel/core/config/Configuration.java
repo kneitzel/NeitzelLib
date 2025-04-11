@@ -48,7 +48,7 @@ public class Configuration {
      *
      * @param properties the Properties object containing configuration key-value pairs
      */
-    public Configuration(Properties properties) {
+    public Configuration(final Properties properties) {
         this.properties = properties;
     }
 

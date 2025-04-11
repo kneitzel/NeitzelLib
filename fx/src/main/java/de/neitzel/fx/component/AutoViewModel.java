@@ -1,8 +1,11 @@
 package de.neitzel.fx.component;
 
 import javafx.beans.property.*;
-import java.lang.reflect.*;
-import java.util.*;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AutoViewModel<T> {
 
