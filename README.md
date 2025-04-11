@@ -41,6 +41,10 @@ Some JavaFX additions.
 
 Some example programs that use the fx component
 
+### gson
+
+TypeAdapter for gson.
+
 ### log4j
 
 Stuff for log4j (Version 1). Please use log4j2 if you want to use log4j! (Or log with slf4j as I do in all other modules!)
