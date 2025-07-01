@@ -26,6 +26,7 @@ public class BindingData {
      * within the JavaFX property system.
      */
     private StringProperty direction = new SimpleStringProperty("unidirectional");
+
     /**
      * Represents the source of the binding. This property holds a string value
      * that specifies the originating object or identifier in the binding connection.

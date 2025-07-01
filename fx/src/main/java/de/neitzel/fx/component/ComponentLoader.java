@@ -1,12 +1,20 @@
 package de.neitzel.fx.component;
 
+import de.neitzel.fx.component.controls.Binding;
+import de.neitzel.fx.component.controls.FxmlComponent;
+import de.neitzel.fx.component.model.BindingData;
 import javafx.beans.property.Property;
+import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.Pane;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,12 +24,34 @@ import java.util.Map;
 /**
  * ComponentLoader is responsible for loading JavaFX FXML components and binding
  * them to automatically generated ViewModels based on simple POJO models.
- * <p>
- * It parses custom NFX attributes in FXML to bind UI elements to properties in the ViewModel,
- * and supports recursive loading of subcomponents.
  */
+@Slf4j
 public class ComponentLoader {
     private Map<String, Map<String, String>> nfxBindingMap = new HashMap<>();
+
+    @Getter
+    private Object controller;
+
+    public Parent load(URL fxmlPath) {
+        return load(null, fxmlPath);
+    }
+
+    public Parent load(String fxmlPath) {
+        return load(null, fxmlPath);
+    }
+
+    public Parent load(Object model, URL fxmlPath) {
+        try {
+            AutoViewModel<?> viewModel = new AutoViewModel<>(model);
+            FXMLLoader loader = new FXMLLoader(fxmlPath);
+            loader.setControllerFactory(type -> new ComponentController(viewModel));
+            Parent root = loader.load();
+            controller = loader.getController();
+            return root;
+        } catch (IOException e) {
+            throw new RuntimeException("unable to load fxml: " + fxmlPath, e);
+        }
+    }
 
     /**
      * Loads an FXML file and binds its elements to a generated ViewModel
@@ -32,83 +62,116 @@ public class ComponentLoader {
      * @return the root JavaFX node loaded from FXML
      */
     public Parent load(Object model, String fxmlPath) {
+        return load(model, getClass().getResource(fxmlPath));
+    }
+
+    public static <T extends Parent> T load(URL fxmlUrl, Object controller, String nothing) throws IOException {
+        FXMLLoader loader = new FXMLLoader(fxmlUrl);
+        loader.setController(controller);
+        T root = loader.load();
+
+        Map<String, Object> namespace = loader.getNamespace();
+
+        // Nach allen BindingControls suchen:
+        List<Binding> bindingControls = collectAllNodes(root).stream()
+                .filter(n -> n instanceof Binding)
+                .map(n -> (Binding) n)
+                .toList();
+
+        for (Binding bc : bindingControls) {
+            evaluateBindings(bc.getBindings(), namespace);
+        }
+
+        return root;
+    }
+
+    private static <T> void bindBidirectionalSafe(@NotNull Property<T> source, Property<?> target) {
         try {
-            AutoViewModel<?> viewModel = new AutoViewModel<>(model);
-            String cleanedUri = preprocessNfxAttributes(fxmlPath);
-            FXMLLoader loader = new FXMLLoader(new URL(cleanedUri));
-            loader.setControllerFactory(type -> new ComponentController(viewModel));
-            Parent root = loader.load();
-            processNfxBindings(root, viewModel, loader);
-            return root;
-        } catch (IOException e) {
-            throw new RuntimeException("unable to load fxml: " + fxmlPath, e);
+            Property<T> targetCasted = (Property<T>) target;
+            source.bindBidirectional(targetCasted);
+        } catch (ClassCastException e) {
+            log.error("⚠️ Typkonflikt beim Binding: %s ⇄ %s%n", source.getClass(), target.getClass(), e);
         }
     }
 
-    /**
-     * Processes all UI elements for NFX binding attributes and applies
-     * the appropriate bindings to the ViewModel.
-     *
-     * @param root      the root node of the loaded FXML hierarchy
-     * @param viewModel the generated ViewModel to bind against
-     */
-    private void processNfxBindings(Parent root, AutoViewModel<?> viewModel, FXMLLoader loader) {
-        walkNodes(root, node -> {
-            var nfx = lookupNfxAttributes(node, loader);
-            String target = nfx.get("nfx:target");
-            String direction = nfx.get("nfx:direction");
-            String source = nfx.get("nfx:source");
-
-            if (target != null && direction != null) {
-                Property<?> vmProp = viewModel.getProperty(target);
-                bindNodeToProperty(node, vmProp, direction);
-            }
-
-            if (source != null) {
-                Object subModel = ((Property<?>) viewModel.getProperty(target)).getValue();
-                Parent subComponent = load(subModel, source);
-                if (node instanceof Pane pane) {
-                    pane.getChildren().setAll(subComponent);
-                }
-            }
-        });
+    private static <T> void bindSafe(@NotNull Property<T> source, Property<?> target) {
+        try {
+            Property<T> targetCasted = (Property<T>) target;
+            source.bind(targetCasted);
+        } catch (ClassCastException e) {
+            log.error("⚠️ Typkonflikt beim Binding: %s ⇄ %s%n", source.getClass(), target.getClass(), e);
+        }
     }
 
-    /**
-     * Recursively walks all nodes in the scene graph starting from the root,
-     * applying the given consumer to each node.
-     *
-     * @param root     the starting node
-     * @param consumer the consumer to apply to each node
-     */
-    private void walkNodes(Parent root, java.util.function.Consumer<javafx.scene.Node> consumer) {
-        consumer.accept(root);
-        if (root instanceof Pane pane) {
-            for (javafx.scene.Node child : pane.getChildren()) {
-                if (child instanceof Parent p) {
-                    walkNodes(p, consumer);
-                } else {
-                    consumer.accept(child);
+    private static void evaluateBindings(List<BindingData> bindings, Map<String, Object> namespace) {
+        for (var binding : bindings) {
+            try {
+                Object source = resolveExpression(binding.getSource(), namespace);
+                Object target = resolveExpression(binding.getTarget(), namespace);
+
+                if (source instanceof Property && target instanceof Property) {
+                    Property<?> sourceProp = (Property<?>) source;
+                    Property<?> targetProp = (Property<?>) target;
+
+                    Class<?> sourceType = getPropertyType(sourceProp);
+                    Class<?> targetType = getPropertyType(targetProp);
+
+                    boolean bindableForward = targetType.isAssignableFrom(sourceType);
+                    boolean bindableBackward = sourceType.isAssignableFrom(targetType);
+
+                    switch (binding.getDirection().toLowerCase()) {
+                        case "bidirectional":
+                            if (bindableForward && bindableBackward) {
+                                bindBidirectionalSafe(sourceProp, targetProp);
+                            } else {
+                                log.error("⚠️ Kann bidirektionales Binding nicht durchführen: Typen inkompatibel (%s ⇄ %s)%n", sourceType, targetType);
+                            }
+                            break;
+                        case "unidirectional":
+                        default:
+                            if (bindableForward) {
+                                bindSafe(sourceProp, targetProp);
+                            } else {
+                                log.error("⚠️ Kann unidirektionales Binding nicht durchführen: %s → %s nicht zuweisbar%n", sourceType, targetType);
+                            }
+                            break;
+                    }
                 }
+            } catch (Exception e) {
+                log.error("Fehler beim Binding: " + binding.getSource() + " → " + binding.getTarget(), e);
             }
         }
     }
 
-    /**
-     * Extracts custom NFX attributes from a node's properties map.
-     * These attributes are expected to be in the format "nfx:..." and hold string values.
-     *
-     * @param node the node to inspect
-     * @return a map of NFX attribute names to values
-     */
-    private Map<String, String> extractNfxAttributes(javafx.scene.Node node) {
-        Map<String, String> result = new HashMap<>();
-        node.getProperties().forEach((k, v) -> {
-            if (k instanceof String key && key.startsWith("nfx:") && v instanceof String value) {
-                result.put(key, value);
+    private static Class<?> getPropertyType(Property<?> prop) {
+        try {
+            Method getter = prop.getClass().getMethod("get");
+            return getter.getReturnType();
+        } catch (Exception e) {
+            return Object.class; // Fallback
+        }
+    }
+
+    private static Object resolveExpression(@NotNull String expr, @NotNull Map<String, Object> namespace) throws Exception {
+        // z.B. "viewModel.username"
+        String[] parts = expr.split("\\.");
+        Object current = namespace.get(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            String getter = "get" + Character.toUpperCase(parts[i].charAt(0)) + parts[i].substring(1);
+            current = current.getClass().getMethod(getter).invoke(current);
+        }
+        return current;
+    }
+
+    private static @NotNull List<Node> collectAllNodes(Node root) {
+        List<Node> nodes = new ArrayList<>();
+        nodes.add(root);
+        if (root instanceof Parent parent && !(root instanceof FxmlComponent)) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                nodes.addAll(collectAllNodes(child));
             }
-        });
-        return result;
+        }
+        return nodes;
     }
 
     /**
@@ -127,62 +190,5 @@ public class ComponentLoader {
             }
         }
         // Additional control types (e.g., CheckBox, ComboBox) can be added here
-    }
-
-    private String preprocessNfxAttributes(String fxmlPath) {
-        try {
-            nfxBindingMap.clear();
-            var factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
-            var builder = factory.newDocumentBuilder();
-            var doc = builder.parse(getClass().getResourceAsStream(fxmlPath));
-            var all = doc.getElementsByTagName("*");
-
-            int autoId = 0;
-            for (int i = 0; i < all.getLength(); i++) {
-                var el = (org.w3c.dom.Element) all.item(i);
-                Map<String, String> nfxAttrs = new HashMap<>();
-                var attrs = el.getAttributes();
-
-                List<String> toRemove = new ArrayList<>();
-                for (int j = 0; j < attrs.getLength(); j++) {
-                    var attr = (org.w3c.dom.Attr) attrs.item(j);
-                    if (attr.getName().startsWith("nfx:")) {
-                        nfxAttrs.put(attr.getName(), attr.getValue());
-                        toRemove.add(attr.getName());
-                    }
-                }
-
-                if (!nfxAttrs.isEmpty()) {
-                    String fxid = el.getAttribute("fx:id");
-                    if (fxid == null || fxid.isBlank()) {
-                        fxid = "auto_id_" + (++autoId);
-                        el.setAttribute("fx:id", fxid);
-                    }
-                    nfxBindingMap.put(fxid, nfxAttrs);
-                    toRemove.forEach(el::removeAttribute);
-                }
-            }
-
-            // Speichere das bereinigte Dokument als temporäre Datei
-            File tempFile = File.createTempFile("cleaned_fxml", ".fxml");
-            tempFile.deleteOnExit();
-            var transformer = javax.xml.transform.TransformerFactory.newInstance().newTransformer();
-            transformer.setOutputProperty(javax.xml.transform.OutputKeys.INDENT, "yes");
-            transformer.transform(new javax.xml.transform.dom.DOMSource(doc),
-                                  new javax.xml.transform.stream.StreamResult(tempFile));
-
-            return tempFile.toURI().toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Preprocessing failed for: " + fxmlPath, e);
-        }
-    }
-
-    private Map<String, String> lookupNfxAttributes(javafx.scene.Node node, FXMLLoader loader) {
-        String fxid = loader.getNamespace().entrySet().stream()
-            .filter(e -> e.getValue() == node)
-            .map(Map.Entry::getKey)
-            .findFirst().orElse(null);
-        if (fxid == null) return Map.of();
-        return nfxBindingMap.getOrDefault(fxid, Map.of());
     }
 }

@@ -9,26 +9,15 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.StackPane;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 public class FxmlComponent extends StackPane {
 
     private final StringProperty fxml = new SimpleStringProperty();
+
     private final StringProperty direction = new SimpleStringProperty("unidirectional");
+
     private final ObjectProperty<Object> data = new SimpleObjectProperty<>();
-
-    public StringProperty fxmlProperty() { return fxml; }
-    public String getFxml() { return fxml.get(); }
-    public void setFxml(String fxml) { this.fxml.set(fxml); }
-
-    public StringProperty directionProperty() { return direction; }
-    public String getDirection() { return direction.get(); }
-    public void setDirection(String direction) { this.direction.set(direction); }
-
-    public ObjectProperty<Object> dataProperty() { return data; }
-    public Object getData() { return data.get(); }
-    public void setData(Object data) { this.data.set(data); }
 
     public FxmlComponent() {
         fxml.addListener((obs, oldVal, newVal) -> load());
@@ -37,20 +26,14 @@ public class FxmlComponent extends StackPane {
 
     private void load() {
         if (getFxml() == null || getFxml().isBlank()) return;
-        try {
-            ComponentLoader loader = new ComponentLoader();
-            // Option: ControllerFactory verwenden, wenn nötig
-            Parent content = loader.load(getClass().getResource(getFxml()));
+        ComponentLoader loader = new ComponentLoader();
+        Parent content = loader.load(getClass().getResource(getFxml()));
 
-            getChildren().setAll(content);
+        getChildren().setAll(content);
 
-            Object controller = loader.getController();
-            if (controller != null && getData() != null) {
-                injectDataToController(controller, getData());
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        Object controller = loader.getController();
+        if (controller != null && getData() != null) {
+            injectDataToController(controller, getData());
         }
     }
 
@@ -61,6 +44,22 @@ public class FxmlComponent extends StackPane {
                 injectDataToController(controller, getData());
             }
         }
+    }
+
+    public String getFxml() {
+        return fxml.get();
+    }
+
+    public void setFxml(String fxml) {
+        this.fxml.set(fxml);
+    }
+
+    public Object getData() {
+        return data.get();
+    }
+
+    public void setData(Object data) {
+        this.data.set(data);
     }
 
     private void injectDataToController(Object controller, Object dataObject) {
@@ -85,6 +84,26 @@ public class FxmlComponent extends StackPane {
             return node.getProperties().get("fx:controller");
         }
         return null;
+    }
+
+    public StringProperty fxmlProperty() {
+        return fxml;
+    }
+
+    public StringProperty directionProperty() {
+        return direction;
+    }
+
+    public String getDirection() {
+        return direction.get();
+    }
+
+    public void setDirection(String direction) {
+        this.direction.set(direction);
+    }
+
+    public ObjectProperty<Object> dataProperty() {
+        return data;
     }
 }
 
