@@ -12,9 +12,9 @@ Dieses Prinzip lässt sich noch erweitern:
 
 === component
 
-Ähnlich wie in anderen UI-Frameworks (z. B. React) versuche ich, ein komponentenbasiertes Modell zu etablieren, um datengetriebene Oberflächen schnell und modular zusammenstellen zu können.
+Ähnlich wie in anderen UI-Frameworks (z.B. React) versuche ich, ein komponentenbasiertes Modell zu etablieren, um datengetriebene Oberflächen schnell und modular zusammenstellen zu können.
 
-Die Grundidee ist, mit möglichst geringem Aufwand Kombinationen aus Datenmodell und FXML zu erzeugen. So lässt sich z. B. eine FXML-Datei definieren, die eine Adresse darstellt – inklusive Felder und der zugehörigen Bindings. Möchte man nun einen Datensatz mit einer Adresse anzeigen, kann für das Adressfeld eine Pane erzeugt werden, die sowohl das Binding auf die Adresse als auch den Verweis auf die FXML-Datei enthält.
+Die Grundidee ist, mit möglichst geringem Aufwand Kombinationen aus Datenmodell und FXML zu erzeugen. So lässt sich z.B. eine FXML-Datei definieren, die eine Adresse darstellt – inklusive Felder und der zugehörigen Bindings. Möchte man nun einen Datensatz mit einer Adresse anzeigen, kann für das Adressfeld eine Pane erzeugt werden, die sowohl das Binding auf die Adresse als auch den Verweis auf die FXML-Datei enthält.
 
 Dabei wird das MVVM-Pattern verwendet: Ausgehend vom Model wird ein passendes ViewModel automatisch generiert.
 
