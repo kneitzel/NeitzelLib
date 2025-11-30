@@ -10,17 +10,17 @@ import java.lang.annotation.Target;
  * injection framework. Classes annotated with {@code @Config} are used as markers
  * for defining settings and application-specific configurations required by the
  * dependency injection mechanism.
- *
+ * <p>
  * Typically, configuration classes provide metadata required for setting up the
  * framework, such as specifying the base package to scan for components.
- *
+ * <p>
  * This annotation must be applied at the type level and is retained at runtime to
  * facilitate reflection-based processing. It is intended to serve as a declarative
  * representation of configuration options for the dependency injection container.
- *
+ * <p>
  * Attributes:
  * - {@code basePackage}: Specifies the package name where the framework should scan
- *   for classes annotated with dependency injection annotations such as {@code @Component}.
+ * for classes annotated with dependency injection annotations such as {@code @Component}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
@@ -31,7 +31,7 @@ public @interface Config {
      * can be scanned and identified as candidates for dependency injection.
      *
      * @return the base package name as a string; returns an empty string by default
-     *         if no specific package is defined.
+     * if no specific package is defined.
      */
     String basePackage() default "";
 }

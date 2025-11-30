@@ -7,49 +7,53 @@ import com.idealista.fpe.config.LengthRange;
 
 import javax.crypto.KeyGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.Random;
+import java.security.SecureRandom;
 
 /**
  * Helper class to deal with FF1Encryption using com.idealista:format-preserving-encryption:1.0.0.
  */
+@SuppressWarnings("unused")
 public class FF1Encryption {
 
-    /**
-     * Key to use for all encryption / unencryption
-     */
-    private byte[] key;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
-     * Should to small strings be ignored?
-     *
-     * If this is set to true, small strings (less than 2 characters) will not be encrypted!
+     * Key to use for all encryption / unencryption.
      */
-    private boolean ignoreToShortStrings;
+    private final byte[] key;
 
     /**
-     * tweak to use for encryption
+     * Should too small strings be ignored?
+     * If this is set to true, small strings (less than {@code minLength} characters)
+     * will not be encrypted or decrypted and will be returned unchanged.
      */
-    private byte[] tweak;
+    private final boolean ignoreToShortStrings;
 
     /**
-     * Domain used for encryption
+     * Tweak to use for encryption.
      */
-    private Domain domain;
+    private final byte[] tweak;
 
     /**
-     * Format preserving encryption to use.
+     * Domain used for encryption.
      */
-    private FormatPreservingEncryption encryption;
+    private final Domain domain;
 
     /**
-     * Minimum length of a string.
+     * Format preserving encryption implementation to use.
      */
-    private int minLength;
+    private final FormatPreservingEncryption encryption;
+
+    /**
+     * Minimum length of a string for which encryption/decryption will be applied.
+     */
+    private final int minLength;
 
     /**
      * Creates a new instance of FF1Encryption
-     * @param key AES key to use.
-     * @param tweak tweak to use for encryption / decryption
+     *
+     * @param key                  AES key to use.
+     * @param tweak                tweak to use for encryption / decryption
      * @param ignoreToShortStrings Ignore strings that are to short.
      */
     public FF1Encryption(byte[] key, byte[] tweak, boolean ignoreToShortStrings) {
@@ -58,12 +62,13 @@ public class FF1Encryption {
 
     /**
      * Creates a new instance of FF1Encryption
-     * @param key AES key to use.
-     * @param tweak tweak to use for encryption / decryption
+     *
+     * @param key                  AES key to use.
+     * @param tweak                tweak to use for encryption / decryption
      * @param ignoreToShortStrings Ignore strings that are to short.
-     * @param domain Domain to use for encryption
-     * @param minLength Minimum length of string.
-     * @param maxLength Maximum length of string.
+     * @param domain               Domain to use for encryption
+     * @param minLength            Minimum length of string.
+     * @param maxLength            Maximum length of string.
      */
     public FF1Encryption(byte[] key, byte[] tweak, boolean ignoreToShortStrings, Domain domain, int minLength, int maxLength) {
         this.key = key;
@@ -72,15 +77,45 @@ public class FF1Encryption {
         this.domain = domain;
         this.minLength = minLength;
 
-        encryption = FormatPreservingEncryptionBuilder
-                .ff1Implementation().withDomain(domain)
+        this.encryption = FormatPreservingEncryptionBuilder
+                .ff1Implementation()
+                .withDomain(domain)
                 .withDefaultPseudoRandomFunction(key)
                 .withLengthRange(new LengthRange(minLength, maxLength))
                 .build();
     }
 
     /**
+     * Creates a new AES key woth the given length.
+     *
+     * @param length Length of the key in bits. Must be 128, 192 or 256 bits
+     * @return Byte array of the new key.
+     */
+    public static byte[] createNewKey(int length) {
+        try {
+            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+            keyGen.init(length); // for example
+            return keyGen.generateKey().getEncoded();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * Creates a new tweak of the given length.
+     *
+     * @param length Number of bytes the new teeak should have.
+     * @return byte array with the new tweak.
+     */
+    public static byte[] createNewTweak(int length) {
+        byte[] key = new byte[length];
+        RANDOM.nextBytes(key);
+        return key;
+    }
+
+    /**
      * Encrypts a given text.
+     *
      * @param plainText Unencrypted text.
      * @return Encrypted text.
      */
@@ -97,6 +132,7 @@ public class FF1Encryption {
 
     /**
      * Decrypt a given text.
+     *
      * @param cipherText Encrypted text.
      * @return Decrypted text.
      */
@@ -109,32 +145,5 @@ public class FF1Encryption {
 
         // Return decrypted text.
         return encryption.decrypt(cipherText, tweak);
-    }
-
-    /**
-     * Creates a new AES key woth the given length.
-     * @param length Length of the key in bits. Must be 128, 192 or 256 bits
-     * @return Byte array of the new key.
-     */
-    public static byte[] createNewKey(int length) {
-        try {
-            KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-            keyGen.init(length); // for example
-            return keyGen.generateKey().getEncoded();
-        } catch (NoSuchAlgorithmException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
-    /**
-     * Creates a new tweak of the given length.
-     * @param length Number of bytes the new teeak should have.
-     * @return byte array with the new tweak.
-     */
-    public static byte[] createNewTweak(int length) {
-        Random random = new Random();
-        byte[] key = new byte[length];
-        random.nextBytes(key);
-        return key;
     }
 }

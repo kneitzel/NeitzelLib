@@ -19,7 +19,9 @@ public class FXMLComponentInstances {
     /** Map holding instances of all @FXMLComponent classes, indexed by class and its unique superclasses/interfaces. */
     private final Map<Class<?>, Object> instanceMap = new HashMap<>();
 
-    /** The InjectableComponents instance that provides information about instantiable components. */
+    /**
+     * The InjectableComponents instance that provides information about instantiable components.
+     */
     private final ComponentScanner injectableScanner;
 
     /**

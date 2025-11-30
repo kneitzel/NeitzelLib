@@ -1,5 +1,6 @@
 package de.neitzel.log4j;
 
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.net.URISyntaxException;
  * Utility class for managing Log4j configurations. Provides methods to set up
  * Log4j configurations from default files, resources, or command line arguments.
  */
+@SuppressWarnings("unused")
 public class Log4jUtils {
 
     /**
@@ -24,13 +26,13 @@ public class Log4jUtils {
      */
     public static final String DEFAULT_LOG4J_RESOURCE = "/log4j.default.properties";
 
+    private static final Logger LOGGER = Logger.getLogger(Log4jUtils.class);
+
     /**
-     * Checks if the system property "log4j.configuration" is set.
-     *
-     * @return true if the "log4j.configuration" property is defined, false otherwise.
+     * Default constructor only
      */
-    public static boolean isLog4jConfigFileSet() {
-        return System.getProperty("log4j.configuration") != null;
+    public Log4jUtils() {
+        // default constructor only
     }
 
     /**
@@ -38,28 +40,12 @@ public class Log4jUtils {
      * This method leverages a default configuration file path and a default resource path
      * to set up Log4j logging if a configuration file is not already specified via
      * a system property. If a valid configuration file or resource is found, it will be applied.
-     *
+     * <p>
      * Delegates to the overloaded {@code setLog4jConfiguration(String log4jConfigFile, String defaultResource)}
      * method using predefined defaults.
      */
     public static void setLog4jConfiguration() {
         setLog4jConfiguration(DEFAULT_LOG4J_LOGFILE, DEFAULT_LOG4J_RESOURCE);
-    }
-
-    /**
-     * Constructs the absolute path to the specified Log4j configuration file located
-     * in the same directory as the JAR file of the application.
-     *
-     * @param log4jConfigFile The name of the Log4j configuration file.
-     * @return The absolute path to the specified Log4j configuration file if the
-     *         path is successfully constructed; otherwise, returns null in case of an error.
-     */
-    public static String getLog4jLogfileAtJar(final String log4jConfigFile) {
-        try {
-            return new File(Log4jUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent() + "/" + log4jConfigFile;
-        } catch (URISyntaxException ex) {
-            return null;
-        }
     }
 
     /**
@@ -79,10 +65,35 @@ public class Log4jUtils {
         if (new File(log4jConfigFile).exists()) {
             PropertyConfigurator.configure(log4jConfigFile);
         } else if (fileAtJar != null && new File(fileAtJar).exists()) {
-            System.out.println("Nutze Log4J Konfiguration bei jar File: " + fileAtJar);
+            LOGGER.info("Using Log4J configuration from jar file: " + fileAtJar);
             PropertyConfigurator.configure(fileAtJar);
-        }else {
+        } else {
             PropertyConfigurator.configure(Log4jUtils.class.getResource(defaultResource));
+        }
+    }
+
+    /**
+     * Checks if the system property "log4j.configuration" is set.
+     *
+     * @return true if the "log4j.configuration" property is defined, false otherwise.
+     */
+    public static boolean isLog4jConfigFileSet() {
+        return System.getProperty("log4j.configuration") != null;
+    }
+
+    /**
+     * Constructs the absolute path to the specified Log4j configuration file located
+     * in the same directory as the JAR file of the application.
+     *
+     * @param log4jConfigFile The name of the Log4j configuration file.
+     * @return The absolute path to the specified Log4j configuration file if the
+     * path is successfully constructed; otherwise, returns null in case of an error.
+     */
+    public static String getLog4jLogfileAtJar(final String log4jConfigFile) {
+        try {
+            return new File(Log4jUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent() + "/" + log4jConfigFile;
+        } catch (URISyntaxException ex) {
+            return null;
         }
     }
 }

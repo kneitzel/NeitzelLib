@@ -13,7 +13,7 @@ public class StringEncoder {
      * static utility methods for array-related operations.
      *
      * @throws UnsupportedOperationException always, to indicate that this class
-     *                                        should not be instantiated.
+     *                                       should not be instantiated.
      */
     private StringEncoder() {
         throw new UnsupportedOperationException("Utility class");
@@ -27,7 +27,7 @@ public class StringEncoder {
      * @param data the string to decode; may contain encoded characters or regular text. If null, an empty string is returned.
      * @return the decoded string with all encoded characters replaced by their original representations.
      * @throws IllegalArgumentException if the input string has encoding markup
-     *         that is improperly formatted or incomplete.
+     *                                  that is improperly formatted or incomplete.
      */
     public static String decodeData(final String data) {
         if (data == null) return "";
@@ -38,17 +38,17 @@ public class StringEncoder {
             int indexAmp = remaining.indexOf("&");
             if (indexAmp == -1) {
                 result.append(remaining);
-                remaining="";
+                remaining = "";
             } else {
                 // First get the elements till the &
                 if (indexAmp > 0) {
                     result.append(remaining.substring(0, indexAmp));
                     remaining = remaining.substring(indexAmp);
                 }
-                int endSpecial=remaining.indexOf(";");
+                int endSpecial = remaining.indexOf(";");
                 if (endSpecial == -1) throw new IllegalArgumentException("String couldn't be decoded! (" + data + ")");
-                String special = remaining.substring(0, endSpecial+1);
-                remaining = remaining.substring(endSpecial+1);
+                String special = remaining.substring(0, endSpecial + 1);
+                remaining = remaining.substring(endSpecial + 1);
                 result.append(decodeCharacter(special));
             }
         }
@@ -67,7 +67,7 @@ public class StringEncoder {
     public static char decodeCharacter(final String data) {
         if (!data.startsWith("&#")) throw new IllegalArgumentException("Data does not start with &# (" + data + ")");
         if (!data.endsWith(";")) throw new IllegalArgumentException("Data does not end with ; (" + data + ")");
-        return (char)Integer.parseInt(data.substring(2, data.length()-1));
+        return (char) Integer.parseInt(data.substring(2, data.length() - 1));
     }
 
     /**
@@ -77,16 +77,16 @@ public class StringEncoder {
      *
      * @param data the input string to encode; if null, an empty string is returned
      * @return an encoded string where non-ASCII and ampersand characters
-     *         are replaced with numeric character references
+     * are replaced with numeric character references
      */
     public static String encodeData(final String data) {
         if (data == null) return "";
 
         StringBuilder result = new StringBuilder();
-        for (int index=0; index < data.length(); index++) {
+        for (int index = 0; index < data.length(); index++) {
             char character = data.charAt(index);
             if (character < 32 || character > 127 || character == 38) {
-                result.append("&#" + (int)character + ";");
+                result.append("&#" + (int) character + ";");
             } else {
                 result.append(character);
             }

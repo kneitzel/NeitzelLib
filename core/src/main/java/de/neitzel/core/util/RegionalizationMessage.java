@@ -16,7 +16,7 @@ public class RegionalizationMessage {
      * which is used to retrieve locale-specific objects and messages.
      * It facilitates the process of internationalization by loading resources
      * such as text and messages from specified bundles based on the provided locale.
-     *
+     * <p>
      * This variable is initialized in constructors of the `RegionalizationMessage` class
      * and is used internally by various methods to fetch localized messages.
      */
@@ -50,7 +50,7 @@ public class RegionalizationMessage {
      *
      * @param key The key for which the localized message needs to be retrieved.
      * @return The localized message as a String if the key exists in the resource bundle;
-     *         otherwise, null.
+     * otherwise, null.
      */
     public String getMessage(final String key) {
         if (!res.containsKey(key)) return null;
@@ -58,33 +58,33 @@ public class RegionalizationMessage {
     }
 
     /**
+     * Retrieves a localized and formatted message from a resource bundle based on a key.
+     * If the key is not found in the resource bundle, a default message is used.
+     * The message supports parameter substitution using the supplied arguments.
+     *
+     * @param key            The key used to retrieve the localized message from the resource bundle.
+     * @param defaultMessage The default message to be used if the key is not found in the resource bundle.
+     * @param params         The parameters to substitute into the message placeholders.
+     * @return A formatted string containing the localized message with substituted parameters.
+     */
+    public String getFormattedMessage(final String key, final String defaultMessage, final Object... params) {
+        MessageFormat format = new MessageFormat(getMessage(key, defaultMessage));
+        return format.format(params);
+    }
+
+    /**
      * Retrieves a localized message for the given key from the resource bundle.
      * If the key is not found, the specified default message is returned.
      *
-     * @param key The key to look up in the resource bundle.
+     * @param key            The key to look up in the resource bundle.
      * @param defaultMessage The default message to return if the key is not found.
      * @return The localized message corresponding to the key, or the default message
-     *         if the key does not exist in the resource bundle.
+     * if the key does not exist in the resource bundle.
      */
     public String getMessage(final String key, final String defaultMessage) {
         if (res.containsKey(key))
             return res.getString(key);
 
         return defaultMessage;
-    }
-
-    /**
-     * Retrieves a localized and formatted message from a resource bundle based on a key.
-     * If the key is not found in the resource bundle, a default message is used.
-     * The message supports parameter substitution using the supplied arguments.
-     *
-     * @param key The key used to retrieve the localized message from the resource bundle.
-     * @param defaultMessage The default message to be used if the key is not found in the resource bundle.
-     * @param params The parameters to substitute into the message placeholders.
-     * @return A formatted string containing the localized message with substituted parameters.
-     */
-    public String getFormattedMessage(final String key, final String defaultMessage, final Object... params) {
-        MessageFormat format = new MessageFormat(getMessage(key, defaultMessage));
-        return format.format(params);
     }
 }

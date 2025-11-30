@@ -54,7 +54,7 @@ public class BindingAwareFXMLLoader<T> {
      * Recursively traverses the scene graph and binds controls to properties
      * in the ViewModel based on custom metadata in the node properties map.
      *
-     * @param node the current node to inspect
+     * @param node      the current node to inspect
      * @param viewModel the ViewModel holding the properties
      */
     private void bindNodesRecursively(Node node, GenericViewModel<T> viewModel) {
@@ -92,9 +92,9 @@ public class BindingAwareFXMLLoader<T> {
      * Binds two JavaFX properties according to the specified binding direction.
      *
      * @param controlProperty the property of the control (e.g. TextField.textProperty)
-     * @param modelProperty the property from the ViewModel
-     * @param direction the direction of the binding
-     * @param <V> the value type of the property
+     * @param modelProperty   the property from the ViewModel
+     * @param direction       the direction of the binding
+     * @param <V>             the value type of the property
      */
     private <V> void bind(Property<V> controlProperty, Property<V> modelProperty, BindDirection direction) {
         switch (direction) {

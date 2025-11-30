@@ -2,8 +2,18 @@ package de.neitzel.net.imap;
 
 import lombok.extern.slf4j.Slf4j;
 
-import javax.mail.*;
-import java.util.*;
+import javax.mail.Flags;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.NoSuchProviderException;
+import javax.mail.Session;
+import javax.mail.Store;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * The ImapAccountMonitor class is responsible for monitoring an IMAP email account
@@ -45,12 +55,19 @@ public class ImapAccountMonitor {
     protected Map<String, Folder> folders = new HashMap<String, Folder>();
 
     /**
+     * A collection of listeners that respond to IMAP-related events.
+     * Each listener in this collection can perform specific actions when triggered
+     * by events such as receiving new email notifications.
+     */
+    private Collection<ImapListener> imapListeners = new ArrayList<ImapListener>();
+
+    /**
      * Monitors an IMAP account by establishing a connection to the specified mail server
      * using the provided account credentials and protocol.
      *
      * @param account the IMAP account containing details such as server, user, password, and protocol
      * @throws NoSuchProviderException if the specified mail store protocol is not available
-     * @throws MessagingException if the connection to the mail server fails
+     * @throws MessagingException      if the connection to the mail server fails
      */
     public ImapAccountMonitor(ImapAccount account) throws NoSuchProviderException, MessagingException {
         log.trace("Constructor ({})", account.toString());
@@ -77,19 +94,19 @@ public class ImapAccountMonitor {
      * Closes the resources associated with the current instance, including
      * IMAP folders and the store. The method ensures that all folders are
      * closed properly, followed by the closure of the store.
-     *
+     * <p>
      * Any exceptions encountered during the closure of folders or the store
      * are caught and logged without interrupting the overall closing process.
      * This is to ensure that all resources are attempted to be closed even if
      * an error occurs with one of them.
-     *
+     * <p>
      * The method logs the start and end of the closing process for traceability.
      */
     public void close() {
         log.trace("close() called.");
 
         // Close the folders
-        for (Folder folder: folders.values()) {
+        for (Folder folder : folders.values()) {
             try {
                 folder.close(false);
             } catch (MessagingException ex) {
@@ -152,28 +169,28 @@ public class ImapAccountMonitor {
      * Checks all monitored folders for new email messages, processes unseen and undeleted messages,
      * and raises a NewMailEvent for each new email discovered. The method ensures processed messages
      * are marked as seen.
-     *
+     * <p>
      * The method iterates through all folders currently being monitored, fetching their messages and
      * evaluating the state of each. If a message is neither marked as seen nor deleted, it is marked
      * as seen and a NewMailEvent is raised for it.
-     *
+     * <p>
      * Proper error handling is implemented to log any MessagingException that occurs while processing
      * the messages of a folder without interrupting the processing of other folders.
-     *
+     * <p>
      * Note: This method relies on external logging (via `log`) and appropriate event handling
      * via `raiseNewEmailEvent`. The `folders` collection holds the monitored folders required.
-     *
+     * <p>
      * The folder processing stops only in case of irrecoverable exceptions outside this method's scope.
      */
     public void check() {
         log.trace("check() called.");
 
         // Loop through all folders that are monitored
-        for (Folder folder: folders.values()) {
+        for (Folder folder : folders.values()) {
             try {
                 // Loop through all messages.
                 Message[] messages = folder.getMessages();
-                for (Message message: messages) {
+                for (Message message : messages) {
                     // Check if message wasn't seen and wasn't deleted
                     if (!message.isSet(Flags.Flag.SEEN) && !message.isSet(Flags.Flag.DELETED)) {
                         // Mark message as seen.
@@ -193,11 +210,35 @@ public class ImapAccountMonitor {
     }
 
     /**
-     * A collection of listeners that respond to IMAP-related events.
-     * Each listener in this collection can perform specific actions when triggered
-     * by events such as receiving new email notifications.
+     * Raises a new email event and notifies all registered listeners.
+     * The method loops through the listeners and invokes their {@code NewEmailReceived}
+     * method with a newly created {@link NewEmailEvent}.
+     * If a listener marks the event as handled, the remaining listeners will
+     * not be notified.
+     *
+     * @param message The email message that triggered the event. This message
+     *                is included in the {@link NewEmailEvent} passed to the listeners.
      */
-    private Collection<ImapListener> imapListeners = new ArrayList<ImapListener>();
+    protected void raiseNewEmailEvent(Message message) {
+        log.trace("raiseNewEmailEvent() called!");
+
+        // Create the event.
+        NewEmailEvent event = new NewEmailEvent(this, message);
+
+        // Call all listeners.
+        for (ImapListener listener : imapListeners) {
+            log.trace("Calling listener in {} ....", listener.getClass().getName());
+            listener.newEmailReceived(event);
+
+            // Check if the event was handled so no further ImaListeners will be called.
+            if (event.isHandled()) {
+                log.trace("raiseNewEmailEvent(): Breaking out of listener loop because event was handled.");
+                break;
+            }
+        }
+
+        log.trace("raiseNewEmailEvent() call ended!");
+    }
 
     /**
      * Adds an IMAP listener to receive notifications about IMAP-related events such as new email arrivals.
@@ -221,36 +262,5 @@ public class ImapAccountMonitor {
             log.info("Removing the IMAP listener.");
             imapListeners.remove(listener);
         }
-    }
-
-    /**
-     * Raises a new email event and notifies all registered listeners.
-     * The method loops through the listeners and invokes their {@code NewEmailReceived}
-     * method with a newly created {@link NewEmailEvent}.
-     * If a listener marks the event as handled, the remaining listeners will
-     * not be notified.
-     *
-     * @param message The email message that triggered the event. This message
-     *                is included in the {@link NewEmailEvent} passed to the listeners.
-     */
-    protected void raiseNewEmailEvent(Message message) {
-        log.trace("raiseNewEmailEvent() called!");
-
-        // Create the event.
-        NewEmailEvent event = new NewEmailEvent(this, message);
-
-        // Call all listeners.
-        for (ImapListener listener: imapListeners) {
-            log.trace("Calling listener in {} ....", listener.getClass().getName());
-            listener.newEmailReceived(event);
-
-            // Check if the event was handled so no further ImaListeners will be called.
-            if (event.isHandled()) {
-                log.trace("raiseNewEmailEvent(): Breaking out of listener loop because event was handled.");
-                break;
-            }
-        }
-
-        log.trace("raiseNewEmailEvent() call ended!");
     }
 }

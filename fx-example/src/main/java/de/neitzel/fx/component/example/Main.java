@@ -5,8 +5,17 @@ package de.neitzel.fx.component.example;
  * taking care os Classloader Requirements of JavaFX. (Important when starting from inside NetBeans!)
  */
 public class Main {
+
+    /**
+     * Default constructor only
+     */
+    public Main() {
+        // default constructor only
+    }
+
     /**
      * Additional main methode to start Application.
+     *
      * @param args Commandline Arguments.
      */
     public static void main(String[] args) {

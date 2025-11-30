@@ -5,7 +5,13 @@ import de.neitzel.core.inject.annotation.Inject;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -21,13 +27,13 @@ public class ComponentScanner {
      * FXML-compatible components detected during the scanning process.
      * These components are used as part of the dependency injection mechanism
      * within the {@code InjectableComponentScanner}.
-     *
+     * <p>
      * The {@code fxmlComponents} set is populated during the component scanning
      * phase by identifying all classes within a specified package hierarchy
      * annotated with the {@code @Component} annotation. These classes serve
      * as the primary source for further analysis, resolution, and instantiation
      * in the scanning workflow.
-     *
+     * <p>
      * This field is immutable, ensuring thread safety and consistent state
      * throughout the lifetime of the {@code InjectableComponentScanner}.
      */
@@ -35,12 +41,12 @@ public class ComponentScanner {
 
     /**
      * A set of component types that are not uniquely associated with a single implementation.
-     *
+     * <p>
      * This collection is populated during the analysis of discovered components to identify
      * types that have multiple implementations, preventing them from being uniquely resolved.
      * For example, if multiple components implement the same interface, that interface will be
      * added to this set.
-     *
+     * <p>
      * It is primarily used during the component registration process to avoid ambiguities
      * in the dependency injection system, ensuring that only resolvable, uniquely identifiable
      * components can be instantiated and injected.
@@ -52,13 +58,13 @@ public class ComponentScanner {
      * The key represents a super type (interface or abstract class), and the value
      * is the specific implementation or subclass that is uniquely identified among
      * the scanned components.
-     *
+     * <p>
      * This map is populated during the component analysis process. For each super type
      * in the scanned components, if exactly one implementation is found, it is
      * considered unique and added to this mapping. In case multiple implementations
      * exist for a given super type, it is excluded from this map and classified as
      * a non-unique type.
-     *
+     * <p>
      * This mapping is utilized for resolving dependencies and determining which components
      * can be instantiated based on unique type information.
      */
@@ -70,7 +76,7 @@ public class ComponentScanner {
      * that can be instantiated. The entries are resolved through the scanning and analysis
      * of available component types, ensuring that only components with resolvable
      * dependencies are included.
-     *
+     * <p>
      * This field is part of the dependency injection process, where components annotated
      * with {@code @Component} or similar annotations are scanned, analyzed, and registered.
      * The resolution process checks if a component can be instantiated based on its
@@ -81,11 +87,11 @@ public class ComponentScanner {
     /**
      * A list of error messages encountered during the scanning and analysis
      * of components in the dependency injection process.
-     *
+     * <p>
      * This list is populated when components cannot be resolved due to issues
      * such as multiple implementations of a superclass or interface,
      * unmet construction requirements, or unresolved dependencies.
-     *
+     * <p>
      * Errors added to this list provide detailed descriptions of the specific
      * issues that prevent certain components from being instantiated correctly.
      */
@@ -117,19 +123,19 @@ public class ComponentScanner {
     /**
      * Analyzes component types within the injected components and classifies them based on their
      * inheritance hierarchy and relationships.
-     *
+     * <p>
      * This method performs the following operations:
      * 1. Maps each component to all of its superclasses and interfaces.
      * 2. Identifies which superclasses or interfaces have multiple implementing components.
      * 3. Populates:
-     *    - A list of superclasses or interfaces that are not uniquely linked to a single component.
-     *    - A map where unique superclasses or interfaces are associated with a specific implementing component.
-     *
+     * - A list of superclasses or interfaces that are not uniquely linked to a single component.
+     * - A map where unique superclasses or interfaces are associated with a specific implementing component.
+     * <p>
      * The mappings are built using the following data structures:
      * - A map from superclasses/interfaces to the list of components that implement or extend them.
      * - A list of non-unique types where multiple components exist for the same superclass or interface.
      * - A map of unique superclasses/interfaces to their corresponding component.
-     *
+     * <p>
      * This method is a key part of the component scanning and resolution process, facilitating
      * the identification of potential instantiation ambiguities or conflicts.
      */
@@ -160,22 +166,22 @@ public class ComponentScanner {
      * Resolves and identifies instantiable components from a set of scanned components.
      * This process determines which components can be instantiated based on their dependencies
      * and class relationships, while tracking unresolved types and potential conflicts.
-     *
+     * <p>
      * The resolution process involves:
      * 1. Iteratively determining which components can be instantiated using the known types
-     *    map. A component is resolvable if its dependencies can be satisfied by the current
-     *    set of known types.
+     * map. A component is resolvable if its dependencies can be satisfied by the current
+     * set of known types.
      * 2. Registering resolvable components and their superclasses/interfaces into the known
-     *    types map for future iterations.
+     * types map for future iterations.
      * 3. Removing successfully resolved components from the unresolved set.
      * 4. Repeating the process until no further components can be resolved in a given iteration.
-     *
+     * <p>
      * At the end of the resolution process:
      * - Resolvable components are added to the `instantiableComponents` map, which maps types
-     *   to their corresponding instantiable implementations.
+     * to their corresponding instantiable implementations.
      * - Unresolved components are identified, and error details are collected to highlight
-     *   dependencies or conflicts preventing their instantiation.
-     *
+     * dependencies or conflicts preventing their instantiation.
+     * <p>
      * If errors are encountered due to unresolved components, they are logged for further analysis.
      */
     private void resolveInstantiableComponents() {
@@ -208,21 +214,22 @@ public class ComponentScanner {
     }
 
     /**
-     * Registers a component and its superclasses or interfaces in the provided map of known types.
-     * This method ensures that the component and its inheritance hierarchy are associated with the
-     * component's data unless the supertype is marked as non-unique.
+     * Retrieves all superclasses and interfaces of the specified class, excluding the {@code Object} class.
      *
-     * @param component the {@code ComponentData} instance representing the component to be registered
-     * @param knownTypes the map where component types and their data are stored
+     * @param clazz the class for which to retrieve all superclasses and interfaces
+     * @return a set of all superclasses and interfaces implemented by the specified class
      */
-    private void registerComponentWithSuperTypes(ComponentData component, Map<Class<?>, ComponentData> knownTypes) {
-        knownTypes.put(component.getType(), component);
+    private Set<Class<?>> getAllSuperTypes(Class<?> clazz) {
+        Set<Class<?>> result = new HashSet<>();
+        Class<?> superClass = clazz.getSuperclass();
 
-        for (Class<?> superType : getAllSuperTypes(component.getType())) {
-            if (!notUniqueTypes.contains(superType)) {
-                knownTypes.put(superType, component);
-            }
+        while (superClass != null && superClass != Object.class) {
+            result.add(superClass);
+            superClass = superClass.getSuperclass();
         }
+
+        result.addAll(Arrays.asList(clazz.getInterfaces()));
+        return result;
     }
 
     /**
@@ -232,7 +239,7 @@ public class ComponentScanner {
      * Additionally, all fields annotated with {@code @Inject} must have their types present in the
      * known types set.
      *
-     * @param component the class to check for instantiability
+     * @param component  the class to check for instantiability
      * @param knownTypes the set of currently known types that can be used to satisfy dependencies
      * @return {@code true} if the component can be instantiated; {@code false} otherwise
      */
@@ -258,6 +265,24 @@ public class ComponentScanner {
         }
 
         return true;
+    }
+
+    /**
+     * Registers a component and its superclasses or interfaces in the provided map of known types.
+     * This method ensures that the component and its inheritance hierarchy are associated with the
+     * component's data unless the supertype is marked as non-unique.
+     *
+     * @param component  the {@code ComponentData} instance representing the component to be registered
+     * @param knownTypes the map where component types and their data are stored
+     */
+    private void registerComponentWithSuperTypes(ComponentData component, Map<Class<?>, ComponentData> knownTypes) {
+        knownTypes.put(component.getType(), component);
+
+        for (Class<?> superType : getAllSuperTypes(component.getType())) {
+            if (!notUniqueTypes.contains(superType)) {
+                knownTypes.put(superType, component);
+            }
+        }
     }
 
     /**
@@ -304,7 +329,7 @@ public class ComponentScanner {
      *
      * @param component the class for which conflicting types need to be identified.
      * @return a comma-separated string of fully qualified names of conflicting parameter types,
-     *         or an empty string if no conflicts are found.
+     * or an empty string if no conflicts are found.
      */
     private String getConflictingTypes(Class<?> component) {
         return Arrays.stream(component.getConstructors())
@@ -315,29 +340,10 @@ public class ComponentScanner {
     }
 
     /**
-     * Retrieves all superclasses and interfaces of the specified class, excluding the {@code Object} class.
-     *
-     * @param clazz the class for which to retrieve all superclasses and interfaces
-     * @return a set of all superclasses and interfaces implemented by the specified class
-     */
-    private Set<Class<?>> getAllSuperTypes(Class<?> clazz) {
-        Set<Class<?>> result = new HashSet<>();
-        Class<?> superClass = clazz.getSuperclass();
-
-        while (superClass != null && superClass != Object.class) {
-            result.add(superClass);
-            superClass = superClass.getSuperclass();
-        }
-
-        result.addAll(Arrays.asList(clazz.getInterfaces()));
-        return result;
-    }
-
-    /**
      * Retrieves a map of classes representing component types to their corresponding instantiable implementations.
      *
      * @return A map where the key is a class type and the value is the corresponding class implementation
-     *         that can be instantiated.
+     * that can be instantiated.
      */
     public Map<Class<?>, ComponentData> getInstantiableComponents() {
         return instantiableComponents;
@@ -349,7 +355,7 @@ public class ComponentScanner {
      * component scanning and analysis process.
      *
      * @return a set of classes representing the types that have multiple
-     *         implementations and cannot be resolved uniquely
+     * implementations and cannot be resolved uniquely
      */
     public Set<Class<?>> getNotUniqueTypes() {
         return notUniqueTypes;
@@ -361,7 +367,7 @@ public class ComponentScanner {
      * implementation, ensuring no ambiguity in resolution.
      *
      * @return a map where the keys are types (e.g., interfaces or superclasses)
-     *         and the values are their unique component implementations.
+     * and the values are their unique component implementations.
      */
     public Map<Class<?>, Class<?>> getUniqueTypeToComponent() {
         return uniqueTypeToComponent;

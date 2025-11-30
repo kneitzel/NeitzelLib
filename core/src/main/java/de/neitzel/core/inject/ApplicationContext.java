@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 /**
  * Represents the context of the application and serves as the foundation of a dependency
  * injection framework.
- *
+ * <p>
  * The {@code ApplicationContext} is responsible for scanning, instantiating, and managing
  * the lifecycle of components. Components are identified through the specified base package
  * (or derived from a configuration class) and instantiated based on their dependency
@@ -52,17 +52,17 @@ public class ApplicationContext {
 
     /**
      * Retrieves an instance of the specified component type from the application context.
-     *
+     * <p>
      * This method uses dependency injection to construct the component if it is not already
      * a singleton instance. The component's type and scope are determined by the framework,
      * and the appropriate initialization and lifecycle management are performed.
      *
-     * @param <T> the type of the component to retrieve
+     * @param <T>  the type of the component to retrieve
      * @param type the {@code Class} object representing the type of the component
      * @return an instance of the requested component type
      * @throws IllegalArgumentException if no component is found for the specified type
-     * @throws IllegalStateException if no suitable constructor is found for the component
-     * @throws RuntimeException if any error occurs during instantiation
+     * @throws IllegalStateException    if no suitable constructor is found for the component
+     * @throws RuntimeException         if any error occurs during instantiation
      */
     @SuppressWarnings("unchecked")
     public <T> T getComponent(Class<? extends T> type) {
@@ -85,7 +85,7 @@ public class ApplicationContext {
                     Class<?>[] paramTypes = constructor.getParameterTypes();
                     Object[] parameters = new Object[paramTypes.length];
                     for (int i = 0; i < paramTypes.length; i++) {
-                            parameters[i] = getComponent(paramTypes[i]);
+                        parameters[i] = getComponent(paramTypes[i]);
                     }
                     instance = constructor.newInstance(parameters);
                     if (scope == Scope.SINGLETON) {
@@ -103,12 +103,12 @@ public class ApplicationContext {
 
     /**
      * Determines if a given constructor can be instantiated using the provided parameter map.
-     *
+     * <p>
      * The method evaluates whether every parameter type required by the constructor
      * is available in the given parameter map. If all parameter types are present,
      * the constructor is considered instantiable.
      *
-     * @param constructor the constructor to check for instantiation feasibility
+     * @param constructor  the constructor to check for instantiation feasibility
      * @param parameterMap a map containing available parameter types and their associated component data
      * @return true if all parameter types required by the constructor are contained in the parameter map, false otherwise
      */
@@ -118,14 +118,14 @@ public class ApplicationContext {
 
     /**
      * Registers a singleton instance of a specific type into the application context.
-     *
+     * <p>
      * This method allows manual addition of singleton components to the context by
      * providing a concrete instance of the required type. If the type is already mapped
      * to a different instance or type within the context, an {@link IllegalStateException}
      * is thrown to prevent replacement of an existing singleton.
      *
-     * @param <T> the type of the component to register
-     * @param type the class type of the component being added
+     * @param <T>      the type of the component to register
+     * @param type     the class type of the component being added
      * @param instance the singleton instance of the component to register
      * @throws IllegalStateException if the type is already registered with a different instance
      */

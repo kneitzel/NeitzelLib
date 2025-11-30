@@ -6,10 +6,10 @@ import java.util.Iterator;
  * The ArgumentProvider class is a helper utility for iterating over an array
  * of command-line arguments. It provides methods to check for available arguments
  * and retrieve them in sequence.
- *
- * This class is designed to work seamlessly with a command-line parser
- * and handle tokenized inputs efficiently. It implements the Iterator interface
- * for ease of iteration.
+ * <p>
+ * This class is designed to work seamlessly with a command-line parser and handle
+ * tokenized inputs efficiently. It implements the {@link Iterator} interface for ease
+ * of iteration and provides convenience methods for peeking ahead.
  */
 public class ArgumentProvider implements Iterator<String> {
 
@@ -19,18 +19,15 @@ public class ArgumentProvider implements Iterator<String> {
      * and processing by the application logic. It is used within the {@code ArgumentProvider}
      * class to iterate through and retrieve arguments systematically.
      */
-    private String[] arguments;
+    private final String[] arguments;
 
     /**
      * Tracks the current position within an array of arguments.
-     *
-     * This variable is used to index into the arguments array, enabling
-     * sequential access to command-line tokens. It is incremented as arguments
-     * are processed or retrieved using methods such as {@code next()} or {@code peek()}
-     * in the {@link ArgumentProvider} class.
-     *
-     * Its value starts at 0 and increases until it reaches the length of
-     * the provided arguments array, at which point iteration ends.
+     * This variable is used to index into the arguments array, enabling sequential access
+     * to command-line tokens. It is incremented as arguments are processed or retrieved
+     * using methods such as {@code next()} or {@code peek()} in the {@link ArgumentProvider}
+     * class. Its value starts at 0 and increases until it reaches the length of the provided
+     * arguments array, at which point iteration ends.
      */
     private int current = 0;
 
@@ -43,19 +40,10 @@ public class ArgumentProvider implements Iterator<String> {
      */
     public ArgumentProvider(final String[] arguments) {
         if (arguments == null) {
-            this.arguments = new String[] {};
+            this.arguments = new String[]{};
         } else {
             this.arguments = arguments;
         }
-    }
-
-    /**
-     * Checks if there are more arguments available to iterate over.
-     *
-     * @return true if there are additional arguments available; false otherwise.
-     */
-    public boolean hasNext() {
-        return current < arguments.length;
     }
 
     /**
@@ -66,6 +54,26 @@ public class ArgumentProvider implements Iterator<String> {
      */
     public boolean hasNext(final int count) {
         return current + count <= arguments.length;
+    }
+
+    /**
+     * Returns the next argument in the sequence without advancing the iterator.
+     * If there are no more arguments available, this method returns null.
+     *
+     * @return the next argument in the sequence or null if no arguments are available
+     */
+    public String peek() {
+        if (!hasNext()) return null;
+        return arguments[current];
+    }
+
+    /**
+     * Checks if there are more arguments available to iterate over.
+     *
+     * @return true if there are additional arguments available; false otherwise.
+     */
+    public boolean hasNext() {
+        return current < arguments.length;
     }
 
     /**
@@ -80,16 +88,5 @@ public class ArgumentProvider implements Iterator<String> {
         String result = arguments[current];
         current++;
         return result;
-    }
-
-    /**
-     * Returns the next argument in the sequence without advancing the iterator.
-     * If there are no more arguments available, this method returns null.
-     *
-     * @return the next argument in the sequence or null if no arguments are available
-     */
-    public String peek() {
-        if (!hasNext()) return null;
-        return arguments[current];
     }
 }

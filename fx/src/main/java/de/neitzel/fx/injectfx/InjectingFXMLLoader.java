@@ -11,12 +11,12 @@ import java.net.URL;
  * The InjectingFXMLLoader class provides a custom implementation of JavaFX's FXMLLoader
  * that supports dependency injection. It facilitates the loading of FXML files while
  * dynamically injecting dependencies into controllers during the loading process.
- *
+ * <p>
  * This class utilizes the InjectingControllerFactory to enable seamless integration
  * of dependency injection with JavaFX controllers. Dependencies can be added to the
  * controller factory, and the loader will use this factory to instantiate controllers
  * with the appropriate dependencies.
- *
+ * <p>
  * Features of this loader include:
  * - Support for dependency injection into JavaFX controllers by using a custom factory.
  * - Adding custom dependency mappings at runtime.
@@ -28,20 +28,20 @@ public class InjectingFXMLLoader {
     /**
      * Represents an instance of the {@link InjectingControllerFactory}, which is used for creating
      * and managing controller instances with dependency injection capabilities in a JavaFX application.
-     *
+     * <p>
      * This factory facilitates the injection of dependencies by dynamically resolving and supplying
      * required objects during controller instantiation. It plays a critical role in enabling seamless
      * integration of dependency injection with JavaFX's {@link FXMLLoader}.
-     *
+     * <p>
      * The `controllerFactory` is used internally by the {@link InjectingFXMLLoader} to provide a consistent
      * and extensible mechanism for controller creation while maintaining loose coupling and enhancing testability.
-     *
+     * <p>
      * Key responsibilities:
      * - Manages a mapping of classes to their injectable instances required for controller instantiation.
      * - Dynamically analyzes and invokes appropriate constructors for controllers based on the availability
-     *   of dependencies.
+     * of dependencies.
      * - Ensures that controllers are created with required dependencies, preventing manual resolution of injections.
-     *
+     * <p>
      * This variable is initialized in the {@link InjectingFXMLLoader} and can be extended with additional
      * mappings at runtime using relevant methods.
      */
@@ -51,7 +51,7 @@ public class InjectingFXMLLoader {
      * Default constructor for the InjectingFXMLLoader class.
      * This initializes the loader with a new instance of the {@link InjectingControllerFactory},
      * which is used to provide dependency injection capabilities for JavaFX controllers.
-     *
+     * <p>
      * The {@link InjectingControllerFactory} allows for the registration and dynamic injection
      * of dependencies into controllers when they are instantiated during the FXML loading process.
      */
@@ -100,7 +100,7 @@ public class InjectingFXMLLoader {
      *                  available for dependency injection.
      */
     private void addInjectingData(FXMLComponentInstances instances) {
-        for (var clazz: instances.getInstanceMap().keySet()) {
+        for (var clazz : instances.getInstanceMap().keySet()) {
             addInjectingData(clazz, instances.getInstance(clazz));
         }
     }

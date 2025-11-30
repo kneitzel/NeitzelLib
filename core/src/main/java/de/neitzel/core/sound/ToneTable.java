@@ -7,34 +7,23 @@ import java.util.HashMap;
  * with their corresponding frequencies in hertz (Hz). It allows users to
  * retrieve the frequency of a tone based on its standard notation name,
  * such as "C3", "A4", or "G#5".
- *
+ * <p>
  * This class can be particularly useful in applications related to sound synthesis,
  * music theory, signal processing, and other audio-related domains that require precise
  * frequency information for specific tones.
  */
 public class ToneTable {
     /**
-     * Private constructor to prevent instantiation of the utility class.
-     * This utility class is not meant to be instantiated, as it only provides
-     * static utility methods for array-related operations.
-     *
-     * @throws UnsupportedOperationException always, to indicate that this class
-     *                                        should not be instantiated.
-     */
-    private ToneTable() {
-        throw new UnsupportedOperationException("Utility class");
-    }
-
-    /**
      * A static map that associates written tone names with their corresponding frequencies in hertz (Hz).
      * The keys represent tone names (e.g., "C4", "D#5"), and the values are their respective frequencies.
      * This map serves as a reference for converting tone names into their precise frequency values,
      * which are used in applications such as tone generation or audio playback.
-     *
+     * <p>
      * The map is a crucial component of the ToneTable class, providing quick lookup of frequencies
      * for predefined tone names.
      */
     private static final HashMap<String, Double> toneMap = new HashMap<>();
+
     static {
         toneMap.put("C0", 16.35);
         toneMap.put("C#0", 17.32);
@@ -189,6 +178,18 @@ public class ToneTable {
         toneMap.put("A#8", 7458.62);
         toneMap.put("Bb8", 7458.62);
         toneMap.put("B8", 7902.13);
+    }
+
+    /**
+     * Private constructor to prevent instantiation of the utility class.
+     * This utility class is not meant to be instantiated, as it only provides
+     * static utility methods for array-related operations.
+     *
+     * @throws UnsupportedOperationException always, to indicate that this class
+     *                                       should not be instantiated.
+     */
+    private ToneTable() {
+        throw new UnsupportedOperationException("Utility class");
     }
 
     /**
