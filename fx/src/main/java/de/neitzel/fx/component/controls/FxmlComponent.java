@@ -27,19 +27,10 @@ import java.util.Arrays;
  */
 public class FxmlComponent extends StackPane {
 
-    /**
-     * The FXML resource path to be loaded by this component. A value of {@code null} or blank disables loading.
-     */
     private final StringProperty fxml = new SimpleStringProperty();
 
-    /**
-     * Human-readable binding direction hint used by outer frameworks; defaults to "unidirectional".
-     */
     private final StringProperty direction = new SimpleStringProperty("unidirectional");
 
-    /**
-     * Optional data object that is injected into the controller of the loaded FXML when available.
-     */
     private final ObjectProperty<Object> data = new SimpleObjectProperty<>();
 
     /**

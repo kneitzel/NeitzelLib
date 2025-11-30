@@ -6,11 +6,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.TextInputControl;
-import lombok.RequiredArgsConstructor;
 
 import java.io.InputStream;
 
-@RequiredArgsConstructor
 /**
  * Custom FXMLLoader that binds JavaFX controls to a GenericViewModel using metadata from FXML.
  * It supports automatic binding setup based on properties defined in the FXML's node properties.
@@ -23,6 +21,17 @@ public class BindingAwareFXMLLoader<T> {
      * The model instance used to construct the GenericViewModel.
      */
     private final T model;
+
+    /**
+     * Constructs a new instance of the BindingAwareFXMLLoader class.
+     * This loader is designed to load FXML files and automatically bind UI elements
+     * to the properties of the provided model using a binding-aware approach.
+     *
+     * @param model the model object to be used for binding to the UI components
+     */
+    public BindingAwareFXMLLoader(T model) {
+        this.model = model;
+    }
 
     /**
      * Loads an FXML file and performs automatic binding setup using the GenericViewModel.
@@ -68,22 +77,35 @@ public class BindingAwareFXMLLoader<T> {
         if (userData instanceof String propertyName) {
             BindDirection direction = getDirection(node);
 
-            if (node instanceof TextInputControl control) {
-                Property<String> prop = viewModel.property(StringProperty.class, propertyName);
-                bind(control.textProperty(), prop, direction);
-            } else if (node instanceof javafx.scene.control.Label label) {
-                Property<String> prop = viewModel.property(StringProperty.class, propertyName);
-                bind(label.textProperty(), prop, direction);
-            } else if (node instanceof javafx.scene.control.CheckBox checkBox) {
-                Property<Boolean> prop = viewModel.property(javafx.beans.property.BooleanProperty.class, propertyName);
-                bind(checkBox.selectedProperty(), prop, direction);
-            } else if (node instanceof javafx.scene.control.Slider slider) {
-                Property<Number> prop = viewModel.property(javafx.beans.property.DoubleProperty.class, propertyName);
-                bind(slider.valueProperty(), prop, direction);
-            } else if (node instanceof javafx.scene.control.DatePicker datePicker) {
-                @SuppressWarnings("unchecked")
-                Property<java.time.LocalDate> prop = (Property<java.time.LocalDate>) viewModel.property(javafx.beans.property.ObjectProperty.class, propertyName);
-                bind(datePicker.valueProperty(), prop, direction);
+            switch (node) {
+                case TextInputControl control -> {
+                    Property<String> prop = viewModel.property(StringProperty.class, propertyName);
+                    bind(control.textProperty(), prop, direction);
+                }
+                case javafx.scene.control.Label label -> {
+                    Property<String> prop = viewModel.property(StringProperty.class, propertyName);
+                    bind(label.textProperty(), prop, direction);
+                }
+                case javafx.scene.control.CheckBox checkBox -> {
+                    Property<Boolean> prop = viewModel.property(javafx.beans.property.BooleanProperty.class, propertyName);
+                    bind(checkBox.selectedProperty(), prop, direction);
+                }
+                case javafx.scene.control.Slider slider -> {
+                    Property<Number> prop = viewModel.property(javafx.beans.property.DoubleProperty.class, propertyName);
+                    bind(slider.valueProperty(), prop, direction);
+                }
+                case javafx.scene.control.DatePicker datePicker -> {
+                    @SuppressWarnings("unchecked")
+                    Property<java.time.LocalDate> prop =
+                            (Property<java.time.LocalDate>) viewModel.property(
+                                    javafx.beans.property.ObjectProperty.class,
+                                    propertyName
+                            );
+                    bind(datePicker.valueProperty(), prop, direction);
+                }
+                default -> {
+                    // ignore unsupported nodes
+                }
             }
         }
     }
