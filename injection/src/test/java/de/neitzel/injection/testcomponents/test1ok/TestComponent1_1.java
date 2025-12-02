@@ -1,6 +1,6 @@
-package de.neitzel.core.inject.testcomponents.test1ok;
+package de.neitzel.injection.testcomponents.test1ok;
 
-import de.neitzel.core.inject.annotation.Component;
+import de.neitzel.injection.annotation.Component;
 
 @Component
 public class TestComponent1_1 extends SuperClass implements TestInterface1_2 {

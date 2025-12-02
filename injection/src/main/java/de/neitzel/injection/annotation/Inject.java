@@ -1,4 +1,4 @@
-package de.neitzel.core.inject.annotation;
+package de.neitzel.injection.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

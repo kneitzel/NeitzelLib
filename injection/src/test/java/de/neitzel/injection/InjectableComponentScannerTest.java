@@ -1,10 +1,10 @@
-package de.neitzel.core.inject;
+package de.neitzel.injection;
 
-import de.neitzel.core.inject.testcomponents.test1ok.SuperClass;
-import de.neitzel.core.inject.testcomponents.test1ok.TestComponent1_1;
-import de.neitzel.core.inject.testcomponents.test1ok.TestInterface1_1;
-import de.neitzel.core.inject.testcomponents.test1ok.TestInterface1_2;
-import de.neitzel.core.inject.testcomponents.test1ok.sub.TestComponent1_2;
+import de.neitzel.injection.testcomponents.test1ok.SuperClass;
+import de.neitzel.injection.testcomponents.test1ok.TestComponent1_1;
+import de.neitzel.injection.testcomponents.test1ok.TestInterface1_1;
+import de.neitzel.injection.testcomponents.test1ok.TestInterface1_2;
+import de.neitzel.injection.testcomponents.test1ok.sub.TestComponent1_2;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -20,7 +20,7 @@ class InjectableComponentScannerTest {
      */
     @Test
     void testLoadComponents() {
-        ComponentScanner scanner = new ComponentScanner("de.neitzel.core.inject.testcomponents.test1ok");
+        ComponentScanner scanner = new ComponentScanner("de.neitzel.injection.testcomponents.test1ok");
         var instantiableComponents = scanner.getInstantiableComponents();
         var nonUniqueTypes = scanner.getNotUniqueTypes();
 
@@ -41,7 +41,7 @@ class InjectableComponentScannerTest {
      */
     @Test
     void testComponentsFailWithUnknownParameters() {
-        ComponentScanner scanner = new ComponentScanner("de.neitzel.core.inject.testcomponents.test2fail");
+        ComponentScanner scanner = new ComponentScanner("de.neitzel.injection.testcomponents.test2fail");
         var instantiableComponents = scanner.getInstantiableComponents();
         var nonUniqueTypes = scanner.getNotUniqueTypes();
 

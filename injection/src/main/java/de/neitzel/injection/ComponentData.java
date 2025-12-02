@@ -1,4 +1,4 @@
-package de.neitzel.core.inject;
+package de.neitzel.injection;
 
 import lombok.Getter;
 

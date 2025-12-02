@@ -1,6 +1,6 @@
-package de.neitzel.core.inject;
+package de.neitzel.injection;
 
-import de.neitzel.core.inject.annotation.Config;
+import de.neitzel.injection.annotation.Config;
 
 import java.lang.reflect.Constructor;
 import java.util.Map;

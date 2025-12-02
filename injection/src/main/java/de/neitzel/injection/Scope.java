@@ -1,4 +1,4 @@
-package de.neitzel.core.inject;
+package de.neitzel.injection;
 
 /**
  * Represents the scope of a component in a dependency injection framework.

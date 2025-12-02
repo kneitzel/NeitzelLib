@@ -61,3 +61,7 @@ modules!)
 ### net
 
 Some network stuff using javax.mail as dependency.
+
+### quarkus
+
+Some additions for quarkus that might be useful.

@@ -1,7 +1,7 @@
-package de.neitzel.core.inject;
+package de.neitzel.injection;
 
-import de.neitzel.core.inject.annotation.Component;
-import de.neitzel.core.inject.annotation.Inject;
+import de.neitzel.injection.annotation.Component;
+import de.neitzel.injection.annotation.Inject;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;

@@ -1,6 +1,6 @@
-package de.neitzel.core.inject.testcomponents.test2fail;
+package de.neitzel.injection.testcomponents.test2fail;
 
-import de.neitzel.core.inject.annotation.Component;
+import de.neitzel.injection.annotation.Component;
 
 /**
  * TestComponent1 that should fail.

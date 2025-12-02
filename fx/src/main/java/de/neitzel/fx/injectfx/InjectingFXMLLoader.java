@@ -1,6 +1,6 @@
 package de.neitzel.fx.injectfx;
 
-import de.neitzel.core.inject.ComponentScanner;
+import de.neitzel.injection.ComponentScanner;
 import javafx.fxml.FXMLLoader;
 import lombok.extern.slf4j.Slf4j;
 

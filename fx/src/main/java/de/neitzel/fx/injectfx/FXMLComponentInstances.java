@@ -1,7 +1,7 @@
 package de.neitzel.fx.injectfx;
 
-import de.neitzel.core.inject.ComponentData;
-import de.neitzel.core.inject.ComponentScanner;
+import de.neitzel.injection.ComponentData;
+import de.neitzel.injection.ComponentScanner;
 import lombok.Getter;
 
 import java.lang.reflect.Constructor;

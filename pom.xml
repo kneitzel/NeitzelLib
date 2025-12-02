@@ -13,6 +13,7 @@
     <modules>
         <module>core</module>
         <module>encryption</module>
+        <module>injection</module>
         <module>fx</module>
         <module>gson</module>
         <module>net</module>
@@ -26,6 +27,7 @@
         <required.maven.version>3.8.6</required.maven.version>
 
         <!-- Dependency versions -->
+        <jakarta-inject-api>2.0.1</jakarta-inject-api>
         <javafx.version>25.0.1</javafx.version>
         <jetbrains.annotations.version>26.0.2</jetbrains.annotations.version>
         <junit.version>6.0.1</junit.version>
@@ -274,6 +276,9 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
+                        <configuration>
+                            <sourcepath>${project.build.sourceDirectory}</sourcepath>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -347,15 +352,19 @@
                             <report>javadoc</report>
                         </reports>
                     </reportSet>
+                    <!--
                     <reportSet>
                         <id>tests</id>
                         <configuration>
                             <show>private</show>
+                            <failOnError>false</failOnError>
+                            <quiet>true</quiet>
                         </configuration>
                         <reports>
                             <report>test-javadoc</report>
                         </reports>
                     </reportSet>
+                    -->
                 </reportSets>
             </plugin>
             <plugin>
