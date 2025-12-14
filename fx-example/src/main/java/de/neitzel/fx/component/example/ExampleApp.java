@@ -6,8 +6,32 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+/**
+ * Example JavaFX application demonstrating the {@link de.neitzel.fx.component.ComponentLoader} usage.
+ */
 public class ExampleApp extends Application {
 
+    /**
+     * Default constructor only
+     */
+    public ExampleApp() {
+        // default constructor only
+    }
+
+    /**
+     * Launches the JavaFX application.
+     *
+     * @param args command line arguments
+     */
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    /**
+     * Initializes sample model data, loads the FX component and shows the primary stage.
+     *
+     * @param primaryStage the primary stage for this application
+     */
     @Override
     public void start(Stage primaryStage) throws Exception {
         // Beispielmodel initialisieren
@@ -28,9 +52,5 @@ public class ExampleApp extends Application {
         primaryStage.setTitle("ComponentLoader Example");
         primaryStage.setScene(scene);
         primaryStage.show();
-    }
-
-    public static void main(String[] args) {
-        launch();
     }
 }

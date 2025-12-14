@@ -13,26 +13,28 @@ import java.util.stream.Stream;
  * support dependency injection. It uses a parameter map to resolve and supply dependencies to
  * controller constructors dynamically during instantiation.
  *
- * This class simplifies the process of injecting dependencies into JavaFX controllers by analyzing
- * the constructors of the given controller classes at runtime. It selects the constructor that best
- * matches the available dependencies in the parameter map and creates an instance of the controller.
+ * <p>This class analyzes available constructors of a requested controller class at runtime and
+ * selects the first constructor whose parameter types are all present in the internal parameter map.
+ * The corresponding instances are retrieved and passed to the constructor to create the controller.
  *
- * It implements the Callback interface to provide compatibility with the JavaFX FXMLLoader, allowing
- * controllers with dependencies to be injected seamlessly during the FXML loading process.
+ * <p>It implements the {@link javafx.util.Callback} interface to integrate with the JavaFX
+ * {@link javafx.fxml.FXMLLoader} controller factory mechanism.
  */
 public class InjectingControllerFactory implements Callback<Class<?>, Object> {
+
     /**
      * A map that stores class-to-object mappings used for dependency injection
-     * in controller instantiation. This map is utilized to resolve and supply
-     * the required dependencies for constructors during the creation of controller
-     * instances.
-     *
-     * Each key in the map represents a class type, and the corresponding value
-     * is the instance of that type. This allows the {@link InjectingControllerFactory}
-     * to use the stored instances to dynamically match and inject dependencies
-     * into controllers at runtime.
+     * in controller instantiation. Each key represents a parameter type and the
+     * associated value is the instance to be injected for that type.
      */
     private final Map<Class<?>, Object> parameterMap = new HashMap<>();
+
+    /**
+     * Default constructor only
+     */
+    public InjectingControllerFactory() {
+        // default constructor only
+    }
 
     /**
      * Adds a mapping between a class and its corresponding object instance
@@ -81,11 +83,11 @@ public class InjectingControllerFactory implements Callback<Class<?>, Object> {
      * This method checks if the parameter map contains entries for all parameter types required
      * by the specified constructor.
      *
-     * @param constructor The constructor to be evaluated for instantiability.
+     * @param constructor  The constructor to be evaluated for instantiability.
      * @param parameterMap A map where keys are parameter types and values are the corresponding
      *                     instances available for injection.
      * @return {@code true} if the constructor can be instantiated with the given parameter map;
-     *         {@code false} otherwise.
+     * {@code false} otherwise.
      */
     private boolean canBeInstantiated(Constructor<?> constructor, Map<Class<?>, Object> parameterMap) {
         return Stream.of(constructor.getParameterTypes()).allMatch(parameterMap::containsKey);

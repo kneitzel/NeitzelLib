@@ -37,8 +37,8 @@ public class NewEmailEvent extends EventObject {
      * This event encapsulates information about a newly received email,
      * including its associated message and the source of the event.
      *
-     * @param source the object on which the event initially occurred; typically represents
-     *               the source of the email event, such as an email client or server.
+     * @param source  the object on which the event initially occurred; typically represents
+     *                the source of the email event, such as an email client or server.
      * @param message the Message object representing the email associated with this event.
      */
     public NewEmailEvent(Object source, Message message) {

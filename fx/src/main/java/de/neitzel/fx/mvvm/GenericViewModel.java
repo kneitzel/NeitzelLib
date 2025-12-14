@@ -1,6 +1,12 @@
 package de.neitzel.fx.mvvm;
 
-import javafx.beans.property.*;
+import javafx.beans.property.Property;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleLongProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -80,7 +86,7 @@ public class GenericViewModel<T> {
     /**
      * Creates an appropriate JavaFX Property instance for the given type and initial value.
      *
-     * @param type the type of the property (e.g., String.class, int.class)
+     * @param type         the type of the property (e.g., String.class, int.class)
      * @param initialValue the initial value of the property
      * @return a new JavaFX Property instance
      */
@@ -98,8 +104,8 @@ public class GenericViewModel<T> {
      * Retrieves the JavaFX property associated with the given name and type.
      *
      * @param propertyClass the expected property type (e.g., StringProperty.class)
-     * @param name the name of the model field
-     * @param <P> the type of the Property
+     * @param name          the name of the model field
+     * @param <P>           the type of the Property
      * @return the corresponding JavaFX property
      * @throws IllegalArgumentException if the property doesn't exist or the type mismatches
      */

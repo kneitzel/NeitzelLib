@@ -1,7 +1,7 @@
 package de.neitzel.fx.injectfx;
 
-import de.neitzel.core.inject.ComponentData;
-import de.neitzel.core.inject.ComponentScanner;
+import de.neitzel.injection.ComponentData;
+import de.neitzel.injection.ComponentScanner;
 import lombok.Getter;
 
 import java.lang.reflect.Constructor;
@@ -19,7 +19,9 @@ public class FXMLComponentInstances {
     /** Map holding instances of all @FXMLComponent classes, indexed by class and its unique superclasses/interfaces. */
     private final Map<Class<?>, Object> instanceMap = new HashMap<>();
 
-    /** The InjectableComponents instance that provides information about instantiable components. */
+    /**
+     * The InjectableComponents instance that provides information about instantiable components.
+     */
     private final ComponentScanner injectableScanner;
 
     /**

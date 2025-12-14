@@ -1,7 +1,6 @@
 package de.neitzel.fx.component;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Generic controller used by the ComponentLoader to bind FXML views
@@ -10,7 +9,6 @@ import lombok.RequiredArgsConstructor;
  * This controller provides access to the {@link AutoViewModel}
  * which contains JavaFX properties derived from the model.
  */
-@RequiredArgsConstructor
 public class ComponentController {
 
     /**
@@ -20,4 +18,14 @@ public class ComponentController {
      */
     @Getter
     private final AutoViewModel<?> viewModel;
+
+    /**
+     * Constructs a new ComponentController instance with the specified AutoViewModel.
+     *
+     * @param viewModel the AutoViewModel containing JavaFX properties derived from the model,
+     *                  used for binding the view to the model.
+     */
+    public ComponentController(AutoViewModel<?> viewModel) {
+        this.viewModel = viewModel;
+    }
 }

@@ -16,16 +16,30 @@ public class ToneGenerator {
      * static utility methods for array-related operations.
      *
      * @throws UnsupportedOperationException always, to indicate that this class
-     *                                        should not be instantiated.
+     *                                       should not be instantiated.
      */
     private ToneGenerator() {
         throw new UnsupportedOperationException("Utility class");
     }
 
     /**
+     * Plays one or more specified tones for a given duration.
+     * Each tone is played sequentially in the order they are provided.
+     *
+     * @param duration the duration of each tone in milliseconds
+     * @param tones    the names of the tones to play, specified as a variable-length argument
+     * @throws LineUnavailableException if the audio line cannot be opened or accessed
+     */
+    public static void playTone(int duration, String... tones) throws LineUnavailableException {
+        for (String tone : tones) {
+            playTone(tone, duration);
+        }
+    }
+
+    /**
      * Plays a tone based on a predefined tone name for a specified duration.
      *
-     * @param tone The name of the tone to play. Must correspond to a predefined tone in the tone table.
+     * @param tone     The name of the tone to play. Must correspond to a predefined tone in the tone table.
      * @param duration The duration of the tone in milliseconds.
      * @throws LineUnavailableException If a line for audio playback cannot be opened.
      */
@@ -62,20 +76,6 @@ public class ToneGenerator {
             // Play the tone
             line.write(toneBuffer, 0, toneBuffer.length);
             line.drain();
-        }
-    }
-
-    /**
-     * Plays one or more specified tones for a given duration.
-     * Each tone is played sequentially in the order they are provided.
-     *
-     * @param duration the duration of each tone in milliseconds
-     * @param tones    the names of the tones to play, specified as a variable-length argument
-     * @throws LineUnavailableException if the audio line cannot be opened or accessed
-     */
-    public static void playTone(int duration, String... tones) throws LineUnavailableException {
-        for (String tone : tones) {
-            playTone(tone, duration);
         }
     }
 }
