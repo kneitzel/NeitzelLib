@@ -21,7 +21,6 @@ import java.util.Map;
  */
 @Builder(builderClassName = "ConfigurationBuilder")
 public class JsonConfiguration {
-
     /**
      * The name of the application.
      * This variable is used to identify the application and is incorporated into various configurations,
@@ -66,6 +65,21 @@ public class JsonConfiguration {
      * for specific types.
      */
     private final Gson gson;
+
+    /**
+     * Constructs a new {@code JsonConfiguration} instance with the specified parameters.
+     *
+     * @param appName  the name of the application
+     * @param homeDir  the home directory path for the application
+     * @param settings a map containing configuration settings as key-value pairs
+     * @param gson     the Gson instance used for JSON serialization and deserialization
+     */
+    public JsonConfiguration(String appName, String homeDir, Map<String, String> settings, Gson gson) {
+        this.appName = appName;
+        this.homeDir = homeDir;
+        this.settings = settings;
+        this.gson = gson;
+    }
 
     /**
      * Stores a key-value pair into the configuration settings.
@@ -205,6 +219,18 @@ public class JsonConfiguration {
          * "C:/Users/username" for Windows, or "/home/username" for Unix/Linux systems.
          */
         private String homeDir = System.getProperty("user.home");
+
+        /**
+         * Default constructor for the {@code JsonConfigurationBuilder} class.
+         * Initializes a new instance of the {@code JsonConfigurationBuilder}.
+         * This constructor allows creation of a builder used for configuring
+         * {@code JsonConfiguration} instances, enabling the specification of
+         * application-specific settings such as the application name, home directory,
+         * and custom Gson adapters.
+         */
+        public JsonConfigurationBuilder() {
+            // Default constructor
+        }
 
         /**
          * Sets the application name to be used in the configuration.

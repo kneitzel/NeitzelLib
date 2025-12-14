@@ -12,6 +12,17 @@ import lombok.extern.slf4j.Slf4j;
 public class GlobalRouteLogging {
 
     /**
+     * Constructs a new {@code GlobalRouteLogging} instance.
+     * <p>
+     * This is a default, no-argument constructor for the {@link GlobalRouteLogging} class,
+     * which provides global logging functionality for all incoming routes in a Quarkus
+     * application using Vert.x Web.
+     */
+    public GlobalRouteLogging() {
+        // Default constructor
+    }
+
+    /**
      * Logs all details of the incoming route request, including the method and URI, as well as all headers present in the request.
      * This method is designed to be used within a Vert.x Web application to log details for every incoming route globally.
      *

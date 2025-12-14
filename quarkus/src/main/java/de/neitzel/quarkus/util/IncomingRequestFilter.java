@@ -23,6 +23,16 @@ import lombok.extern.slf4j.Slf4j;
 public class IncomingRequestFilter implements ContainerRequestFilter {
 
     /**
+     * Constructs a new {@code IncomingRequestFilter} instance.
+     * <p>
+     * This is a default, no-argument constructor for the {@link IncomingRequestFilter} class,
+     * which provides logging functionality for incoming HTTP requests in a JAX-RS application.
+     */
+    public IncomingRequestFilter() {
+        // Default constructor
+    }
+
+    /**
      * Logs the details of incoming HTTP requests before they are processed by the application.
      * This includes logging the request method and URI, as well as all headers present in the request.
      *

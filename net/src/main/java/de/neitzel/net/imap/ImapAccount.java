@@ -45,6 +45,8 @@ public class ImapAccount {
 
     /**
      * Retrieves the server address associated with this IMAP
+     *
+     * @return the server address as a String.
      */
     public String getServer() {
         return server;
