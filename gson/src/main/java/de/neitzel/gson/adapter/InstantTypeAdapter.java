@@ -25,6 +25,17 @@ import java.time.format.DateTimeParseException;
 public class InstantTypeAdapter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
 
     /**
+     * Constructs a new {@code InstantTypeAdapter} instance.
+     * <p>
+     * This is a default, no-argument constructor for the {@link InstantTypeAdapter} class,
+     * which provides custom (de)serialization support for {@link Instant} objects in
+     * accordance with the ISO-8601 standard.
+     */
+    public InstantTypeAdapter() {
+        // Default constructor
+    }
+
+    /**
      * Serializes an {@link Instant} object into its ISO-8601 string representation as a {@link JsonElement}.
      *
      * @param src       the {@link Instant} object to be serialized
