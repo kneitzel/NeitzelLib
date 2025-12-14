@@ -1,7 +1,7 @@
 package de.neitzel.injection;
 
-import de.neitzel.injection.annotation.Component;
-import de.neitzel.injection.annotation.Inject;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
@@ -110,14 +110,14 @@ public class ComponentScanner {
     }
 
     /**
-     * Scans the specified base package for classes annotated with {@link Component}.
+     * Scans the specified base package for classes annotated with {@link Singleton}.
      * Identified component classes are added to a collection for further processing.
      *
      * @param basePackage the package to scan for component annotations
      */
     private void scanForComponents(String basePackage) {
         Reflections reflections = new Reflections(basePackage);
-        components.addAll(reflections.getTypesAnnotatedWith(Component.class));
+        components.addAll(reflections.getTypesAnnotatedWith(Singleton.class));
     }
 
     /**
@@ -196,8 +196,8 @@ public class ComponentScanner {
                     .collect(Collectors.toSet());
 
             for (Class<?> clazz : resolvableNow) {
-                Component annotation = clazz.getAnnotation(Component.class);
-                ComponentData componentInfo = new ComponentData(clazz, annotation.scope());
+                Singleton annotation = clazz.getAnnotation(Singleton.class);
+                ComponentData componentInfo = new ComponentData(clazz, Scope.SINGLETON);
 
                 resolved.add(clazz);
                 registerComponentWithSuperTypes(componentInfo, knownTypes);
