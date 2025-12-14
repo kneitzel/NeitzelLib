@@ -6,6 +6,8 @@ import jakarta.inject.Singleton;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,13 +15,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
- * InjectableComponentScanner is responsible for scanning packages to detect classes annotated
- * with @FXMLComponent and analyzing their compatibility for instantiation and dependency injection.
- * The resulting analysis identifies unique and shared interfaces/superclasses as well as
- * potentially instantiable components, collecting relevant errors if instantiation is not feasible.
+ * Scans a base package for Jakarta CDI-style components and derives dependency-injection metadata.
+ * <p>
+ * The scanner detects component classes annotated with {@link jakarta.inject.Singleton} or
+ * {@link jakarta.inject.Named}. It then:
+ * <ul>
+ *   <li>Analyzes the discovered components' super types (interfaces and superclasses) to detect
+ *       unique vs. ambiguous (non-unique) injectable types.</li>
+ *   <li>Determines an {@code InjectionPlan} for each component (constructor + field + setter injection).</li>
+ *   <li>Iteratively resolves which components are instantiable based on already-known resolvable types.</li>
+ *   <li>Collects errors for components that cannot be resolved or instantiated.</li>
+ * </ul>
+ * <p>
+ * The result is a mapping from injectable types to {@link ComponentData} describing how to create
+ * and inject the corresponding component.
  */
 public class ComponentScanner {
 
@@ -72,20 +83,6 @@ public class ComponentScanner {
     private final Map<Class<?>, Class<?>> uniqueTypeToComponent = new HashMap<>();
 
     /**
-     * A mapping of components that can be instantiated with their corresponding types.
-     * This map links a component's class (key) to the specific implementation class (value)
-     * that can be instantiated. The entries are resolved through the scanning and analysis
-     * of available component types, ensuring that only components with resolvable
-     * dependencies are included.
-     * <p>
-     * This field is part of the dependency injection process, where components annotated
-     * with {@code @Component} or similar annotations are scanned, analyzed, and registered.
-     * The resolution process checks if a component can be instantiated based on its
-     * constructor dependencies being resolvable using known types or other registered components.
-     */
-    private final Map<Class<?>, ComponentData> instantiableComponents = new HashMap<>();
-
-    /**
      * A list of error messages encountered during the scanning and analysis
      * of components in the dependency injection process.
      * <p>
@@ -97,6 +94,28 @@ public class ComponentScanner {
      * issues that prevent certain components from being instantiated correctly.
      */
     private final List<String> errors = new ArrayList<>();
+
+    /**
+     * Cache of computed {@link InjectionPlan}s per component class.
+     * <p>
+     * Plans are derived once via reflection and then reused to avoid repeated expensive analysis.
+     */
+    private final Map<Class<?>, InjectionPlan> injectionPlans = new HashMap<>();
+
+    /**
+     * Tracks component classes that are known to be invalid (i.e., no usable injection plan).
+     * <p>
+     * This prevents repeated analysis and also avoids emitting duplicate error messages.
+     */
+    private final Set<Class<?>> invalidComponents = new HashSet<>();
+
+    /**
+     * Final mapping of resolvable injectable types to their corresponding {@link ComponentData}.
+     * <p>
+     * This map includes concrete component classes as keys and, where unique, their injectable
+     * super types (interfaces/superclasses) as additional keys.
+     */
+    private final Map<Class<?>, ComponentData> instantiableComponents = new HashMap<>();
 
     /**
      * Initializes a new instance of the {@code InjectableComponentScanner} class, which scans for injectable
@@ -190,22 +209,32 @@ public class ComponentScanner {
         Set<Class<?>> resolved = new HashSet<>();
         Set<Class<?>> unresolved = new HashSet<>(components);
         Map<Class<?>, ComponentData> knownTypes = new HashMap<>();
-        Set<Class<?>> resolvableNow;
 
-        do {
-            resolvableNow = unresolved.stream()
-                    .filter(c -> canInstantiate(c, knownTypes.keySet()))
-                    .collect(Collectors.toSet());
+        while (true) {
+            Map<Class<?>, ComponentData> newlyResolvable = new HashMap<>();
 
-            for (Class<?> clazz : resolvableNow) {
-                ComponentData componentInfo = new ComponentData(clazz, Scope.SINGLETON);
+            for (Class<?> clazz : unresolved) {
+                if (invalidComponents.contains(clazz)) {
+                    continue;
+                }
 
-                resolved.add(clazz);
+                ComponentData componentInfo = createComponentData(clazz, knownTypes.keySet());
+                if (componentInfo != null) {
+                    newlyResolvable.put(clazz, componentInfo);
+                }
+            }
+
+            if (newlyResolvable.isEmpty()) {
+                break;
+            }
+
+            for (ComponentData componentInfo : newlyResolvable.values()) {
+                resolved.add(componentInfo.getType());
                 registerComponentWithSuperTypes(componentInfo, knownTypes);
             }
 
-            unresolved.removeAll(resolvableNow);
-        } while (!resolvableNow.isEmpty());
+            unresolved.removeAll(newlyResolvable.keySet());
+        }
 
         instantiableComponents.putAll(knownTypes);
 
@@ -234,47 +263,34 @@ public class ComponentScanner {
     }
 
     /**
-     * Determines whether the specified component class can be instantiated based on the provided set
-     * of known types. A component is considered instantiable if it has at least one constructor where
-     * all parameter types are contained in the known types set or if it has a no-argument constructor.
-     * Additionally, all fields annotated with {@code @Inject} must have their types present in the
-     * known types set.
+     * Attempts to create {@link ComponentData} for a component if an injection plan can be determined
+     * and all required dependencies are already known.
      *
-     * @param component  the class to check for instantiability
-     * @param knownTypes the set of currently known types that can be used to satisfy dependencies
-     * @return {@code true} if the component can be instantiated; {@code false} otherwise
+     * @param component  the concrete component class to analyze
+     * @param knownTypes the set of injectable types that are already resolvable in the current iteration
+     * @return component metadata if the component is currently instantiable; otherwise {@code null}
      */
-    private boolean canInstantiate(Class<?> component, Set<Class<?>> knownTypes) {
-        boolean hasValidConstructor = false;
-
-        for (Constructor<?> constructor : component.getConstructors()) {
-            Class<?>[] paramTypes = constructor.getParameterTypes();
-            if (paramTypes.length == 0 || Arrays.stream(paramTypes).allMatch(knownTypes::contains)) {
-                hasValidConstructor = true;
-                break;
-            }
+    private ComponentData createComponentData(Class<?> component, Set<Class<?>> knownTypes) {
+        InjectionPlan plan = getInjectionPlan(component);
+        if (plan == null) {
+            return null;
         }
 
-        if (!hasValidConstructor) {
-            return false;
+        if (!areDependenciesKnown(plan, knownTypes)) {
+            return null;
         }
 
-        for (var field : component.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Inject.class) && !knownTypes.contains(field.getType())) {
-                return false;
-            }
-        }
-
-        return true;
+        return new ComponentData(component, Scope.SINGLETON, plan.constructor(), plan.fields(), plan.setters());
     }
 
     /**
-     * Registers a component and its superclasses or interfaces in the provided map of known types.
-     * This method ensures that the component and its inheritance hierarchy are associated with the
-     * component's data unless the supertype is marked as non-unique.
+     * Registers an instantiable component under its concrete class and (if unique) under its
+     * injectable super types.
+     * <p>
+     * Non-unique super types are intentionally skipped to prevent ambiguous dependency resolution.
      *
-     * @param component  the {@code ComponentData} instance representing the component to be registered
-     * @param knownTypes the map where component types and their data are stored
+     * @param component  the instantiable component metadata
+     * @param knownTypes the mutable registry of resolvable injectable types for the resolution loop
      */
     private void registerComponentWithSuperTypes(ComponentData component, Map<Class<?>, ComponentData> knownTypes) {
         knownTypes.put(component.getType(), component);
@@ -287,102 +303,269 @@ public class ComponentScanner {
     }
 
     /**
-     * Collects the instantiation errors for a set of unresolved classes and appends
-     * detailed error messages to the internal error list. This method analyzes unresolved
-     * components based on their constructors, determining if all required types are
-     * instantiable or if there are conflicting types that could prevent instantiation.
+     * Builds human-readable error messages for components that could not be resolved/instantiated.
+     * <p>
+     * Missing dependencies are computed from the component's {@link InjectionPlan}. If no missing
+     * dependencies can be identified, the component is assumed to be blocked by ambiguous (non-unique)
+     * super types or other conflicts.
      *
-     * @param unresolved the set of classes for which instantiation errors are collected
+     * @param unresolved set of component classes that remained unresolved after the resolution loop
      */
     private void collectInstantiationErrors(Set<Class<?>> unresolved) {
         for (Class<?> component : unresolved) {
-            StringBuilder errorMsg = new StringBuilder("Component cannot be instantiated: " + component.getName());
+            if (invalidComponents.contains(component)) {
+                continue;
+            }
 
-            boolean possibleWithUniqueTypes = false;
+            InjectionPlan plan = getInjectionPlan(component);
+            if (plan == null) {
+                continue;
+            }
 
-            for (Constructor<?> constructor : component.getConstructors()) {
-                Class<?>[] paramTypes = constructor.getParameterTypes();
-                List<Class<?>> problematicTypes = Arrays.stream(paramTypes)
-                        .filter(t -> !instantiableComponents.containsKey(t) && !notUniqueTypes.contains(t))
-                        .toList();
-
-                if (problematicTypes.isEmpty()) {
-                    possibleWithUniqueTypes = true;
-                } else {
-                    errorMsg.append("\n  ➤ Requires unknown types: ").append(problematicTypes);
+            List<Class<?>> missingConstructor = new ArrayList<>();
+            for (Class<?> parameterType : plan.constructor().getParameterTypes()) {
+                if (isUnknownDependency(parameterType)) {
+                    missingConstructor.add(parameterType);
                 }
             }
 
-            if (possibleWithUniqueTypes) {
-                errorMsg.append("\n  ➤ Could be instantiated if multiple implementations of ")
-                        .append("interfaces/superclasses were resolved uniquely: ")
-                        .append(getConflictingTypes(component));
+            List<Class<?>> missingFields = new ArrayList<>();
+            for (Field field : plan.fields()) {
+                if (isUnknownDependency(field.getType())) {
+                    missingFields.add(field.getType());
+                }
             }
 
-            errors.add(errorMsg.toString());
+            List<Class<?>> missingSetters = new ArrayList<>();
+            for (Method setter : plan.setters()) {
+                Class<?> dependencyType = setter.getParameterTypes()[0];
+                if (isUnknownDependency(dependencyType)) {
+                    missingSetters.add(dependencyType);
+                }
+            }
+
+            StringBuilder errorMessage = new StringBuilder("Component cannot be instantiated: ");
+            errorMessage.append(component.getName());
+            if (!missingConstructor.isEmpty()) {
+                errorMessage.append(" | Missing constructor dependencies: ").append(missingConstructor);
+            }
+            if (!missingFields.isEmpty()) {
+                errorMessage.append(" | Missing field dependencies: ").append(missingFields);
+            }
+            if (!missingSetters.isEmpty()) {
+                errorMessage.append(" | Missing setter dependencies: ").append(missingSetters);
+            }
+            if (missingConstructor.isEmpty() && missingFields.isEmpty() && missingSetters.isEmpty()) {
+                errorMessage.append(" | Conflicting super types detected");
+            }
+
+            errors.add(errorMessage.toString());
         }
     }
 
     /**
-     * Identifies and retrieves a comma-separated string of conflicting types for a given component.
-     * A conflicting type is a parameter type in the constructor of the given component
-     * that is already marked as not unique within the application context.
+     * Returns a cached {@link InjectionPlan} for the given component class.
+     * <p>
+     * If plan determination fails, the component is marked as invalid and {@code null} is returned.
      *
-     * @param component the class for which conflicting types need to be identified.
-     * @return a comma-separated string of fully qualified names of conflicting parameter types,
-     * or an empty string if no conflicts are found.
+     * @param component the component class
+     * @return the computed injection plan, or {@code null} if none can be determined
      */
-    private String getConflictingTypes(Class<?> component) {
-        return Arrays.stream(component.getConstructors())
-                .flatMap(constructor -> Arrays.stream(constructor.getParameterTypes()))
-                .filter(notUniqueTypes::contains)
-                .map(Class::getName)
-                .collect(Collectors.joining(", "));
+    private InjectionPlan getInjectionPlan(Class<?> component) {
+        if (injectionPlans.containsKey(component)) {
+            return injectionPlans.get(component);
+        }
+        if (invalidComponents.contains(component)) {
+            return null;
+        }
+
+        InjectionPlan plan = determineInjectionPlan(component);
+        if (plan == null) {
+            invalidComponents.add(component);
+        } else {
+            injectionPlans.put(component, plan);
+        }
+        return plan;
     }
 
     /**
-     * Retrieves a map of classes representing component types to their corresponding instantiable implementations.
+     * Checks whether all dependencies referenced by the given plan are present in the known type set.
      *
-     * @return A map where the key is a class type and the value is the corresponding class implementation
-     * that can be instantiated.
+     * @param plan       the injection plan to evaluate
+     * @param knownTypes currently resolvable injectable types
+     * @return {@code true} if all constructor/field/setter dependencies are known; otherwise {@code false}
+     */
+    private boolean areDependenciesKnown(InjectionPlan plan, Set<Class<?>> knownTypes) {
+        if (!Arrays.stream(plan.constructor().getParameterTypes()).allMatch(knownTypes::contains)) {
+            return false;
+        }
+
+        for (Field field : plan.fields()) {
+            if (!knownTypes.contains(field.getType())) {
+                return false;
+            }
+        }
+
+        for (Method setter : plan.setters()) {
+            Class<?> dependencyType = setter.getParameterTypes()[0];
+            if (!knownTypes.contains(dependencyType)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Determines an {@link InjectionPlan} for a component by selecting a constructor and collecting
+     * injectable fields and setter methods.
+     * <p>
+     * A field is injectable if annotated with {@link jakarta.inject.Inject}.
+     * A method is treated as setter injection if annotated with {@link jakarta.inject.Inject} and
+     * matches the JavaBeans setter shape ({@code void setX(T value)}).
+     *
+     * @param component the component class
+     * @return the injection plan, or {@code null} if no usable constructor can be selected
+     */
+    private InjectionPlan determineInjectionPlan(Class<?> component) {
+        Constructor<?> constructor = selectConstructor(component);
+        if (constructor == null) {
+            return null;
+        }
+
+        List<Field> fields = Arrays.stream(component.getDeclaredFields())
+                .filter(field -> field.isAnnotationPresent(Inject.class))
+                .peek(field -> field.setAccessible(true))
+                .toList();
+
+        List<Method> setters = Arrays.stream(component.getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(Inject.class))
+                .filter(method -> isValidSetter(component, method))
+                .peek(method -> method.setAccessible(true))
+                .toList();
+
+        return new InjectionPlan(constructor, fields, setters);
+    }
+
+    /**
+     * Selects the constructor to use for instantiation.
+     * <ul>
+     *   <li>If exactly one constructor is annotated with {@link jakarta.inject.Inject}, it is selected.</li>
+     *   <li>If multiple constructors are annotated with {@code @Inject}, the component is invalid.</li>
+     *   <li>If there is exactly one declared constructor, it is selected.</li>
+     *   <li>Otherwise, a no-arg constructor is required and selected if present.</li>
+     * </ul>
+     *
+     * @param component the component class
+     * @return the selected constructor, or {@code null} if none can be selected
+     */
+    private Constructor<?> selectConstructor(Class<?> component) {
+        Constructor<?>[] constructors = component.getDeclaredConstructors();
+        List<Constructor<?>> injectConstructors = Arrays.stream(constructors)
+                .filter(c -> c.isAnnotationPresent(Inject.class))
+                .toList();
+
+        if (injectConstructors.size() > 1) {
+            errors.add("Multiple @Inject constructors found for " + component.getName());
+            return null;
+        }
+
+        Constructor<?> selected;
+        if (injectConstructors.size() == 1) {
+            selected = injectConstructors.get(0);
+        } else if (constructors.length == 1) {
+            selected = constructors[0];
+        } else {
+            selected = Arrays.stream(constructors)
+                    .filter(c -> c.getParameterCount() == 0)
+                    .findFirst()
+                    .orElse(null);
+            if (selected == null) {
+                errors.add("No @Inject constructor and no no-arg constructor found for " + component.getName());
+                return null;
+            }
+        }
+
+        selected.setAccessible(true);
+        return selected;
+    }
+
+    /**
+     * Validates whether a method annotated for injection is a compatible setter.
+     * <p>
+     * A valid setter must:
+     * <ul>
+     *   <li>Have exactly one parameter</li>
+     *   <li>Return {@code void}</li>
+     *   <li>Start with the prefix {@code set}</li>
+     * </ul>
+     *
+     * @param component the declaring component class (used for error messages)
+     * @param method    the method to validate
+     * @return {@code true} if the method is a valid setter; otherwise {@code false}
+     */
+    private boolean isValidSetter(Class<?> component, Method method) {
+        boolean isSetter = method.getParameterCount() == 1
+                && method.getReturnType() == Void.TYPE
+                && method.getName().startsWith("set");
+
+        if (!isSetter) {
+            errors.add("Invalid @Inject method detected in " + component.getName() + ": " + method.getName());
+        }
+
+        return isSetter;
+    }
+
+    /**
+     * Determines whether a dependency type is unknown to the container.
+     * <p>
+     * A dependency is considered unknown if it is neither resolvable (present in
+     * {@link #instantiableComponents}) nor explicitly marked as ambiguous (present in
+     * {@link #notUniqueTypes}).
+     *
+     * @param type the dependency type
+     * @return {@code true} if the dependency cannot currently be resolved; otherwise {@code false}
+     */
+    private boolean isUnknownDependency(Class<?> type) {
+        return !instantiableComponents.containsKey(type) && !notUniqueTypes.contains(type);
+    }
+
+    /**
+     * Returns the mapping of resolvable injectable types to their {@link ComponentData}.
+     *
+     * @return a map of types to instantiation/injection metadata
      */
     public Map<Class<?>, ComponentData> getInstantiableComponents() {
         return instantiableComponents;
     }
 
     /**
-     * Retrieves a set of types that have multiple implementations, making them
-     * non-unique. These types could not be uniquely resolved during the
-     * component scanning and analysis process.
+     * Returns the set of super types (interfaces/superclasses) that are implemented by multiple
+     * components and therefore cannot be uniquely resolved.
      *
-     * @return a set of classes representing the types that have multiple
-     * implementations and cannot be resolved uniquely
+     * @return set of non-unique injectable types
      */
     public Set<Class<?>> getNotUniqueTypes() {
         return notUniqueTypes;
     }
 
     /**
-     * Returns a mapping of types to their unique component implementations.
-     * This map includes only those types that have a single corresponding component
-     * implementation, ensuring no ambiguity in resolution.
+     * Returns collected errors discovered during scanning and resolution.
      *
-     * @return a map where the keys are types (e.g., interfaces or superclasses)
-     * and the values are their unique component implementations.
-     */
-    public Map<Class<?>, Class<?>> getUniqueTypeToComponent() {
-        return uniqueTypeToComponent;
-    }
-
-    /**
-     * Retrieves a list of error messages recorded during the scanning and analysis process.
-     * The errors typically indicate issues such as components that cannot be instantiated due to
-     * missing dependencies, unresolvable component types, or multiple implementations of a type
-     * that are not uniquely resolved.
-     *
-     * @return a list of error messages explaining the issues encountered.
+     * @return list of human-readable error messages
      */
     public List<String> getErrors() {
         return errors;
     }
+
+    /**
+     * Immutable description of how to inject a component.
+     *
+     * @param constructor constructor selected for instantiation
+     * @param fields      fields annotated with {@link jakarta.inject.Inject}
+     * @param setters     setter methods annotated with {@link jakarta.inject.Inject}
+     */
+    private record InjectionPlan(Constructor<?> constructor, List<Field> fields, List<Method> setters) {
+    }
 }
+

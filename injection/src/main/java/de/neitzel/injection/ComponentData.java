@@ -2,6 +2,11 @@ package de.neitzel.injection;
 
 import lombok.Getter;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+
 /**
  * Represents a component in a dependency injection framework.
  * <p>
@@ -34,6 +39,23 @@ public class ComponentData {
     private final Scope scope;
 
     /**
+     * Defines the constructor the framework will use when instantiating this component.
+     * The constructor is determined during scanning based on @Inject annotations and availability rules.
+     */
+    private final Constructor<?> injectionConstructor;
+
+    /**
+     * Holds all fields annotated with {@code @Inject}. They are populated immediately after construction.
+     */
+    private final List<Field> injectableFields;
+
+    /**
+     * Contains all setter methods annotated with {@code @Inject}. These are invoked post-construction
+     * to perform setter-based dependency injection.
+     */
+    private final List<Method> injectableSetters;
+
+    /**
      * Stores the instantiated object associated with the component.
      * <p>
      * This field holds the actual instance of the component's type within the dependency
@@ -45,17 +67,6 @@ public class ComponentData {
     private Object instance;
 
     /**
-     * Constructs a new Component instance with the specified type and scope.
-     *
-     * @param type  the class type of the component
-     * @param scope the scope of the component, which determines its lifecycle
-     */
-    public ComponentData(Class<?> type, Scope scope) {
-        this.type = type;
-        this.scope = scope;
-    }
-
-    /**
      * Constructs a new ComponentData instance with the specified type and an initial instance.
      * <p>
      * This can be used to add Singletons manually without scanning for them.
@@ -64,9 +75,39 @@ public class ComponentData {
      * @param instance the initial instance of the component
      */
     public ComponentData(Class<?> type, Object instance) {
-        this.type = type;
-        this.scope = Scope.SINGLETON;
+        this(type, Scope.SINGLETON);
         this.instance = instance;
+    }
+
+    /**
+     * Constructs a new Component instance with the specified type and scope.
+     *
+     * @param type  the class type of the component
+     * @param scope the scope of the component, which determines its lifecycle
+     */
+    public ComponentData(Class<?> type, Scope scope) {
+        this(type, scope, null, List.of(), List.of());
+    }
+
+    /**
+     * Constructs a new ComponentData instance with the specified parameters.
+     *
+     * @param type                 the class type of the component
+     * @param scope                the scope of the component, which determines its lifecycle
+     * @param injectionConstructor the constructor to be used for injection, if any
+     * @param injectableFields     the fields to be injected, if any
+     * @param injectableSetters    the setter methods to be used for injection, if any
+     */
+    public ComponentData(Class<?> type,
+                         Scope scope,
+                         Constructor<?> injectionConstructor,
+                         List<Field> injectableFields,
+                         List<Method> injectableSetters) {
+        this.type = type;
+        this.scope = scope;
+        this.injectionConstructor = injectionConstructor;
+        this.injectableFields = injectableFields == null ? List.of() : List.copyOf(injectableFields);
+        this.injectableSetters = injectableSetters == null ? List.of() : List.copyOf(injectableSetters);
     }
 
     /**

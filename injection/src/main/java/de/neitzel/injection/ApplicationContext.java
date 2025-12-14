@@ -3,9 +3,10 @@ package de.neitzel.injection;
 import de.neitzel.injection.annotation.Config;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 /**
  * Represents the context of the application and serves as the foundation of a dependency
@@ -79,41 +80,37 @@ public class ApplicationContext {
         }
 
         try {
-            Constructor<?>[] constructors = data.getType().getConstructors();
-            for (Constructor<?> constructor : constructors) {
-                if (canBeInstantiated(constructor, components)) {
-                    Class<?>[] paramTypes = constructor.getParameterTypes();
-                    Object[] parameters = new Object[paramTypes.length];
-                    for (int i = 0; i < paramTypes.length; i++) {
-                        parameters[i] = getComponent(paramTypes[i]);
-                    }
-                    instance = constructor.newInstance(parameters);
-                    if (scope == Scope.SINGLETON) {
-                        data.setInstance(instance);
-                    }
-                    return (T) instance;
-                }
+            Constructor<?> injectionConstructor = data.getInjectionConstructor();
+            if (injectionConstructor == null) {
+                throw new IllegalStateException("No injection constructor resolved for " + type.getName());
             }
 
-            throw new IllegalStateException("Kein passender Konstruktor gefunden für " + type.getName());
+            Class<?>[] paramTypes = injectionConstructor.getParameterTypes();
+            Object[] parameters = new Object[paramTypes.length];
+            for (int i = 0; i < paramTypes.length; i++) {
+                parameters[i] = getComponent(paramTypes[i]);
+            }
+
+            instance = injectionConstructor.newInstance(parameters);
+
+            for (Field field : data.getInjectableFields()) {
+                field.setAccessible(true);
+                field.set(instance, getComponent(field.getType()));
+            }
+
+            for (Method setter : data.getInjectableSetters()) {
+                setter.setAccessible(true);
+                Class<?> dependencyType = setter.getParameterTypes()[0];
+                setter.invoke(instance, getComponent(dependencyType));
+            }
+
+            if (scope == Scope.SINGLETON) {
+                data.setInstance(instance);
+            }
+            return (T) instance;
         } catch (Exception e) {
             throw new RuntimeException("Fehler beim Erstellen der Instanz für " + type.getName(), e);
         }
-    }
-
-    /**
-     * Determines if a given constructor can be instantiated using the provided parameter map.
-     * <p>
-     * The method evaluates whether every parameter type required by the constructor
-     * is available in the given parameter map. If all parameter types are present,
-     * the constructor is considered instantiable.
-     *
-     * @param constructor  the constructor to check for instantiation feasibility
-     * @param parameterMap a map containing available parameter types and their associated component data
-     * @return true if all parameter types required by the constructor are contained in the parameter map, false otherwise
-     */
-    private boolean canBeInstantiated(Constructor<?> constructor, Map<Class<?>, ComponentData> parameterMap) {
-        return Stream.of(constructor.getParameterTypes()).allMatch(parameterMap::containsKey);
     }
 
     /**
