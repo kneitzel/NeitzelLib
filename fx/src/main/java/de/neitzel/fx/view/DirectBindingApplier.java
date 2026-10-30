@@ -1,6 +1,7 @@
 package de.neitzel.fx.view;
 
 import javafx.beans.property.Property;
+import javafx.collections.ObservableList;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,6 +33,10 @@ final class DirectBindingApplier {
             throw new IllegalArgumentException(
                     "No read-write attribute for path \"" + binding.getPath() + "\"");
         }
+        if (attribute.getValue() instanceof ObservableList<?> values) {
+            assignList(controlProperty, values);
+            return;
+        }
         switch (binding.getDirection()) {
             case "both" -> alignBoth(controlProperty, attribute);
             case "view" -> alignTowardView(controlProperty, attribute);
@@ -55,6 +60,11 @@ final class DirectBindingApplier {
         } catch (IllegalAccessException | InvocationTargetException failure) {
             throw new IllegalStateException("Could not read property " + propertyName, failure);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assignList(Property<?> controlProperty, ObservableList<?> values) {
+        ((Property<Object>) controlProperty).setValue(values);
     }
 
     @SuppressWarnings("unchecked")

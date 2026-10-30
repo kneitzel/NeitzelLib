@@ -1,5 +1,7 @@
 package de.neitzel.fx.view.fixture;
 
+import java.util.List;
+
 /**
  * Ordinary model used by view-loading tests.
  */
@@ -7,6 +9,7 @@ public class Person {
 
     private String name;
     private Integer age;
+    private List<String> tags;
 
     /**
      * Creates a person with the given name.
@@ -60,5 +63,23 @@ public class Person {
      */
     public void setAge(Integer age) {
         this.age = age;
+    }
+
+    /**
+     * Returns the tags. The value may be null.
+     *
+     * @return the tags
+     */
+    public List<String> getTags() {
+        return tags;
+    }
+
+    /**
+     * Sets the tags.
+     *
+     * @param tags the tags
+     */
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 }

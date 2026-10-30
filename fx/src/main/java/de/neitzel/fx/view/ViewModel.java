@@ -13,6 +13,8 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -20,6 +22,14 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalAmount;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +40,11 @@ import java.util.Map;
  * Each read-write Attribute that is not declared on {@link Object} is stored as a JavaFX
  * property under the Attribute name. The property class follows the Attribute's declared type,
  * including when the current value is null. String, integer, long, float, double, and boolean
- * attributes use the matching JavaFX property. Any other declared type is an object property.
+ * attributes use the matching JavaFX property. A list, set, or collection of simple values is an
+ * object property whose value is an {@link ObservableList} of those values. Simple values are
+ * strings, numbers, booleans, enums, and date/time values. When that attribute's current value
+ * is a list, the observable list is backed by it and stored on the entity when the setter accepts
+ * it, so both sides hold one list. Any other declared type is an object property.
  * The property is set from the Attribute when the ViewModel is created. A null number or
  * boolean leaves the primitive property at its default. After that, a change of the property
  * writes the Attribute. A call to the entity's setter does not update the property.
@@ -54,7 +68,11 @@ public class ViewModel {
                 continue;
             }
             String name = descriptor.getName();
-            Property<?> property = createProperty(descriptor.getPropertyType(), read(getter, name));
+            Object current = read(getter, name);
+            if (isSimpleValueCollection(getter)) {
+                current = shareSimpleList(setter, name, current);
+            }
+            Property<?> property = createProperty(descriptor.getPropertyType(), current);
             watch(property, setter, name);
             properties.put(name, property);
         }
@@ -159,5 +177,63 @@ public class ViewModel {
         } catch (IllegalAccessException | InvocationTargetException failure) {
             throw new IllegalStateException("Could not write attribute " + name, failure);
         }
+    }
+
+    private static boolean isSimpleValueCollection(Method getter) {
+        if (!Collection.class.isAssignableFrom(getter.getReturnType())) {
+            return false;
+        }
+        Class<?> element = elementType(getter.getGenericReturnType());
+        return element != null && isSimpleValue(element);
+    }
+
+    private static Class<?> elementType(Type type) {
+        if (!(type instanceof ParameterizedType parameterized) || parameterized.getActualTypeArguments().length != 1) {
+            return null;
+        }
+        return classOf(parameterized.getActualTypeArguments()[0]);
+    }
+
+    private static Class<?> classOf(Type type) {
+        if (type instanceof Class<?> raw) {
+            return raw;
+        }
+        if (type instanceof ParameterizedType parameterized && parameterized.getRawType() instanceof Class<?> raw) {
+            return raw;
+        }
+        if (type instanceof WildcardType wildcard && wildcard.getUpperBounds().length == 1) {
+            return classOf(wildcard.getUpperBounds()[0]);
+        }
+        return null;
+    }
+
+    private static boolean isSimpleValue(Class<?> type) {
+        if (type == String.class || type == Boolean.class || type == boolean.class || type.isEnum()) {
+            return true;
+        }
+        if (type.isPrimitive()) {
+            return type != char.class && type != void.class;
+        }
+        if (Number.class.isAssignableFrom(type)) {
+            return true;
+        }
+        if (Date.class.isAssignableFrom(type) || Calendar.class.isAssignableFrom(type)) {
+            return true;
+        }
+        return TemporalAccessor.class.isAssignableFrom(type) || TemporalAmount.class.isAssignableFrom(type);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object shareSimpleList(Method setter, String name, Object current) {
+        if (!(current instanceof Collection<?> collection)) {
+            return current;
+        }
+        ObservableList<Object> observable = current instanceof List<?> list
+                ? FXCollections.observableList((List<Object>) list)
+                : FXCollections.observableArrayList((Collection<Object>) collection);
+        if (setter.getParameterTypes()[0].isAssignableFrom(observable.getClass())) {
+            write(setter, name, observable);
+        }
+        return observable;
     }
 }

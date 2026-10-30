@@ -23,8 +23,11 @@ public final class ViewLoader {
      * aligned, so editing the control writes the Attribute immediately. Direction {@code view}
      * shows the Attribute and follows later property changes without writing the Attribute back.
      * Direction {@code model} shows the current value, writes the Attribute when the control
-     * changes, and does not push later property changes to the control. A path that is not a
-     * read-write Attribute fails the load. The context is used when the document names a Controller.
+     * changes, and does not push later property changes to the control. A collection of simple
+     * values is one shared list: the Direct binding sets the control property to that
+     * {@link javafx.collections.ObservableList}, so an add or remove is visible on both sides.
+     * A path that is not a read-write Attribute fails the load. The context is used when the
+     * document names a Controller.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance
