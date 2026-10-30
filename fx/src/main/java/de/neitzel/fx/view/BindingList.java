@@ -1,5 +1,6 @@
 package de.neitzel.fx.view;
 
+import de.neitzel.injection.ApplicationContext;
 import javafx.beans.DefaultProperty;
 import javafx.scene.Parent;
 
@@ -44,11 +45,13 @@ public class BindingList {
      * @param viewModel  the ViewModel for this View
      * @param controller the Controller for this View, or {@code null} when the document names none
      * @param root       the scene-graph root of this View
+     * @param context    the container that creates a named Converter
      */
-    void apply(Map<String, Object> namespace, ViewModel viewModel, Object controller, Parent root) {
+    void apply(Map<String, Object> namespace, ViewModel viewModel, Object controller, Parent root,
+               ApplicationContext context) {
         for (Object element : elements) {
             if (element instanceof DirectBinding directBinding) {
-                DirectBindingApplier.apply(namespace, viewModel, directBinding);
+                DirectBindingApplier.apply(namespace, viewModel, directBinding, context);
             } else if (element instanceof ComputedBinding computedBinding) {
                 ComputedBindingApplier.apply(namespace, viewModel, controller, root, computedBinding);
             } else {

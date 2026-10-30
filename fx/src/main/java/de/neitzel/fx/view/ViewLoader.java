@@ -29,7 +29,9 @@ public final class ViewLoader {
      * Attribute of this View's ViewModel. Further names step into a nested ViewModel, and the
      * direction applies to the last name. When a Complex attribute along the Path is null, the
      * control and the Model keep their current values. A path that is not a read-write Attribute
-     * fails the load. The context is used when the document names a Controller.
+     * fails the load. The context creates a Controller, and a Converter when a Direct binding names
+     * one. A converter that cannot produce a value keeps the previous value and records one error
+     * Message. It does not fail the load.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance
@@ -48,7 +50,7 @@ public final class ViewLoader {
                 throw new IllegalArgumentException("View root must be a parent");
             }
             for (BindingList bindingList : session.bindingLists()) {
-                bindingList.apply(loader.getNamespace(), viewModel, loader.getController(), root);
+                bindingList.apply(loader.getNamespace(), viewModel, loader.getController(), root, context);
             }
             return new LoadedView(root, viewModel);
         } catch (IOException failure) {
