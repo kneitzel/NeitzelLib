@@ -18,8 +18,9 @@ public final class ViewLoader {
     /**
      * Loads a View for one Model instance.
      * <p>
-     * Builds a ViewModel for {@code model}, loads {@code fxml}, and applies Direct bindings
-     * declared in {@code fx:define}. Direction {@code both} keeps the control and the Attribute
+     * Builds a ViewModel for {@code model}, loads {@code fxml}, and applies binding elements
+     * declared in {@code fx:define}. A Computed binding writes a Controller method result to a
+     * control and does not write the Model. Direction {@code both} keeps the control and the Attribute
      * aligned, so editing the control writes the Attribute immediately. Direction {@code view}
      * shows the Attribute and follows later property changes without writing the Attribute back.
      * Direction {@code model} shows the current value, writes the Attribute when the control
@@ -43,7 +44,7 @@ public final class ViewLoader {
                 throw new IllegalArgumentException("View root must be a parent");
             }
             for (BindingList bindingList : session.bindingLists()) {
-                bindingList.apply(loader.getNamespace(), viewModel);
+                bindingList.apply(loader.getNamespace(), viewModel, loader.getController(), root);
             }
             return new LoadedView(root, viewModel);
         } catch (IOException failure) {
