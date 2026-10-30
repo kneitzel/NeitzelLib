@@ -83,6 +83,16 @@ public class ApplicationContext {
     }
 
     /**
+     * Loads a dependency whose type was read by reflection.
+     *
+     * @param type the dependency type
+     * @return the component for that type
+     */
+    private Object component(Class<?> type) {
+        return getComponent(type.asSubclass(Object.class));
+    }
+
+    /**
      * Creates a new injected instance without replacing a cached singleton.
      * <p>
      * Dependencies of the new instance are the objects {@link #getComponent} returns, so a
@@ -134,20 +144,20 @@ public class ApplicationContext {
             Class<?>[] paramTypes = injectionConstructor.getParameterTypes();
             Object[] parameters = new Object[paramTypes.length];
             for (int i = 0; i < paramTypes.length; i++) {
-                parameters[i] = getComponent(paramTypes[i]);
+                parameters[i] = component(paramTypes[i]);
             }
 
             Object instance = injectionConstructor.newInstance(parameters);
 
             for (Field field : data.getInjectableFields()) {
                 field.setAccessible(true);
-                field.set(instance, getComponent(field.getType()));
+                field.set(instance, component(field.getType()));
             }
 
             for (Method setter : data.getInjectableSetters()) {
                 setter.setAccessible(true);
                 Class<?> dependencyType = setter.getParameterTypes()[0];
-                setter.invoke(instance, getComponent(dependencyType));
+                setter.invoke(instance, component(dependencyType));
             }
 
             return instance;

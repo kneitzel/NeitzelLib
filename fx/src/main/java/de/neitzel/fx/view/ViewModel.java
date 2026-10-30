@@ -92,10 +92,13 @@ public class ViewModel {
 
     /**
      * Builds a ViewModel for one Model instance.
+     * <p>
+     * A subclass in another package calls this constructor and may add JavaFX properties under
+     * new names. A Binding element addresses those names the same way it addresses an Attribute.
      *
      * @param model the Model instance
      */
-    ViewModel(Object model) {
+    protected ViewModel(Object model) {
         this.model = model;
         ViewModels.register(model, this);
         for (PropertyDescriptor descriptor : descriptors(model.getClass())) {
@@ -108,9 +111,9 @@ public class ViewModel {
             Class<?> type = descriptor.getPropertyType();
             Object current = read(getter, name);
             if (isComplex(type)) {
-                Property<?> property = new SimpleObjectProperty<>(
-                        current == null ? null : ViewModels.of(current));
+                LazyComplex property = new LazyComplex(current);
                 watchComplex(property, setter, name);
+                property.attached();
                 properties.put(name, property);
                 complexAttributes.add(name);
             } else {
@@ -131,15 +134,20 @@ public class ViewModel {
      * Model attributes. It is a string property. A Direct binding can read it. An in-place
      * update of that Message refreshes the text and does not replace the Message.
      *
-     * @param name the Attribute name, or {@code latestMessage}
-     * @return the property, or {@code null} when that name is not a read-write Attribute
-     *         and is not {@code latestMessage}
+     * @param name the Attribute name, {@code latestMessage}, or a JavaFX property declared on
+     *             this ViewModel
+     * @return the property, or {@code null} when that name is not a read-write Attribute,
+     *         not {@code latestMessage}, and not a JavaFX property declared on this ViewModel
      */
     public Property<?> property(String name) {
         if ("latestMessage".equals(name)) {
             return latestMessageText;
         }
-        return properties.get(name);
+        Property<?> stored = properties.get(name);
+        if (stored != null) {
+            return stored;
+        }
+        return declaredProperty(name);
     }
 
     /**
@@ -171,6 +179,16 @@ public class ViewModel {
         for (Property<?> property : properties.values()) {
             ((Property<Object>) property).addListener(listener);
         }
+    }
+
+    /**
+     * Returns a JavaFX property a subclass declares under {@code name}, such as {@code titleProperty}.
+     *
+     * @param name the property name
+     * @return the property, or {@code null} when this class declares none
+     */
+    private Property<?> declaredProperty(String name) {
+        return NamedProperties.get(this, name);
     }
 
     private static List<PropertyDescriptor> descriptors(Class<?> type) {
@@ -288,10 +306,41 @@ public class ViewModel {
         property.addListener((observable, oldValue, newValue) -> write(setter, name, newValue));
     }
 
-    private void watchComplex(Property<?> property, Method setter, String name) {
-        if (property.getValue() instanceof ViewModel child) {
-            attachChild(name, child);
+    /**
+     * Holds a Complex attribute and builds its ViewModel the first time the value is read.
+     * <p>
+     * Attaching the change listener reads the value. That read is ignored until
+     * {@link #attached()} so a Component annotation can name the class first.
+     */
+    private static final class LazyComplex extends SimpleObjectProperty<Object> {
+
+        private final Object current;
+        private boolean realized;
+        private boolean attaching = true;
+
+        private LazyComplex(Object current) {
+            this.current = current;
         }
+
+        @Override
+        public Object get() {
+            if (!attaching && !realized) {
+                realized = true;
+                super.set(current == null ? null : ViewModels.of(current));
+            }
+            return super.get();
+        }
+
+        private void attached() {
+            attaching = false;
+        }
+
+        private boolean pending(Object instance) {
+            return !realized && current == instance;
+        }
+    }
+
+    private void watchComplex(Property<?> property, Method setter, String name) {
         property.addListener((observable, oldValue, newValue) -> {
             if (oldValue != newValue) {
                 detachChild(name);
@@ -300,6 +349,7 @@ public class ViewModel {
             write(setter, name, written);
             if (oldValue != newValue && newValue instanceof ViewModel child) {
                 attachChild(name, child);
+                realizeShared(child.model());
             }
         });
     }
@@ -310,6 +360,25 @@ public class ViewModel {
      * @param name  the Attribute that leads to the child
      * @param child the child ViewModel
      */
+    /**
+     * Realizes every other Complex attribute that holds the same Model instance.
+     * <p>
+     * Home and work can name one address. Reading one still carries a notice under both
+     * attribute names.
+     *
+     * @param instance the Model instance just selected
+     */
+    private void realizeShared(Object instance) {
+        if (instance == null) {
+            return;
+        }
+        for (Property<?> property : properties.values()) {
+            if (property instanceof LazyComplex lazy && lazy.pending(instance)) {
+                lazy.get();
+            }
+        }
+    }
+
     private void attachChild(String name, ViewModel child) {
         childMirrors.put(name, ChildMessageMirror.attach(this, name, child));
     }

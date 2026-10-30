@@ -26,17 +26,17 @@ final class RepeatApplier {
      * on either side is visible in the pane.
      *
      * @param namespace objects addressed by {@code fx:id}
-     * @param viewModel the ViewModel for this View
+     * @param viewModel the ViewModel for this View, or a replacement that exposes the collection by name
      * @param repeat    the declaration
      * @param context   the container that creates each Component
      */
-    static void apply(Map<String, Object> namespace, ViewModel viewModel, Repeat repeat,
+    static void apply(Map<String, Object> namespace, Object viewModel, Repeat repeat,
                       ApplicationContext context) {
         Object named = namespace.get(repeat.getPane());
         if (!(named instanceof Pane pane)) {
             throw new IllegalArgumentException("No pane \"" + repeat.getPane() + "\"");
         }
-        Property<?> property = viewModel.property(repeat.getCollection());
+        Property<?> property = collection(viewModel, repeat.getCollection());
         if (property == null || !(property.getValue() instanceof ObservableList<?> values)) {
             throw new IllegalArgumentException("No collection \"" + repeat.getCollection() + "\"");
         }
@@ -45,6 +45,13 @@ final class RepeatApplier {
             pane.getChildren().add(child(type, context, element));
         }
         listen(pane, type, context, values);
+    }
+
+    private static Property<?> collection(Object viewModel, String name) {
+        if (viewModel instanceof ViewModel model) {
+            return model.property(name);
+        }
+        return NamedProperties.get(viewModel, name);
     }
 
     @SuppressWarnings("unchecked")

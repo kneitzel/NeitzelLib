@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.ComputedBinding?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="de.neitzel.fx.view.chosen.HandedNameController">
+    <fx:define>
+        <BindingList>
+            <ComputedBinding control="handedLabel" property="text" method="#handedName"/>
+        </BindingList>
+    </fx:define>
+    <Label fx:id="handedLabel" id="handedLabel"/>
+</VBox>
