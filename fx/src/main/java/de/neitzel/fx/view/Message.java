@@ -22,6 +22,7 @@ public final class Message {
     private final Severity severity;
     private String text;
     private final String source;
+    private Message origin;
 
     /**
      * Creates a notice.
@@ -70,5 +71,29 @@ public final class Message {
      */
     void setText(String text) {
         this.text = text;
+    }
+
+    /**
+     * Returns a copy whose source is extended for a parent ViewModel.
+     * <p>
+     * The copy remembers this notice, so a cycle does not carry it back onto the ViewModel
+     * that already holds it.
+     *
+     * @param source the extended source
+     * @return the copy
+     */
+    Message withExtendedSource(String source) {
+        Message copy = new Message(severity, text, source);
+        copy.origin = this;
+        return copy;
+    }
+
+    /**
+     * Returns the notice this copy mirrors.
+     *
+     * @return that notice, or {@code null} when this notice was added on its own ViewModel
+     */
+    Message origin() {
+        return origin;
     }
 }
