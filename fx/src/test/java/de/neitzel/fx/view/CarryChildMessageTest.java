@@ -103,7 +103,7 @@ class CarryChildMessageTest {
             streetField.setText("nope");
 
             assertEquals("Main", person.getAddress().getStreet());
-            assertEquals("Main", streetField.getText());
+            assertEquals("nope", streetField.getText());
             ViewModel personModel = loaded.getViewModel();
             ViewModel addressModel = (ViewModel) personModel.property("address").getValue();
             assertEquals(1, addressModel.getMessages().size());

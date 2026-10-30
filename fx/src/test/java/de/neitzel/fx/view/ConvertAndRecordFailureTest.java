@@ -135,7 +135,7 @@ class ConvertAndRecordFailureTest {
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ageField.setText("nope");
             assertEquals(Integer.valueOf(42), person.getAge());
-            assertEquals("years:42", ageField.getText());
+            assertEquals("nope", ageField.getText());
             ViewModel viewModel = loaded.getViewModel();
             assertEquals(1, viewModel.getMessages().size());
             Message message = viewModel.getMessages().get(0);
@@ -164,7 +164,7 @@ class ConvertAndRecordFailureTest {
             assertSame(first, viewModel.getMessages().get(0));
             assertEquals("not a whole number: still-bad", first.getText());
             assertEquals(Integer.valueOf(42), person.getAge());
-            assertEquals("years:42", ageField.getText());
+            assertEquals("still-bad", ageField.getText());
         });
     }
 

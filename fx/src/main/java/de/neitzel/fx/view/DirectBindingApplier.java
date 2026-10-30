@@ -252,7 +252,6 @@ final class DirectBindingApplier {
             link.applying = true;
             try {
                 control.setValue(shown);
-                link.committedControl = shown;
             } finally {
                 link.applying = false;
             }
@@ -269,18 +268,11 @@ final class DirectBindingApplier {
             link.applying = true;
             try {
                 attribute.setValue(converted);
-                link.committedControl = control.getValue();
             } finally {
                 link.applying = false;
             }
             owner.clearBindingFailure(source);
         } catch (RuntimeException failure) {
-            link.applying = true;
-            try {
-                control.setValue(link.committedControl);
-            } finally {
-                link.applying = false;
-            }
             owner.reportBindingFailure(source, failureText(failure));
         }
     }
@@ -294,12 +286,10 @@ final class DirectBindingApplier {
     }
 
     /**
-     * Guards one converted binding against hearing its own writes, and remembers the last
-     * control value that was successfully shown.
+     * Guards one converted binding against hearing its own writes.
      */
     private static final class Link {
         private boolean applying;
-        private Object committedControl;
     }
 
     private static Property<?> controlProperty(Object control, String propertyName) {
