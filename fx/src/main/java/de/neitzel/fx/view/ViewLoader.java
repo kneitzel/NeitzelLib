@@ -31,8 +31,16 @@ public final class ViewLoader {
      * control and the Model keep their current values. A collection of simple values is one shared
      * list: the Direct binding sets the control property to that
      * {@link javafx.collections.ObservableList}, so an add or remove is visible on both sides.
-     * A path that is not a read-write Attribute fails the load. The context creates a Controller,
-     * and a Converter when a Direct binding names one. A converter that cannot produce a value
+     * A path that is not a read-write Attribute fails the load. The context creates a Controller
+     * the document names, and injects that Controller's services. When the document names no
+     * Controller, the library supplies one. A Controller that implements {@link HasViewModel}
+     * receives the ViewModel after construction and before bindings. {@link ViewModelClass} on that
+     * Controller names the ViewModel class. The library constructs it with the Model instance
+     * before load. With no annotation, the library builds the generic ViewModel. The first View of a
+     * Model instance fixes that class. A later View that names a different class fails the load,
+     * and the earlier View stays as it was. A later View that names none reuses the ViewModel.
+     * The context creates a
+     * Converter when a Direct binding names one. A converter that cannot produce a value
      * keeps the previous value and records one error Message on the ViewModel that owns the last
      * Attribute, with that Attribute's name as the source. A parent carries a copy with the source
      * extended. It does not fail the load.
@@ -40,7 +48,8 @@ public final class ViewLoader {
      * and injects its services. The Component document {@code ClassName.fxml}, in the same package,
      * is loaded with the Component as {@code fx:root} and as the Controller. That document's
      * bindings are not applied during this load. They run when the Component's model property
-     * becomes a non-null Model. A Component that implements {@link HasViewModel} receives that
+     * becomes a non-null Model. {@link ViewModelClass} on the Component names the ViewModel class
+     * for that Model. A Component that implements {@link HasViewModel} receives that
      * ViewModel after the property is set and before those bindings run.
      * Loading does not open a popup or fill a status bar. A Direct binding whose path is
      * {@code latestMessage} shows the latest Message text. {@link MessagePopup#showNewMessages}
@@ -53,7 +62,8 @@ public final class ViewLoader {
      * @throws IllegalArgumentException when a Direct binding names a path that is not a read-write Attribute
      */
     public static LoadedView load(URL fxml, Object model, ApplicationContext context) {
-        ViewModel viewModel = ViewModels.of(model);
+        Class<?> viewModelClass = ViewModels.namedOn(FxmlControllers.controllerClass(fxml));
+        Object viewModel = ViewModels.of(model, viewModelClass);
         LoadSession session = LoadSession.open();
         try {
             FXMLLoader loader = new FXMLLoader(fxml);
@@ -63,8 +73,15 @@ public final class ViewLoader {
             if (!(loaded instanceof Parent root)) {
                 throw new IllegalArgumentException("View root must be a parent");
             }
+            Object controller = loader.getController();
+            if (controller == null) {
+                controller = new SuppliedController();
+            }
+            if (controller instanceof HasViewModel hasViewModel && viewModel instanceof ViewModel bound) {
+                hasViewModel.setViewModel(bound);
+            }
             for (BindingList bindingList : session.bindingLists()) {
-                bindingList.apply(loader.getNamespace(), viewModel, loader.getController(), root, context);
+                bindingList.apply(loader.getNamespace(), viewModel, controller, root, context);
             }
             return new LoadedView(root, viewModel);
         } catch (IOException failure) {

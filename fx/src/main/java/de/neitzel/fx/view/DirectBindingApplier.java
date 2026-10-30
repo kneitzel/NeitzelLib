@@ -6,6 +6,7 @@ import javafx.collections.ObservableList;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,12 +25,13 @@ final class DirectBindingApplier {
      * @param binding   the declaration
      * @param context   the container that creates a named Converter
      */
-    static void apply(Map<String, Object> namespace, ViewModel viewModel, DirectBinding binding,
+    static void apply(Map<String, Object> namespace, Object viewModel, DirectBinding binding,
                       ApplicationContext context) {
         Object control = namespace.get(binding.getControl());
         if (control == null) {
             throw new IllegalArgumentException("No control \"" + binding.getControl() + "\"");
         }
+        selectComponentViewModel(control, viewModel, binding);
         Resolved resolved = resolve(viewModel, binding.getPath());
         if (resolved == null) {
             return;
@@ -107,13 +109,16 @@ final class DirectBindingApplier {
      * @return the Attribute for the last name, or {@code null} when a Complex attribute
      *         along the Path is null
      */
-    private static Resolved resolve(ViewModel viewModel, String path) {
+    private static Resolved resolve(Object viewModel, String path) {
         String[] names = path.split("\\.", -1);
-        ViewModel current = viewModel;
+        Object current = viewModel;
         for (int index = 0; index < names.length - 1; index++) {
+            if (!(current instanceof ViewModel stepModel)) {
+                throw missing(path);
+            }
             String name = names[index];
-            Property<?> step = current.property(name);
-            if (step == null || !current.isComplex(name)) {
+            Property<?> step = stepModel.property(name);
+            if (step == null || !stepModel.isComplex(name)) {
                 throw missing(path);
             }
             Object nested = step.getValue();
@@ -126,11 +131,74 @@ final class DirectBindingApplier {
             current = child;
         }
         String last = names[names.length - 1];
-        Property<?> attribute = current.property(last);
+        Property<?> attribute = propertyOf(current, last);
         if (attribute == null) {
             throw missing(path);
         }
-        return new Resolved(attribute, current.isComplex(last), current, last);
+        boolean complex = current instanceof ViewModel stepped && stepped.isComplex(last);
+        ViewModel owner = current instanceof ViewModel model ? model : null;
+        return new Resolved(attribute, complex, owner, last);
+    }
+
+    /**
+     * Builds the ViewModel named on a Component before the Path is read.
+     * <p>
+     * The binding sets the Component's model property. Reading the Path would otherwise build a
+     * generic ViewModel first and fix that class.
+     *
+     * @param control   the control named by the binding
+     * @param viewModel the ViewModel for this View
+     * @param binding   the declaration
+     */
+    private static void selectComponentViewModel(Object control, Object viewModel, DirectBinding binding) {
+        if (!"model".equals(binding.getProperty())) {
+            return;
+        }
+        Class<?> requested = ViewModels.namedOn(control.getClass());
+        if (requested == null) {
+            return;
+        }
+        Object instance = instanceAt(viewModel, binding.getPath());
+        if (instance == null) {
+            return;
+        }
+        ViewModels.of(instance, requested);
+    }
+
+    private static Object instanceAt(Object viewModel, String path) {
+        if (!(viewModel instanceof ViewModel root)) {
+            return null;
+        }
+        Object current = root.model();
+        for (String name : path.split("\\.", -1)) {
+            if (current == null) {
+                return null;
+            }
+            current = readAttribute(current, name);
+        }
+        return current;
+    }
+
+    private static Object readAttribute(Object bean, String name) {
+        String suffix = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+        for (String prefix : List.of("get", "is")) {
+            try {
+                Method method = bean.getClass().getMethod(prefix + suffix);
+                return method.invoke(bean);
+            } catch (NoSuchMethodException notThisPrefix) {
+                continue;
+            } catch (IllegalAccessException | InvocationTargetException failure) {
+                throw new IllegalStateException("Could not read attribute " + name, failure);
+            }
+        }
+        throw new IllegalArgumentException("No read-write attribute for path \"" + name + "\"");
+    }
+
+    private static Property<?> propertyOf(Object target, String name) {
+        if (target instanceof ViewModel viewModel) {
+            return viewModel.property(name);
+        }
+        return NamedProperties.get(target, name);
     }
 
     private static IllegalArgumentException missing(String path) {

@@ -9,15 +9,16 @@ import javafx.scene.Parent;
 public final class LoadedView {
 
     private final Parent root;
-    private final ViewModel viewModel;
+    private final Object viewModel;
 
     /**
      * Creates the result of one load.
      *
      * @param root      the scene-graph root
-     * @param viewModel the ViewModel built for the Model instance
+     * @param viewModel the ViewModel built for the Model instance, or a replacement that exposes
+     *                  JavaFX properties by name
      */
-    LoadedView(Parent root, ViewModel viewModel) {
+    LoadedView(Parent root, Object viewModel) {
         this.root = root;
         this.viewModel = viewModel;
     }
@@ -33,11 +34,18 @@ public final class LoadedView {
 
     /**
      * Returns the ViewModel the View is bound to.
+     * <p>
+     * A generic ViewModel, and a subclass of it, are returned as that ViewModel. A replacement
+     * that does not extend {@link ViewModel} is addressed through {@link #property(String)}.
      *
      * @return the ViewModel
+     * @throws IllegalStateException when the View is bound to a replacement
      */
     public ViewModel getViewModel() {
-        return viewModel;
+        if (viewModel instanceof ViewModel bound) {
+            return bound;
+        }
+        throw new IllegalStateException("View is bound to " + viewModel.getClass().getName());
     }
 
     /**
@@ -46,11 +54,15 @@ public final class LoadedView {
      * The property's class follows the Attribute's declared type. The name {@code latestMessage}
      * is a string property holding the text of the latest Message.
      *
-     * @param name the Attribute name, or {@code latestMessage}
-     * @return the property, or {@code null} when that name is not a read-write Attribute
-     *         and is not {@code latestMessage}
+     * @param name the Attribute name, {@code latestMessage}, or a JavaFX property declared on
+     *             the ViewModel
+     * @return the property, or {@code null} when that name is not a read-write Attribute,
+     *         not {@code latestMessage}, and not a JavaFX property declared on the ViewModel
      */
     public Property<?> property(String name) {
-        return viewModel.property(name);
+        if (viewModel instanceof ViewModel bound) {
+            return bound.property(name);
+        }
+        return NamedProperties.get(viewModel, name);
     }
 }

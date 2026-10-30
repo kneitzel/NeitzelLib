@@ -42,12 +42,13 @@ public class BindingList {
      * Applies every binding element in this list.
      *
      * @param namespace  objects addressed by {@code fx:id}
-     * @param viewModel  the ViewModel for this View
+     * @param viewModel  the ViewModel for this View, or a replacement that exposes JavaFX properties
+     *                   by name
      * @param controller the Controller for this View, or {@code null} when the document names none
      * @param root       the scene-graph root of this View
      * @param context    the container that creates a named Converter
      */
-    void apply(Map<String, Object> namespace, ViewModel viewModel, Object controller, Parent root,
+    void apply(Map<String, Object> namespace, Object viewModel, Object controller, Parent root,
                ApplicationContext context) {
         for (Object element : elements) {
             if (element instanceof DirectBinding directBinding) {

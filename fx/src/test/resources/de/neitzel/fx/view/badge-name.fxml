@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="de.neitzel.fx.view.chosen.BadgeController">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="badgeLabel" property="text" path="badge" direction="view"/>
+        </BindingList>
+    </fx:define>
+    <Label fx:id="badgeLabel" id="badgeLabel"/>
+</VBox>

@@ -35,7 +35,7 @@ final class ComputedBindingApplier {
      */
     static void apply(
             Map<String, Object> namespace,
-            ViewModel viewModel,
+            Object viewModel,
             Object controller,
             Parent root,
             ComputedBinding binding) {
@@ -47,7 +47,9 @@ final class ComputedBindingApplier {
         Runnable refresh = refresh(controller, binding.getMethod(), target);
         refresh.run();
         watchControls(root, target, refresh);
-        viewModel.addAttributeListener((observable, oldValue, newValue) -> refresh.run());
+        if (viewModel instanceof ViewModel model) {
+            model.addAttributeListener((observable, oldValue, newValue) -> refresh.run());
+        }
     }
 
     private static Runnable refresh(Object controller, String methodValue, Property<Object> target) {

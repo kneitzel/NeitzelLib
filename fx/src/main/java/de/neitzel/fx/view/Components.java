@@ -18,7 +18,8 @@ import java.util.Map;
  * <p>
  * The container creates the instance. The document uses {@code fx:root} with that instance as
  * the root and as the Controller. Bindings declared in the document wait until the model
- * property holds a non-null Model. A Component that implements {@link HasViewModel} is handed
+ * property holds a non-null Model. {@link ViewModelClass} on the Component names the ViewModel
+ * class constructed for that Model. A Component that implements {@link HasViewModel} is handed
  * that ViewModel after the property is set and before those bindings run.
  */
 final class Components {
@@ -31,7 +32,9 @@ final class Components {
      * <p>
      * An unknown type, such as a JavaFX control, makes {@link ApplicationContext#getComponent}
      * throw {@link IllegalArgumentException}. This method returns null so FXML constructs that
-     * type itself. A failure while creating a known Component is not caught.
+     * type itself. A Component that extends a JavaFX class is also left to FXML when the document
+     * names that JavaFX class: the container would otherwise hand back the Component. A failure
+     * while creating a known Component is not caught.
      *
      * @param type    the type FXML is about to construct
      * @param context the container that creates Components
@@ -42,6 +45,9 @@ final class Components {
         try {
             component = context.getComponent(type);
         } catch (IllegalArgumentException notAComponent) {
+            return null;
+        }
+        if (component.getClass() != type) {
             return null;
         }
         return () -> load(component, context);
@@ -79,9 +85,9 @@ final class Components {
                 return;
             }
             applied[0] = true;
-            ViewModel viewModel = ViewModels.of(newValue);
-            if (component instanceof HasViewModel hasViewModel) {
-                hasViewModel.setViewModel(viewModel);
+            Object viewModel = ViewModels.of(newValue, ViewModels.namedOn(component.getClass()));
+            if (component instanceof HasViewModel hasViewModel && viewModel instanceof ViewModel bound) {
+                hasViewModel.setViewModel(bound);
             }
             Parent root = (Parent) component;
             for (BindingList list : lists) {
