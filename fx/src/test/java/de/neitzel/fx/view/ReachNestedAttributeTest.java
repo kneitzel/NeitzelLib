@@ -6,6 +6,7 @@ import de.neitzel.fx.view.fixture.Person;
 import de.neitzel.fx.view.fixture.Role;
 import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import org.junit.jupiter.api.BeforeAll;
@@ -270,7 +271,13 @@ class ReachNestedAttributeTest {
             assertNotNull(fxml);
             ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
             LoadedView loaded = ViewLoader.load(fxml, person, context);
-            assertSame(tags, loaded.property("tags").getValue());
+            assertInstanceOf(ObservableList.class, loaded.property("tags").getValue());
+            @SuppressWarnings("unchecked")
+            ObservableList<String> shown = (ObservableList<String>) loaded.property("tags").getValue();
+            assertEquals(List.of("friend"), shown);
+            assertSame(person.getTags(), shown);
+            shown.add("kin");
+            assertEquals(List.of("friend", "kin"), tags);
         });
     }
 
