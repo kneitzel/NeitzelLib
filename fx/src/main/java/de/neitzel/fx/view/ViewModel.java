@@ -20,9 +20,14 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The object a View binds to, built at runtime for one Model instance.
@@ -31,14 +36,21 @@ import java.util.Map;
  * property under the Attribute name. The property class follows the Attribute's declared type,
  * including when the current value is null. String, integer, long, float, double, and boolean
  * attributes use the matching JavaFX property. Any other declared type is an object property.
+ * A Complex attribute, a read-write Attribute whose declared type itself has a read-write
+ * Attribute, stores the ViewModel for the nested Model instance, or null when the Attribute
+ * is null. Strings, numbers, booleans, enums, {@link Date}, {@link Calendar}, and {@code java.time}
+ * values stay simple even when that type has setters. A collection is not a Complex attribute.
+ * A cycle, or another Attribute that reaches the same instance, reuses that ViewModel.
  * The property is set from the Attribute when the ViewModel is created. A null number or
  * boolean leaves the primitive property at its default. After that, a change of the property
- * writes the Attribute. A call to the entity's setter does not update the property.
+ * writes the Attribute. A Complex attribute writes the Model instance behind the ViewModel.
+ * A call to the entity's setter does not update the property.
  */
 public class ViewModel {
 
     private final Object model;
     private final Map<String, Property<?>> properties = new HashMap<>();
+    private final Set<String> complexAttributes = new HashSet<>();
 
     /**
      * Builds a ViewModel for one Model instance.
@@ -47,6 +59,7 @@ public class ViewModel {
      */
     ViewModel(Object model) {
         this.model = model;
+        ViewModels.register(model, this);
         for (PropertyDescriptor descriptor : descriptors(model.getClass())) {
             Method getter = descriptor.getReadMethod();
             Method setter = descriptor.getWriteMethod();
@@ -54,9 +67,19 @@ public class ViewModel {
                 continue;
             }
             String name = descriptor.getName();
-            Property<?> property = createProperty(descriptor.getPropertyType(), read(getter, name));
-            watch(property, setter, name);
-            properties.put(name, property);
+            Class<?> type = descriptor.getPropertyType();
+            Object current = read(getter, name);
+            if (isComplex(type)) {
+                Property<?> property = new SimpleObjectProperty<>(
+                        current == null ? null : ViewModels.of(current));
+                watchComplex(property, setter, name);
+                properties.put(name, property);
+                complexAttributes.add(name);
+            } else {
+                Property<?> property = createProperty(type, current);
+                watch(property, setter, name);
+                properties.put(name, property);
+            }
         }
     }
 
@@ -70,6 +93,25 @@ public class ViewModel {
         return properties.get(name);
     }
 
+    /**
+     * Returns the Model instance this ViewModel was built for.
+     *
+     * @return the Model instance
+     */
+    Object model() {
+        return model;
+    }
+
+    /**
+     * Reports whether an Attribute is complex.
+     *
+     * @param name the Attribute name
+     * @return {@code true} when that Attribute holds a nested ViewModel
+     */
+    boolean isComplex(String name) {
+        return complexAttributes.contains(name);
+    }
+
     private static List<PropertyDescriptor> descriptors(Class<?> type) {
         try {
             BeanInfo info = Introspector.getBeanInfo(type, Object.class);
@@ -77,6 +119,38 @@ public class ViewModel {
         } catch (IntrospectionException failure) {
             throw new IllegalStateException("Could not introspect " + type.getName(), failure);
         }
+    }
+
+    private static boolean isComplex(Class<?> type) {
+        if (simpleValue(type)) {
+            return false;
+        }
+        for (PropertyDescriptor descriptor : descriptors(type)) {
+            if (descriptor.getReadMethod() != null
+                    && descriptor.getWriteMethod() != null
+                    && descriptor.getPropertyType() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean simpleValue(Class<?> type) {
+        if (type.isPrimitive() || type.isEnum() || type.isArray()
+                || type == String.class || type == Boolean.class) {
+            return true;
+        }
+        if (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type)) {
+            return true;
+        }
+        if (Number.class.isAssignableFrom(type)) {
+            return true;
+        }
+        if (Date.class.isAssignableFrom(type) || Calendar.class.isAssignableFrom(type)) {
+            return true;
+        }
+        Package packaged = type.getPackage();
+        return packaged != null && packaged.getName().startsWith("java.time");
     }
 
     private static Property<?> createProperty(Class<?> type, Object value) {
@@ -151,6 +225,13 @@ public class ViewModel {
 
     private void watch(Property<?> property, Method setter, String name) {
         property.addListener((observable, oldValue, newValue) -> write(setter, name, newValue));
+    }
+
+    private void watchComplex(Property<?> property, Method setter, String name) {
+        property.addListener((observable, oldValue, newValue) -> {
+            Object written = newValue instanceof ViewModel viewModel ? viewModel.model() : newValue;
+            write(setter, name, written);
+        });
     }
 
     private void write(Method setter, String name, Object value) {

@@ -4,8 +4,10 @@ package de.neitzel.fx.view;
  * A Direct binding declared in FXML.
  * <p>
  * The element names the control by {@code fx:id}, the control property, the Path, and the
- * direction. A Path of one name is that Attribute of this View's ViewModel. Direction values
- * are {@code view}, {@code model}, and {@code both}.
+ * direction. A Path of one name is that Attribute of this View's ViewModel. Further names step
+ * into the ViewModel of a Complex attribute, and the direction applies to the last name.
+ * When that last name is complex, the control receives the Model instance behind the ViewModel.
+ * Direction values are {@code view}, {@code model}, and {@code both}.
  */
 public class DirectBinding {
 

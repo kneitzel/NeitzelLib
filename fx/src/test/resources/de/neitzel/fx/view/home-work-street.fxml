@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="homeField" property="text" path="home.street" direction="both"/>
+            <DirectBinding control="workField" property="text" path="work.street" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <TextField fx:id="homeField" id="homeField"/>
+    <TextField fx:id="workField" id="workField"/>
+</VBox>
