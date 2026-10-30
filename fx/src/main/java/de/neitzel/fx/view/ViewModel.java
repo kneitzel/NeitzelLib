@@ -64,7 +64,9 @@ import java.util.Set;
  * <p>
  * Beside those attributes, the ViewModel keeps a list of {@link Message}s and the latest one.
  * The developer can add a message of any severity. Error and fatal messages are written to the log.
- * Info and warn are not.
+ * Info and warn are not. A parent carries each current child message, with the source extended by
+ * the Attribute that leads to that child. Each further parent prepends its own Attribute. The
+ * carried copy is not logged again. When the child drops the message, the parent drops that copy.
  */
 public class ViewModel {
 
@@ -75,6 +77,8 @@ public class ViewModel {
     private final Set<String> complexAttributes = new HashSet<>();
     private final List<Message> messages = new ArrayList<>();
     private final Map<String, Message> bindingFailures = new HashMap<>();
+    private final List<MessageListener> messageListeners = new ArrayList<>();
+    private final Map<String, ChildMessageMirror> childMirrors = new HashMap<>();
     private Message latestMessage;
 
     /**
@@ -268,10 +272,41 @@ public class ViewModel {
     }
 
     private void watchComplex(Property<?> property, Method setter, String name) {
+        if (property.getValue() instanceof ViewModel child) {
+            attachChild(name, child);
+        }
         property.addListener((observable, oldValue, newValue) -> {
+            if (oldValue != newValue) {
+                detachChild(name);
+            }
             Object written = newValue instanceof ViewModel viewModel ? viewModel.model() : newValue;
             write(setter, name, written);
+            if (oldValue != newValue && newValue instanceof ViewModel child) {
+                attachChild(name, child);
+            }
         });
+    }
+
+    /**
+     * Carries the child ViewModel's current notices, extending each source with this Attribute.
+     *
+     * @param name  the Attribute that leads to the child
+     * @param child the child ViewModel
+     */
+    private void attachChild(String name, ViewModel child) {
+        childMirrors.put(name, ChildMessageMirror.attach(this, name, child));
+    }
+
+    /**
+     * Drops the copies carried for an Attribute and stops following that child.
+     *
+     * @param name the Attribute
+     */
+    private void detachChild(String name) {
+        ChildMessageMirror mirror = childMirrors.remove(name);
+        if (mirror != null) {
+            mirror.detach();
+        }
     }
 
     private void write(Method setter, String name, Object value) {
@@ -311,12 +346,103 @@ public class ViewModel {
         messages.add(message);
         latestMessage = message;
         logSevere(message);
+        notifyAdded(message);
     }
 
     /**
-     * Records one error for a binding Path. A further failure of that Path replaces the text.
+     * Adds a copy of a child notice. The copy is not written to the log.
      *
-     * @param path the binding Path
+     * @param copy the carried notice
+     */
+    void addCarriedMessage(Message copy) {
+        messages.add(copy);
+        latestMessage = copy;
+        notifyAdded(copy);
+    }
+
+    /**
+     * Drops a carried copy. When it was the latest notice, the previous one becomes latest.
+     *
+     * @param copy the carried notice
+     */
+    void removeCarriedMessage(Message copy) {
+        if (!messages.remove(copy)) {
+            return;
+        }
+        if (latestMessage == copy) {
+            latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+        }
+        notifyRemoved(copy);
+    }
+
+    /**
+     * Hears notices added on this ViewModel, including carried copies, and hears when they are
+     * dropped or their text changes.
+     *
+     * @param listener the listener
+     */
+    void addMessageListener(MessageListener listener) {
+        messageListeners.add(listener);
+    }
+
+    /**
+     * Stops hearing notices added on this ViewModel.
+     *
+     * @param listener the listener
+     */
+    void removeMessageListener(MessageListener listener) {
+        messageListeners.remove(listener);
+    }
+
+    /**
+     * Tells listeners that a notice was added.
+     *
+     * @param message the notice
+     */
+    private void notifyAdded(Message message) {
+        for (MessageListener listener : List.copyOf(messageListeners)) {
+            listener.added(message);
+        }
+    }
+
+    /**
+     * Tells listeners that a notice kept its place and changed its text.
+     * <p>
+     * An in-place change does not log again and does not become a new latest notice.
+     *
+     * @param message the notice
+     */
+    void noteMessageText(Message message) {
+        notifyTextChanged(message);
+    }
+
+    /**
+     * Tells listeners that a notice was dropped.
+     *
+     * @param message the notice
+     */
+    private void notifyRemoved(Message message) {
+        for (MessageListener listener : List.copyOf(messageListeners)) {
+            listener.removed(message);
+        }
+    }
+
+    /**
+     * Tells listeners that a notice kept its place and changed its text.
+     *
+     * @param message the notice
+     */
+    private void notifyTextChanged(Message message) {
+        for (MessageListener listener : List.copyOf(messageListeners)) {
+            listener.textChanged(message);
+        }
+    }
+
+    /**
+     * Records one error whose source is an Attribute name. A further failure of that Attribute
+     * replaces the text of the same notice. Parents that carry the notice hear the new text.
+     *
+     * @param path the Attribute name that owns the failure
      * @param text the error text
      */
     void reportBindingFailure(String path, String text) {
@@ -324,6 +450,7 @@ public class ViewModel {
         if (existing != null) {
             existing.setText(text);
             logSevere(existing);
+            notifyTextChanged(existing);
             return;
         }
         Message message = new Message(Message.Severity.ERROR, text, path);
@@ -332,9 +459,9 @@ public class ViewModel {
     }
 
     /**
-     * Drops the error recorded for a binding Path after a later conversion succeeds.
+     * Drops the error recorded for an Attribute after a later conversion succeeds.
      *
-     * @param path the binding Path
+     * @param path the Attribute name that owned the failure
      */
     void clearBindingFailure(String path) {
         Message existing = bindingFailures.remove(path);
@@ -345,6 +472,7 @@ public class ViewModel {
         if (latestMessage == existing) {
             latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
         }
+        notifyRemoved(existing);
     }
 
     /**

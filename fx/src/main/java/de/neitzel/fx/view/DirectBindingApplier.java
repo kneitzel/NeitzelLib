@@ -57,11 +57,11 @@ final class DirectBindingApplier {
         Converter converter = converter(context, converterName);
         switch (binding.getDirection()) {
             case "both" -> alignConverted(
-                    controlProperty, attribute, converter, viewModel, binding.getPath(), true, true);
+                    controlProperty, attribute, converter, resolved.owner, resolved.name, true, true);
             case "view" -> alignConverted(
-                    controlProperty, attribute, converter, viewModel, binding.getPath(), true, false);
+                    controlProperty, attribute, converter, resolved.owner, resolved.name, true, false);
             case "model" -> alignConverted(
-                    controlProperty, attribute, converter, viewModel, binding.getPath(), false, true);
+                    controlProperty, attribute, converter, resolved.owner, resolved.name, false, true);
             default -> throw new IllegalArgumentException("Not a direction: " + binding.getDirection());
         }
     }
@@ -76,15 +76,22 @@ final class DirectBindingApplier {
     }
 
     /**
-     * The Attribute a Path names, and whether that Attribute is complex.
+     * The Attribute a Path names, the ViewModel that owns it, and whether that Attribute is complex.
+     * <p>
+     * {@code name} is the last segment. A conversion failure is recorded on {@code owner} with that
+     * name as the source, so a parent only carries the extended copy.
      */
     private static final class Resolved {
         private final Property<?> attribute;
         private final boolean complex;
+        private final ViewModel owner;
+        private final String name;
 
-        private Resolved(Property<?> attribute, boolean complex) {
+        private Resolved(Property<?> attribute, boolean complex, ViewModel owner, String name) {
             this.attribute = attribute;
             this.complex = complex;
+            this.owner = owner;
+            this.name = name;
         }
     }
 
@@ -123,7 +130,7 @@ final class DirectBindingApplier {
         if (attribute == null) {
             throw missing(path);
         }
-        return new Resolved(attribute, current.isComplex(last));
+        return new Resolved(attribute, current.isComplex(last), current, last);
     }
 
     private static IllegalArgumentException missing(String path) {
@@ -143,31 +150,35 @@ final class DirectBindingApplier {
         }
     }
 
+    /**
+     * Aligns a converted Attribute. Failures are recorded on {@code owner} with {@code sourceName},
+     * which is the last name of the Path.
+     */
     @SuppressWarnings("unchecked")
     private static void alignConverted(Property<?> controlProperty, Property<?> attribute, Converter converter,
-                                       ViewModel viewModel, String path, boolean towardView, boolean towardModel) {
+                                       ViewModel owner, String sourceName, boolean towardView, boolean towardModel) {
         Property<Object> control = (Property<Object>) controlProperty;
         Property<Object> source = (Property<Object>) attribute;
         Link link = new Link();
-        pushControl(control, source, converter, viewModel, path, link);
+        pushControl(control, source, converter, owner, sourceName, link);
         if (towardView) {
             source.addListener((observable, oldValue, newValue) -> {
                 if (!link.applying) {
-                    pushControl(control, source, converter, viewModel, path, link);
+                    pushControl(control, source, converter, owner, sourceName, link);
                 }
             });
         }
         if (towardModel) {
             control.addListener((observable, oldValue, newValue) -> {
                 if (!link.applying) {
-                    pushAttribute(control, source, converter, viewModel, path, link);
+                    pushAttribute(control, source, converter, owner, sourceName, link);
                 }
             });
         }
     }
 
     private static void pushControl(Property<Object> control, Property<Object> attribute, Converter converter,
-                                    ViewModel viewModel, String path, Link link) {
+                                    ViewModel owner, String source, Link link) {
         try {
             Object shown = converter.toControlValue(attribute.getValue());
             link.applying = true;
@@ -177,14 +188,14 @@ final class DirectBindingApplier {
             } finally {
                 link.applying = false;
             }
-            viewModel.clearBindingFailure(path);
+            owner.clearBindingFailure(source);
         } catch (RuntimeException failure) {
-            viewModel.reportBindingFailure(path, failureText(failure));
+            owner.reportBindingFailure(source, failureText(failure));
         }
     }
 
     private static void pushAttribute(Property<Object> control, Property<Object> attribute, Converter converter,
-                                      ViewModel viewModel, String path, Link link) {
+                                      ViewModel owner, String source, Link link) {
         try {
             Object converted = converter.toAttributeValue(control.getValue());
             link.applying = true;
@@ -194,7 +205,7 @@ final class DirectBindingApplier {
             } finally {
                 link.applying = false;
             }
-            viewModel.clearBindingFailure(path);
+            owner.clearBindingFailure(source);
         } catch (RuntimeException failure) {
             link.applying = true;
             try {
@@ -202,7 +213,7 @@ final class DirectBindingApplier {
             } finally {
                 link.applying = false;
             }
-            viewModel.reportBindingFailure(path, failureText(failure));
+            owner.reportBindingFailure(source, failureText(failure));
         }
     }
 

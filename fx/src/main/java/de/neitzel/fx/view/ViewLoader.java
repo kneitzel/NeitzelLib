@@ -33,7 +33,9 @@ public final class ViewLoader {
      * {@link javafx.collections.ObservableList}, so an add or remove is visible on both sides.
      * A path that is not a read-write Attribute fails the load. The context creates a Controller,
      * and a Converter when a Direct binding names one. A converter that cannot produce a value
-     * keeps the previous value and records one error Message. It does not fail the load.
+     * keeps the previous value and records one error Message on the ViewModel that owns the last
+     * Attribute, with that Attribute's name as the source. A parent carries a copy with the source
+     * extended. It does not fail the load.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance
