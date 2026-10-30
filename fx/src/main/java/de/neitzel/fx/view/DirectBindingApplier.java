@@ -2,6 +2,7 @@ package de.neitzel.fx.view;
 
 import de.neitzel.injection.ApplicationContext;
 import javafx.beans.property.Property;
+import javafx.collections.ObservableList;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -42,6 +43,10 @@ final class DirectBindingApplier {
                 case "model" -> alignTowardModelComplex(controlProperty, attribute);
                 default -> throw new IllegalArgumentException("Not a direction: " + binding.getDirection());
             }
+            return;
+        }
+        if (attribute.getValue() instanceof ObservableList<?> values) {
+            assignList(controlProperty, values);
             return;
         }
         String converterName = binding.getConverter();
@@ -280,6 +285,11 @@ final class DirectBindingApplier {
             return viewModel.model();
         }
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assignList(Property<?> controlProperty, ObservableList<?> values) {
+        ((Property<Object>) controlProperty).setValue(values);
     }
 
     @SuppressWarnings("unchecked")

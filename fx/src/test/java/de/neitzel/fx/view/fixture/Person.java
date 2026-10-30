@@ -240,7 +240,7 @@ public class Person {
     }
 
     /**
-     * Returns the tags.
+     * Returns the tags. The value may be null.
      *
      * @return the tags
      */

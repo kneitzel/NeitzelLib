@@ -14,6 +14,8 @@ import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +25,11 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -44,8 +51,12 @@ import java.util.Set;
  * A Complex attribute, a read-write Attribute whose declared type itself has a read-write
  * Attribute, stores the ViewModel for the nested Model instance, or null when the Attribute
  * is null. Strings, numbers, booleans, enums, {@link Date}, {@link Calendar}, and {@code java.time}
- * values stay simple even when that type has setters. A collection is not a Complex attribute.
- * A cycle, or another Attribute that reaches the same instance, reuses that ViewModel.
+ * values stay simple even when that type has setters. A collection of Model instances is not a
+ * Complex attribute. A list, set, or collection of simple values is an object property whose
+ * value is an {@link ObservableList} of those values. When that attribute's current value is a
+ * list, the observable list is backed by it and stored on the entity when the setter accepts it,
+ * so both sides hold one list. A cycle, or another Attribute that reaches the same instance,
+ * reuses that ViewModel.
  * The property is set from the Attribute when the ViewModel is created. A null number or
  * boolean leaves the primitive property at its default. After that, a change of the property
  * writes the Attribute. A Complex attribute writes the Model instance behind the ViewModel.
@@ -90,6 +101,9 @@ public class ViewModel {
                 properties.put(name, property);
                 complexAttributes.add(name);
             } else {
+                if (isSimpleValueCollection(getter)) {
+                    current = shareSimpleList(setter, name, current);
+                }
                 Property<?> property = createProperty(type, current);
                 watch(property, setter, name);
                 properties.put(name, property);
@@ -343,5 +357,63 @@ public class ViewModel {
         if (severity == Message.Severity.ERROR || severity == Message.Severity.FATAL) {
             LOGGER.error(message.getText());
         }
+    }
+
+    private static boolean isSimpleValueCollection(Method getter) {
+        if (!Collection.class.isAssignableFrom(getter.getReturnType())) {
+            return false;
+        }
+        Class<?> element = elementType(getter.getGenericReturnType());
+        return element != null && isSimpleValue(element);
+    }
+
+    private static Class<?> elementType(Type type) {
+        if (!(type instanceof ParameterizedType parameterized) || parameterized.getActualTypeArguments().length != 1) {
+            return null;
+        }
+        return classOf(parameterized.getActualTypeArguments()[0]);
+    }
+
+    private static Class<?> classOf(Type type) {
+        if (type instanceof Class<?> raw) {
+            return raw;
+        }
+        if (type instanceof ParameterizedType parameterized && parameterized.getRawType() instanceof Class<?> raw) {
+            return raw;
+        }
+        if (type instanceof WildcardType wildcard && wildcard.getUpperBounds().length == 1) {
+            return classOf(wildcard.getUpperBounds()[0]);
+        }
+        return null;
+    }
+
+    private static boolean isSimpleValue(Class<?> type) {
+        if (type == String.class || type == Boolean.class || type == boolean.class || type.isEnum()) {
+            return true;
+        }
+        if (type.isPrimitive()) {
+            return type != char.class && type != void.class;
+        }
+        if (Number.class.isAssignableFrom(type)) {
+            return true;
+        }
+        if (Date.class.isAssignableFrom(type) || Calendar.class.isAssignableFrom(type)) {
+            return true;
+        }
+        return TemporalAccessor.class.isAssignableFrom(type) || TemporalAmount.class.isAssignableFrom(type);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object shareSimpleList(Method setter, String name, Object current) {
+        if (!(current instanceof Collection<?> collection)) {
+            return current;
+        }
+        ObservableList<Object> observable = current instanceof List<?> list
+                ? FXCollections.observableList((List<Object>) list)
+                : FXCollections.observableArrayList((Collection<Object>) collection);
+        if (setter.getParameterTypes()[0].isAssignableFrom(observable.getClass())) {
+            write(setter, name, observable);
+        }
+        return observable;
     }
 }

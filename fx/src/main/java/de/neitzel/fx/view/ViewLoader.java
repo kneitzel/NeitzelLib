@@ -28,10 +28,12 @@ public final class ViewLoader {
      * changes, and does not push later property changes to the control. A Path of one name is an
      * Attribute of this View's ViewModel. Further names step into a nested ViewModel, and the
      * direction applies to the last name. When a Complex attribute along the Path is null, the
-     * control and the Model keep their current values. A path that is not a read-write Attribute
-     * fails the load. The context creates a Controller, and a Converter when a Direct binding names
-     * one. A converter that cannot produce a value keeps the previous value and records one error
-     * Message. It does not fail the load.
+     * control and the Model keep their current values. A collection of simple values is one shared
+     * list: the Direct binding sets the control property to that
+     * {@link javafx.collections.ObservableList}, so an add or remove is visible on both sides.
+     * A path that is not a read-write Attribute fails the load. The context creates a Controller,
+     * and a Converter when a Direct binding names one. A converter that cannot produce a value
+     * keeps the previous value and records one error Message. It does not fail the load.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance

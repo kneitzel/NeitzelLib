@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="tags" property="items" path="tags" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <ListView fx:id="tags" id="tags"/>
+</VBox>
