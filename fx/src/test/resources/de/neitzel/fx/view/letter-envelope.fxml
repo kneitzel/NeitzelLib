@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.StackPane?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import de.neitzel.fx.view.component.EnvelopeForm?>
+
+<StackPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="envelopeForm" property="model" path="envelope" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <EnvelopeForm fx:id="envelopeForm"/>
+</StackPane>

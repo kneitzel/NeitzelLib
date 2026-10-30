@@ -34,6 +34,12 @@ public final class ViewLoader {
      * A path that is not a read-write Attribute fails the load. The context creates a Controller,
      * and a Converter when a Direct binding names one. A converter that cannot produce a value
      * keeps the previous value and records one error Message. It does not fail the load.
+     * A parent document names a Component class as an element. The context creates that Component
+     * and injects its services. The Component document {@code ClassName.fxml}, in the same package,
+     * is loaded with the Component as {@code fx:root} and as the Controller. That document's
+     * bindings are not applied during this load. They run when the Component's model property
+     * becomes a non-null Model. A Component that implements {@link HasViewModel} receives that
+     * ViewModel after the property is set and before those bindings run.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance
@@ -47,6 +53,7 @@ public final class ViewLoader {
         try {
             FXMLLoader loader = new FXMLLoader(fxml);
             loader.setControllerFactory(type -> controller(context, type));
+            loader.setBuilderFactory(type -> Components.builder(type, context));
             Object loaded = loader.load();
             if (!(loaded instanceof Parent root)) {
                 throw new IllegalArgumentException("View root must be a parent");

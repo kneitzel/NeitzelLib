@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+
+<fx:root type="javafx.scene.layout.VBox" xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="streetField" property="text" path="street" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <Label fx:id="streetLabel" id="streetLabel"/>
+    <TextField fx:id="streetField" id="streetField" text="kept"/>
+</fx:root>

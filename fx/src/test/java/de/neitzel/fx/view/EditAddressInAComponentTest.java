@@ -1,0 +1,162 @@
+package de.neitzel.fx.view;
+
+import de.neitzel.fx.view.component.AddressForm;
+import de.neitzel.fx.view.component.Envelope;
+import de.neitzel.fx.view.component.Letter;
+import de.neitzel.fx.view.fixture.Address;
+import de.neitzel.fx.view.fixture.Person;
+import de.neitzel.injection.ApplicationContext;
+import javafx.application.Platform;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.net.URL;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
+
+class EditAddressInAComponentTest {
+
+    @BeforeAll
+    static void startJavaFx() throws InterruptedException {
+        CountDownLatch started = new CountDownLatch(1);
+        try {
+            Platform.startup(started::countDown);
+        } catch (IllegalStateException alreadyStarted) {
+            started.countDown();
+        }
+        if (!started.await(10, TimeUnit.SECONDS)) {
+            fail("JavaFX toolkit did not start");
+        }
+    }
+
+    @Test
+    void editingTheStreetUpdatesThatAddress() throws Exception {
+        onFx(() -> {
+            Address address = new Address("Main");
+            Person person = new Person("Ada");
+            person.setAddress(address);
+            URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
+            assertNotNull(fxml);
+            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
+            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
+            assertNotNull(form);
+            assertSame(address, form.getModel());
+            TextField streetField = (TextField) form.lookup("#streetField");
+            assertEquals("Main", streetField.getText());
+            streetField.setText("Oak");
+            assertEquals("Oak", address.getStreet());
+        });
+    }
+
+    @Test
+    void nullAddressLeavesTheModelUnsetAndKeepsTheStreetText() throws Exception {
+        onFx(() -> {
+            Person person = new Person("Ada");
+            URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
+            assertNotNull(fxml);
+            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
+            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
+            assertNotNull(form);
+            assertNull(form.getModel());
+            TextField streetField = (TextField) form.lookup("#streetField");
+            assertEquals("kept", streetField.getText());
+            assertNull(person.getAddress());
+        });
+    }
+
+    @Test
+    void streetLabelShowsTheInjectedPrefix() throws Exception {
+        onFx(() -> {
+            Person person = new Person("Ada");
+            person.setAddress(new Address("Main"));
+            URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
+            assertNotNull(fxml);
+            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
+            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
+            Label streetLabel = (Label) form.lookup("#streetLabel");
+            assertEquals("Lane", streetLabel.getText());
+        });
+    }
+
+    @Test
+    void componentReceivesTheAddressViewModelBeforeItsBindingsRun() throws Exception {
+        onFx(() -> {
+            Address address = new Address("Main");
+            Person person = new Person("Ada");
+            person.setAddress(address);
+            URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
+            assertNotNull(fxml);
+            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
+            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
+            assertSame(loaded.property("address").getValue(), form.receivedViewModel());
+            assertEquals("kept", form.streetTextAtHandOff());
+            TextField streetField = (TextField) form.lookup("#streetField");
+            assertEquals("Main", streetField.getText());
+        });
+    }
+
+    @Test
+    void nestedComponentShowsTheInnerStreet() throws Exception {
+        onFx(() -> {
+            Address address = new Address("Main");
+            Letter letter = new Letter(new Envelope(address));
+            URL fxml = EditAddressInAComponentTest.class.getResource("letter-envelope.fxml");
+            assertNotNull(fxml);
+            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
+            LoadedView loaded = ViewLoader.load(fxml, letter, context);
+            TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
+            assertEquals("Main", streetField.getText());
+            streetField.setText("Oak");
+            assertEquals("Oak", address.getStreet());
+        });
+    }
+
+    private static void onFx(FxAction action) throws Exception {
+        if (Platform.isFxApplicationThread()) {
+            action.run();
+            return;
+        }
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        CountDownLatch done = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (Throwable failure) {
+                thrown.set(failure);
+            } finally {
+                done.countDown();
+            }
+        });
+        if (!done.await(10, TimeUnit.SECONDS)) {
+            fail("JavaFX thread did not finish");
+        }
+        Throwable failure = thrown.get();
+        if (failure instanceof Exception exception) {
+            throw exception;
+        }
+        if (failure instanceof Error error) {
+            throw error;
+        }
+        if (failure != null) {
+            throw new AssertionError(failure);
+        }
+    }
+
+    @FunctionalInterface
+    private interface FxAction {
+        void run() throws Exception;
+    }
+}
