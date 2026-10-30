@@ -43,11 +43,11 @@ Some encryption classes that use format-preserving-encryption.
 
 ### fx
 
-Some JavaFX additions.
+JavaFX library that binds an FXML View to an ordinary Java Model. See [fx/README.md](fx/README.md).
 
 ### fx-example
 
-Some example programs that use the fx component
+Person desk that shows how to use `fx`. Run `mvn -pl fx-example javafx:run`.
 
 ### gson
 

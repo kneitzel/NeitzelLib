@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.example.view.AddressForm?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.ComputedBinding?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import de.neitzel.fx.view.Repeat?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="de.neitzel.fx.example.view.DeskController"
+      spacing="8" prefWidth="520">
+    <padding>
+        <Insets top="12" right="12" bottom="12" left="12"/>
+    </padding>
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="nameField" property="text" path="name" direction="both"/>
+            <DirectBinding control="ageField" property="text" path="age" direction="both"
+                           converter="de.neitzel.fx.example.view.AgeConverter"/>
+            <ComputedBinding control="greetingLabel" property="text" method="#greeting"/>
+            <DirectBinding control="homeForm" property="model" path="home" direction="both"/>
+            <DirectBinding control="homeStreetLabel" property="text" path="home.street" direction="view"/>
+            <Repeat pane="visitPane" component="de.neitzel.fx.example.view.AddressForm" collection="visits"/>
+            <DirectBinding control="visitChoice" property="items" path="visits" direction="view"/>
+            <DirectBinding control="visitChoice" property="value" path="selectedVisit" direction="both"/>
+            <DirectBinding control="tagList" property="items" path="tags" direction="view"/>
+            <DirectBinding control="noticeLabel" property="text" path="latestMessage" direction="view"/>
+        </BindingList>
+    </fx:define>
+
+    <Label text="Person" style="-fx-font-size: 16px;"/>
+    <GridPane hgap="8" vgap="6">
+        <columnConstraints>
+            <ColumnConstraints minWidth="110"/>
+            <ColumnConstraints hgrow="ALWAYS" minWidth="280"/>
+        </columnConstraints>
+        <Label text="Name" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="nameField" id="nameField" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        <Label text="Age" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <TextField fx:id="ageField" id="ageField" promptText="years 36"
+                   GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+        <Label text="Greeting" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <Label fx:id="greetingLabel" id="greetingLabel" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+        <Label text="Home street" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <Label fx:id="homeStreetLabel" id="homeStreetLabel" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+    </GridPane>
+
+    <Label text="Home"/>
+    <AddressForm fx:id="homeForm"/>
+
+    <Label text="Visits"/>
+    <HBox spacing="8">
+        <ComboBox fx:id="visitChoice" id="visitChoice" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button text="Add visit" onAction="#addVisit"/>
+    </HBox>
+    <VBox fx:id="visitPane" id="visitPane" spacing="4"/>
+
+    <Label text="Tags"/>
+    <ListView fx:id="tagList" id="tagList" prefHeight="80"/>
+    <HBox spacing="8">
+        <TextField fx:id="tagField" id="tagField" promptText="Tag" HBox.hgrow="ALWAYS"/>
+        <Button text="Add tag" onAction="#addTag"/>
+    </HBox>
+
+    <Label text="Notice"/>
+    <Label fx:id="noticeLabel" id="noticeLabel" wrapText="true"/>
+    <Button text="Leave a note" onAction="#leaveNote"/>
+</VBox>

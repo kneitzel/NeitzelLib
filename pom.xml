@@ -15,10 +15,10 @@
         <module>encryption</module>
         <module>injection</module>
         <module>fx</module>
+        <module>fx-example</module>
         <module>gson</module>
         <module>net</module>
         <module>log4j</module>
-        <!-- fx-example still calls the removed JavaFX units and is not part of this reactor until it is migrated. -->
         <module>quarkus</module>
     </modules>
 
