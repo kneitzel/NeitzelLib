@@ -43,10 +43,12 @@ public final class LoadedView {
     /**
      * Returns the JavaFX property for an Attribute name.
      * <p>
-     * The property's class follows the Attribute's declared type.
+     * The property's class follows the Attribute's declared type. The name {@code latestMessage}
+     * is a string property holding the text of the latest Message.
      *
-     * @param name the Attribute name
+     * @param name the Attribute name, or {@code latestMessage}
      * @return the property, or {@code null} when that name is not a read-write Attribute
+     *         and is not {@code latestMessage}
      */
     public Property<?> property(String name) {
         return viewModel.property(name);

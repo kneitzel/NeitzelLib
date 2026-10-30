@@ -13,6 +13,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -40,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * The object a View binds to, built at runtime for one Model instance.
@@ -64,7 +66,10 @@ import java.util.Set;
  * <p>
  * Beside those attributes, the ViewModel keeps a list of {@link Message}s and the latest one.
  * The developer can add a message of any severity. Error and fatal messages are written to the log.
- * Info and warn are not.
+ * Info and warn are not. The name {@code latestMessage} is a string property holding the text of
+ * the latest Message, so a Direct binding can show that text on a control. The library does not
+ * open a popup or fill a status bar unless the developer asks. {@link MessagePopup#showNewMessages}
+ * shows each newly added Message in a dialog. An in-place update does not.
  */
 public class ViewModel {
 
@@ -75,6 +80,8 @@ public class ViewModel {
     private final Set<String> complexAttributes = new HashSet<>();
     private final List<Message> messages = new ArrayList<>();
     private final Map<String, Message> bindingFailures = new HashMap<>();
+    private final StringProperty latestMessageText = new SimpleStringProperty();
+    private final List<Consumer<Message>> messageAdded = new ArrayList<>();
     private Message latestMessage;
 
     /**
@@ -113,11 +120,19 @@ public class ViewModel {
 
     /**
      * Returns the JavaFX property for an Attribute name.
+     * <p>
+     * The name {@code latestMessage} is the text of the latest {@link Message}, beside the
+     * Model attributes. It is a string property. A Direct binding can read it. An in-place
+     * update of that Message refreshes the text and does not replace the Message.
      *
-     * @param name the Attribute name
+     * @param name the Attribute name, or {@code latestMessage}
      * @return the property, or {@code null} when that name is not a read-write Attribute
+     *         and is not {@code latestMessage}
      */
     public Property<?> property(String name) {
+        if ("latestMessage".equals(name)) {
+            return latestMessageText;
+        }
         return properties.get(name);
     }
 
@@ -310,7 +325,22 @@ public class ViewModel {
     public void addMessage(Message message) {
         messages.add(message);
         latestMessage = message;
+        publishLatestMessage();
         logSevere(message);
+        for (Consumer<Message> listener : List.copyOf(messageAdded)) {
+            listener.accept(message);
+        }
+    }
+
+    /**
+     * Calls {@code listener} each time a Message is added.
+     * <p>
+     * An in-place update of a binding failure does not call the listener.
+     *
+     * @param listener the listener
+     */
+    void whenMessageAdded(Consumer<Message> listener) {
+        messageAdded.add(listener);
     }
 
     /**
@@ -323,6 +353,9 @@ public class ViewModel {
         Message existing = bindingFailures.get(path);
         if (existing != null) {
             existing.setText(text);
+            if (existing == latestMessage) {
+                publishLatestMessage();
+            }
             logSevere(existing);
             return;
         }
@@ -344,7 +377,15 @@ public class ViewModel {
         messages.remove(existing);
         if (latestMessage == existing) {
             latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+            publishLatestMessage();
         }
+    }
+
+    /**
+     * Makes the string property for {@code latestMessage} match {@link #getLatestMessage()}.
+     */
+    private void publishLatestMessage() {
+        latestMessageText.set(latestMessage == null ? null : latestMessage.getText());
     }
 
     /**

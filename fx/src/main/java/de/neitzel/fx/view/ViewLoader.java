@@ -34,6 +34,9 @@ public final class ViewLoader {
      * A path that is not a read-write Attribute fails the load. The context creates a Controller,
      * and a Converter when a Direct binding names one. A converter that cannot produce a value
      * keeps the previous value and records one error Message. It does not fail the load.
+     * Loading does not open a popup or fill a status bar. A Direct binding whose path is
+     * {@code latestMessage} shows the latest Message text. {@link MessagePopup#showNewMessages}
+     * shows each newly added Message in a dialog.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance
