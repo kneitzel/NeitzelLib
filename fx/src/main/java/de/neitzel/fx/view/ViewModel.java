@@ -13,6 +13,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ChangeListener;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -110,6 +111,18 @@ public class ViewModel {
      */
     boolean isComplex(String name) {
         return complexAttributes.contains(name);
+    }
+
+    /**
+     * Calls {@code listener} when any Attribute property changes.
+     *
+     * @param listener the listener
+     */
+    @SuppressWarnings("unchecked")
+    void addAttributeListener(ChangeListener<Object> listener) {
+        for (Property<?> property : properties.values()) {
+            ((Property<Object>) property).addListener(listener);
+        }
     }
 
     private static List<PropertyDescriptor> descriptors(Class<?> type) {
