@@ -1,5 +1,6 @@
 package de.neitzel.fx.view;
 
+import de.neitzel.injection.ApplicationContext;
 import javafx.beans.DefaultProperty;
 
 import java.util.ArrayList;
@@ -40,10 +41,11 @@ public class BindingList {
      *
      * @param namespace objects addressed by {@code fx:id}
      * @param viewModel the ViewModel for this View
+     * @param context   the container that creates a named Converter
      */
-    void apply(Map<String, Object> namespace, ViewModel viewModel) {
+    void apply(Map<String, Object> namespace, ViewModel viewModel, ApplicationContext context) {
         for (DirectBinding binding : elements) {
-            DirectBindingApplier.apply(namespace, viewModel, binding);
+            DirectBindingApplier.apply(namespace, viewModel, binding, context);
         }
     }
 }

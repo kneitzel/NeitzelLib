@@ -4,8 +4,9 @@ package de.neitzel.fx.view;
  * A Direct binding declared in FXML.
  * <p>
  * The element names the control by {@code fx:id}, the control property, the Path, and the
- * direction. A Path of one name is that Attribute of this View's ViewModel. Direction values
- * are {@code view}, {@code model}, and {@code both}.
+ * direction, and an optional Converter class. A Path of one name is that Attribute of this
+ * View's ViewModel. Direction values are {@code view}, {@code model}, and {@code both}.
+ * The Converter value is the class name. The container creates that class.
  */
 public class DirectBinding {
 
@@ -13,6 +14,7 @@ public class DirectBinding {
     private String property;
     private String path;
     private String direction;
+    private String converter;
 
     /**
      * Sets the {@code fx:id} of the control.
@@ -51,6 +53,15 @@ public class DirectBinding {
     }
 
     /**
+     * Sets the Converter class name. The container creates that class.
+     *
+     * @param converter the converter class name, or {@code null} when values pass through
+     */
+    public void setConverter(String converter) {
+        this.converter = converter;
+    }
+
+    /**
      * Returns the {@code fx:id} of the control.
      *
      * @return the control id
@@ -84,5 +95,14 @@ public class DirectBinding {
      */
     public String getDirection() {
         return direction;
+    }
+
+    /**
+     * Returns the Converter class name.
+     *
+     * @return the class name, or {@code null} when values pass through
+     */
+    public String getConverter() {
+        return converter;
     }
 }

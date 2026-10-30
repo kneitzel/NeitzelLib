@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="ageField" property="text" path="age" direction="model"
+                           converter="de.neitzel.fx.view.fixture.PrefixedAgeConverter"/>
+        </BindingList>
+    </fx:define>
+    <TextField fx:id="ageField" id="ageField"/>
+</VBox>
