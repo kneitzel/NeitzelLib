@@ -13,6 +13,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -40,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * The object a View binds to, built at runtime for one Model instance.
@@ -67,6 +69,10 @@ import java.util.Set;
  * Info and warn are not. A parent carries each current child message, with the source extended by
  * the Attribute that leads to that child. Each further parent prepends its own Attribute. The
  * carried copy is not logged again. When the child drops the message, the parent drops that copy.
+ * The name {@code latestMessage} is a string property holding the text of the latest Message, so a
+ * Direct binding can show that text on a control. The library does not open a popup or fill a
+ * status bar unless the developer asks. {@link MessagePopup#showNewMessages} shows each newly added
+ * Message in a dialog. An in-place update does not.
  */
 public class ViewModel {
 
@@ -79,6 +85,8 @@ public class ViewModel {
     private final Map<String, Message> bindingFailures = new HashMap<>();
     private final List<MessageListener> messageListeners = new ArrayList<>();
     private final Map<String, ChildMessageMirror> childMirrors = new HashMap<>();
+    private final StringProperty latestMessageText = new SimpleStringProperty();
+    private final List<Consumer<Message>> messageAdded = new ArrayList<>();
     private Message latestMessage;
 
     /**
@@ -117,11 +125,19 @@ public class ViewModel {
 
     /**
      * Returns the JavaFX property for an Attribute name.
+     * <p>
+     * The name {@code latestMessage} is the text of the latest {@link Message}, beside the
+     * Model attributes. It is a string property. A Direct binding can read it. An in-place
+     * update of that Message refreshes the text and does not replace the Message.
      *
-     * @param name the Attribute name
+     * @param name the Attribute name, or {@code latestMessage}
      * @return the property, or {@code null} when that name is not a read-write Attribute
+     *         and is not {@code latestMessage}
      */
     public Property<?> property(String name) {
+        if ("latestMessage".equals(name)) {
+            return latestMessageText;
+        }
         return properties.get(name);
     }
 
@@ -345,8 +361,23 @@ public class ViewModel {
     public void addMessage(Message message) {
         messages.add(message);
         latestMessage = message;
+        publishLatestMessage();
         logSevere(message);
         notifyAdded(message);
+        for (Consumer<Message> listener : List.copyOf(messageAdded)) {
+            listener.accept(message);
+        }
+    }
+
+    /**
+     * Calls {@code listener} each time a Message is added.
+     * <p>
+     * An in-place update of a binding failure does not call the listener.
+     *
+     * @param listener the listener
+     */
+    void whenMessageAdded(Consumer<Message> listener) {
+        messageAdded.add(listener);
     }
 
     /**
@@ -357,7 +388,11 @@ public class ViewModel {
     void addCarriedMessage(Message copy) {
         messages.add(copy);
         latestMessage = copy;
+        publishLatestMessage();
         notifyAdded(copy);
+        for (Consumer<Message> listener : List.copyOf(messageAdded)) {
+            listener.accept(copy);
+        }
     }
 
     /**
@@ -371,6 +406,7 @@ public class ViewModel {
         }
         if (latestMessage == copy) {
             latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+            publishLatestMessage();
         }
         notifyRemoved(copy);
     }
@@ -413,6 +449,9 @@ public class ViewModel {
      * @param message the notice
      */
     void noteMessageText(Message message) {
+        if (message == latestMessage) {
+            publishLatestMessage();
+        }
         notifyTextChanged(message);
     }
 
@@ -449,6 +488,9 @@ public class ViewModel {
         Message existing = bindingFailures.get(path);
         if (existing != null) {
             existing.setText(text);
+            if (existing == latestMessage) {
+                publishLatestMessage();
+            }
             logSevere(existing);
             notifyTextChanged(existing);
             return;
@@ -471,8 +513,16 @@ public class ViewModel {
         messages.remove(existing);
         if (latestMessage == existing) {
             latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+            publishLatestMessage();
         }
         notifyRemoved(existing);
+    }
+
+    /**
+     * Makes the string property for {@code latestMessage} match {@link #getLatestMessage()}.
+     */
+    private void publishLatestMessage() {
+        latestMessageText.set(latestMessage == null ? null : latestMessage.getText());
     }
 
     /**

@@ -42,6 +42,9 @@ public final class ViewLoader {
      * bindings are not applied during this load. They run when the Component's model property
      * becomes a non-null Model. A Component that implements {@link HasViewModel} receives that
      * ViewModel after the property is set and before those bindings run.
+     * Loading does not open a popup or fill a status bar. A Direct binding whose path is
+     * {@code latestMessage} shows the latest Message text. {@link MessagePopup#showNewMessages}
+     * shows each newly added Message in a dialog.
      *
      * @param fxml    the FXML document
      * @param model   the Model instance
