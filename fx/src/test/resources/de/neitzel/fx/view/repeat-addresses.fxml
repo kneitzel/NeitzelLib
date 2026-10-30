@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import de.neitzel.fx.view.Repeat?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <Repeat pane="addressPane" component="de.neitzel.fx.view.component.AddressForm" collection="addresses"/>
+            <DirectBinding control="selection" property="value" path="selectedAddress" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <VBox fx:id="addressPane" id="addressPane"/>
+    <ComboBox fx:id="selection" id="selection"/>
+</VBox>

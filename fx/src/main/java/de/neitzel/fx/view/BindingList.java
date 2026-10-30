@@ -11,8 +11,8 @@ import java.util.Map;
 /**
  * The list of binding elements declared inside {@code fx:define}.
  * <p>
- * The list is not a scene-graph child. FXML adds each {@link DirectBinding} or
- * {@link ComputedBinding} child to {@link #getElements()}.
+ * The list is not a scene-graph child. FXML adds each {@link DirectBinding},
+ * {@link ComputedBinding}, or {@link Repeat} child to {@link #getElements()}.
  */
 @DefaultProperty("elements")
 public class BindingList {
@@ -29,8 +29,8 @@ public class BindingList {
     /**
      * Returns the binding elements in this list.
      * <p>
-     * FXML appends child elements to the returned list. A child is a {@link DirectBinding} or a
-     * {@link ComputedBinding}.
+     * FXML appends child elements to the returned list. A child is a {@link DirectBinding}, a
+     * {@link ComputedBinding}, or a {@link Repeat}.
      *
      * @return the mutable list of binding elements
      */
@@ -54,6 +54,8 @@ public class BindingList {
                 DirectBindingApplier.apply(namespace, viewModel, directBinding, context);
             } else if (element instanceof ComputedBinding computedBinding) {
                 ComputedBindingApplier.apply(namespace, viewModel, controller, root, computedBinding);
+            } else if (element instanceof Repeat repeat) {
+                RepeatApplier.apply(namespace, viewModel, repeat, context);
             } else {
                 throw new IllegalArgumentException("Not a binding element: " + element);
             }

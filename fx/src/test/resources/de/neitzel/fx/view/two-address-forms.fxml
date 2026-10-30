@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import de.neitzel.fx.view.component.AddressForm?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="homeForm" property="model" path="home" direction="both"/>
+            <DirectBinding control="workForm" property="model" path="work" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <AddressForm fx:id="homeForm"/>
+    <AddressForm fx:id="workForm"/>
+</VBox>

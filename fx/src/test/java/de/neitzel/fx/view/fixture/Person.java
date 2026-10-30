@@ -22,6 +22,8 @@ public class Person {
     private Date updated;
     private Calendar hired;
     private List<String> tags;
+    private List<Address> addresses;
+    private Address selectedAddress;
 
     /**
      * Creates a person with the given name.
@@ -255,5 +257,41 @@ public class Person {
      */
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    /**
+     * Returns the addresses. The value may be null.
+     *
+     * @return the addresses
+     */
+    public List<Address> getAddresses() {
+        return addresses;
+    }
+
+    /**
+     * Sets the addresses.
+     *
+     * @param addresses the addresses
+     */
+    public void setAddresses(List<Address> addresses) {
+        this.addresses = addresses;
+    }
+
+    /**
+     * Returns the selected address. Null means nothing is selected.
+     *
+     * @return the selected address, or {@code null}
+     */
+    public Address getSelectedAddress() {
+        return selectedAddress;
+    }
+
+    /**
+     * Sets the selected address.
+     *
+     * @param selectedAddress the selected address, or {@code null} when nothing is selected
+     */
+    public void setSelectedAddress(Address selectedAddress) {
+        this.selectedAddress = selectedAddress;
     }
 }

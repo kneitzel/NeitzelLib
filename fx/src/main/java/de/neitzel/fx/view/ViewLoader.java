@@ -37,11 +37,21 @@ public final class ViewLoader {
      * Attribute, with that Attribute's name as the source. A parent carries a copy with the source
      * extended. It does not fail the load.
      * A parent document names a Component class as an element. The context creates that Component
-     * and injects its services. The Component document {@code ClassName.fxml}, in the same package,
-     * is loaded with the Component as {@code fx:root} and as the Controller. That document's
-     * bindings are not applied during this load. They run when the Component's model property
-     * becomes a non-null Model. A Component that implements {@link HasViewModel} receives that
-     * ViewModel after the property is set and before those bindings run.
+     * and injects its services. A second element of the same class is another injected instance,
+     * and the cached singleton stays the first one. The Component document {@code ClassName.fxml},
+     * in the same package, is loaded with the Component as {@code fx:root} and as the Controller.
+     * That document's bindings are not applied during this load. They run when the Component's
+     * model property becomes a non-null Model. A Component that implements {@link HasViewModel}
+     * receives that ViewModel after the property is set and before those bindings run.
+     * A {@link Repeat} in the same list names a pane, a Component class, and a collection
+     * Attribute. One new Component child is placed in that pane for each Model instance, in list
+     * order. Adding or removing an element updates that pane. Those instances are created with
+     * {@link de.neitzel.injection.ApplicationContext#createComponent} so the cached singleton of
+     * that class stays in place. A collection of Model instances is an
+     * {@link javafx.collections.ObservableList} of those instances, shared with the entity.
+     * Selection is a separate Attribute of the parent Model. Null means nothing is selected.
+     * A Direct binding can tie a control property to that Attribute. The repeated Component does
+     * not store the selection.
      * Loading does not open a popup or fill a status bar. A Direct binding whose path is
      * {@code latestMessage} shows the latest Message text. {@link MessagePopup#showNewMessages}
      * shows each newly added Message in a dialog.

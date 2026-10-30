@@ -54,11 +54,12 @@ import java.util.function.Consumer;
  * Attribute, stores the ViewModel for the nested Model instance, or null when the Attribute
  * is null. Strings, numbers, booleans, enums, {@link Date}, {@link Calendar}, and {@code java.time}
  * values stay simple even when that type has setters. A collection of Model instances is not a
- * Complex attribute. A list, set, or collection of simple values is an object property whose
- * value is an {@link ObservableList} of those values. When that attribute's current value is a
- * list, the observable list is backed by it and stored on the entity when the setter accepts it,
- * so both sides hold one list. A cycle, or another Attribute that reaches the same instance,
- * reuses that ViewModel.
+ * Complex attribute. It is an object property whose value is an {@link ObservableList} of those
+ * Model instances, not of ViewModels. A list, set, or collection of simple values is an object
+ * property whose value is an {@link ObservableList} of those values. When either attribute's
+ * current value is a list, the observable list is backed by it and stored on the entity when the
+ * setter accepts it, so both sides hold one list. A cycle, or another Attribute that reaches the
+ * same instance, reuses that ViewModel.
  * The property is set from the Attribute when the ViewModel is created. A null number or
  * boolean leaves the primitive property at its default. After that, a change of the property
  * writes the Attribute. A Complex attribute writes the Model instance behind the ViewModel.
@@ -113,7 +114,7 @@ public class ViewModel {
                 properties.put(name, property);
                 complexAttributes.add(name);
             } else {
-                if (isSimpleValueCollection(getter)) {
+                if (isSimpleValueCollection(getter) || isModelCollection(getter)) {
                     current = shareSimpleList(setter, name, current);
                 }
                 Property<?> property = createProperty(type, current);
@@ -543,6 +544,14 @@ public class ViewModel {
         }
         Class<?> element = elementType(getter.getGenericReturnType());
         return element != null && isSimpleValue(element);
+    }
+
+    private static boolean isModelCollection(Method getter) {
+        if (!Collection.class.isAssignableFrom(getter.getReturnType())) {
+            return false;
+        }
+        Class<?> element = elementType(getter.getGenericReturnType());
+        return element != null && isComplex(element);
     }
 
     private static Class<?> elementType(Type type) {

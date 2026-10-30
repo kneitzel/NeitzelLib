@@ -31,7 +31,9 @@ final class Components {
      * <p>
      * An unknown type, such as a JavaFX control, makes {@link ApplicationContext#getComponent}
      * throw {@link IllegalArgumentException}. This method returns null so FXML constructs that
-     * type itself. A failure while creating a known Component is not caught.
+     * type itself. A failure while creating a known Component is not caught. The first Component
+     * of a class in one load is the cached singleton. A second Component of that class is a new
+     * injected instance, so the document can show two of them.
      *
      * @param type    the type FXML is about to construct
      * @param context the container that creates Components
@@ -44,7 +46,38 @@ final class Components {
         } catch (IllegalArgumentException notAComponent) {
             return null;
         }
-        return () -> load(component, context);
+        if (!LoadSession.claimFirst(type)) {
+            component = context.createComponent(type);
+        }
+        Object created = component;
+        return () -> load(created, context);
+    }
+
+    /**
+     * Creates a new Component and loads its document.
+     * <p>
+     * The instance is not the cached singleton. Its dependencies still come from
+     * {@link ApplicationContext#getComponent}. Bindings wait until {@link #setModel} runs.
+     *
+     * @param type    the Component class
+     * @param context the container that creates the instance and its dependencies
+     * @return the loaded Component
+     */
+    static Object fresh(Class<?> type, ApplicationContext context) {
+        Object component = context.createComponent(type.asSubclass(Object.class));
+        return load(component, context);
+    }
+
+    /**
+     * Sets the Component's model property.
+     * <p>
+     * A non-null value selects the ViewModel and then runs the Component's bindings.
+     *
+     * @param component the Component
+     * @param model     the Model instance
+     */
+    static void setModel(Object component, Object model) {
+        modelProperty(component).setValue(model);
     }
 
     private static Object load(Object component, ApplicationContext context) {

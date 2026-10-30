@@ -3,7 +3,9 @@ package de.neitzel.fx.view;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Holds the binding lists instantiated while one View is loading.
@@ -18,6 +20,7 @@ final class LoadSession {
     private static final ThreadLocal<Deque<LoadSession>> STACK = new ThreadLocal<>();
 
     private final List<BindingList> bindingLists = new ArrayList<>();
+    private final Set<Class<?>> built = new HashSet<>();
 
     private LoadSession() {
     }
@@ -39,20 +42,33 @@ final class LoadSession {
      * Opens a nested session for a Component document.
      * <p>
      * Binding lists created until {@link #unnest()} register here, not on the parent session.
+     * A Component created after the parent load has finished, such as a repeated child added
+     * later, still gets a session so its own binding list can be captured.
      *
      * @return the nested session
      */
     static LoadSession nest() {
+        Deque<LoadSession> stack = STACK.get();
+        if (stack == null) {
+            stack = new ArrayDeque<>();
+            STACK.set(stack);
+        }
         LoadSession session = new LoadSession();
-        STACK.get().push(session);
+        stack.push(session);
         return session;
     }
 
     /**
      * Restores the session that was current before {@link #nest()}.
+     * <p>
+     * When the nested session was the only one, the thread-local stack is dropped.
      */
     static void unnest() {
-        STACK.get().pop();
+        Deque<LoadSession> stack = STACK.get();
+        stack.pop();
+        if (stack.isEmpty()) {
+            STACK.remove();
+        }
     }
 
     /**
@@ -73,6 +89,23 @@ final class LoadSession {
             return;
         }
         stack.peek().bindingLists.add(bindingList);
+    }
+
+    /**
+     * Records the first Component of {@code type} built during this load.
+     * <p>
+     * Nested documents share the outermost session, so a second Component of the same class
+     * anywhere in the load is not the first.
+     *
+     * @param type the Component class
+     * @return {@code true} when this is the first time that class is built during the load
+     */
+    static boolean claimFirst(Class<?> type) {
+        Deque<LoadSession> stack = STACK.get();
+        if (stack == null || stack.isEmpty()) {
+            return true;
+        }
+        return stack.peekLast().built.add(type);
     }
 
     /**

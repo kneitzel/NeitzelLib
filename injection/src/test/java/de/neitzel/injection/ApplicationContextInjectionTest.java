@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class ApplicationContextInjectionTest {
@@ -45,6 +46,30 @@ class ApplicationContextInjectionTest {
         assertSame(rootDependency, service.getConstructorInjectedService().getRootDependency());
         assertSame(rootDependency, service.getFieldInjectedService().getRootDependency());
         assertSame(rootDependency, service.getSetterInjectedService().getRootDependency());
+    }
+
+    @Test
+    void createComponentInjectsANewInstanceAndKeepsTheSingleton() {
+        MixedInjectionService singleton = context.getComponent(MixedInjectionService.class);
+        MixedInjectionService created = context.createComponent(MixedInjectionService.class);
+        RootDependency root = context.getComponent(RootDependency.class);
+        assertNotSame(singleton, created);
+        assertSame(singleton, context.getComponent(MixedInjectionService.class));
+        assertSame(root, created.getConstructorInjectedService().getRootDependency());
+        assertSame(root, created.getFieldInjectedService().getRootDependency());
+        assertSame(root, created.getSetterInjectedService().getRootDependency());
+        assertSame(singleton.getConstructorInjectedService(), created.getConstructorInjectedService());
+        assertSame(singleton.getFieldInjectedService(), created.getFieldInjectedService());
+        assertSame(singleton.getSetterInjectedService(), created.getSetterInjectedService());
+    }
+
+    @Test
+    void createComponentDoesNotBecomeTheSingleton() {
+        MixedInjectionService created = context.createComponent(MixedInjectionService.class);
+        MixedInjectionService singleton = context.getComponent(MixedInjectionService.class);
+        assertNotSame(created, singleton);
+        assertSame(singleton, context.getComponent(MixedInjectionService.class));
+        assertSame(created.getConstructorInjectedService(), singleton.getConstructorInjectedService());
     }
 }
 

@@ -67,11 +67,7 @@ public class ApplicationContext {
      */
     @SuppressWarnings("unchecked")
     public <T> T getComponent(Class<? extends T> type) {
-        ComponentData data = components.get(type);
-        if (data == null) {
-            throw new IllegalArgumentException("No component found for type: " + type.getName());
-        }
-
+        ComponentData data = componentData(type);
         Scope scope = data.getScope();
         Object instance = data.getInstance();
 
@@ -79,10 +75,60 @@ public class ApplicationContext {
             return (T) instance;
         }
 
+        instance = createInjected(data);
+        if (scope == Scope.SINGLETON) {
+            data.setInstance(instance);
+        }
+        return (T) instance;
+    }
+
+    /**
+     * Creates a new injected instance without replacing a cached singleton.
+     * <p>
+     * Dependencies of the new instance are the objects {@link #getComponent} returns, so a
+     * singleton dependency is still shared. The new instance itself is not stored as the
+     * singleton for {@code type}.
+     *
+     * @param <T>  the type of the component to create
+     * @param type the {@code Class} object representing the type of the component
+     * @return a new instance of the requested component type
+     * @throws IllegalArgumentException if no component is found for the specified type
+     * @throws IllegalStateException    if no suitable constructor is found for the component
+     * @throws RuntimeException         if any error occurs during instantiation
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T createComponent(Class<? extends T> type) {
+        return (T) createInjected(componentData(type));
+    }
+
+    /**
+     * Returns the scanned data for a component type.
+     *
+     * @param type the component type
+     * @return the component data
+     * @throws IllegalArgumentException if no component is found for the specified type
+     */
+    private ComponentData componentData(Class<?> type) {
+        ComponentData data = components.get(type);
+        if (data == null) {
+            throw new IllegalArgumentException("No component found for type: " + type.getName());
+        }
+        return data;
+    }
+
+    /**
+     * Constructs a component and injects its dependencies.
+     * <p>
+     * The instance is not stored. {@link #getComponent} decides whether a singleton caches it.
+     *
+     * @param data the component to construct
+     * @return the new instance
+     */
+    private Object createInjected(ComponentData data) {
         try {
             Constructor<?> injectionConstructor = data.getInjectionConstructor();
             if (injectionConstructor == null) {
-                throw new IllegalStateException("No injection constructor resolved for " + type.getName());
+                throw new IllegalStateException("No injection constructor resolved for " + data.getType().getName());
             }
 
             Class<?>[] paramTypes = injectionConstructor.getParameterTypes();
@@ -91,7 +137,7 @@ public class ApplicationContext {
                 parameters[i] = getComponent(paramTypes[i]);
             }
 
-            instance = injectionConstructor.newInstance(parameters);
+            Object instance = injectionConstructor.newInstance(parameters);
 
             for (Field field : data.getInjectableFields()) {
                 field.setAccessible(true);
@@ -104,12 +150,9 @@ public class ApplicationContext {
                 setter.invoke(instance, getComponent(dependencyType));
             }
 
-            if (scope == Scope.SINGLETON) {
-                data.setInstance(instance);
-            }
-            return (T) instance;
+            return instance;
         } catch (Exception e) {
-            throw new RuntimeException("Fehler beim Erstellen der Instanz für " + type.getName(), e);
+            throw new RuntimeException("Fehler beim Erstellen der Instanz für " + data.getType().getName(), e);
         }
     }
 
