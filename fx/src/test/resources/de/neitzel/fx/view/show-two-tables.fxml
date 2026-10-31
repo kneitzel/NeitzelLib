@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.Column?>
+<?import de.neitzel.fx.view.Table?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <Table fx:id="firstTable" id="firstTable" collection="visits"
+           row="de.neitzel.fx.view.component.VisitRow" prefWidth="300">
+        <Column header="Street" attribute="street"/>
+        <Column header="City" attribute="city"/>
+        <Column header="Rank" attribute="rank"/>
+        <Column header="Open" attribute="open"/>
+        <Column header="Role" attribute="role"/>
+        <Column header="Day" attribute="day"/>
+    </Table>
+    <Table fx:id="secondTable" id="secondTable" collection="visits"
+           row="de.neitzel.fx.view.component.VisitRow" prefWidth="300">
+        <Column header="City" attribute="city"/>
+    </Table>
+</VBox>

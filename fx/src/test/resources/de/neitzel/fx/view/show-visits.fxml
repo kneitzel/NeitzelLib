@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.view.Column?>
+<?import de.neitzel.fx.view.Table?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <Table fx:id="visitsTable" id="visitsTable" collection="visits"
+           row="de.neitzel.fx.view.component.VisitRow" prefWidth="300">
+        <Column header="Street" attribute="street"/>
+        <Column header="City" attribute="city"/>
+    </Table>
+</VBox>

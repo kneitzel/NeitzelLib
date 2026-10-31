@@ -12,6 +12,9 @@ import java.net.URL;
  */
 public final class ViewLoader {
 
+    /**
+     * Prevents instantiation.
+     */
     private ViewLoader() {
     }
 
@@ -93,6 +96,7 @@ public final class ViewLoader {
             for (BindingList bindingList : session.bindingLists()) {
                 bindingList.apply(loader.getNamespace(), viewModel, controller, root, context);
             }
+            Table.openAll(root, viewModel, context);
             return new LoadedView(root, viewModel);
         } catch (IOException failure) {
             throw new IllegalStateException("Could not load view " + fxml, failure);
@@ -101,6 +105,13 @@ public final class ViewLoader {
         }
     }
 
+    /**
+     * Asks the container for the Controller class named by the document.
+     *
+     * @param context the container
+     * @param type    the Controller class
+     * @return the Controller
+     */
     private static Object controller(ApplicationContext context, Class<?> type) {
         return context.getComponent(type.asSubclass(Object.class));
     }
