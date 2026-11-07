@@ -16,6 +16,9 @@ import java.util.Map;
  */
 final class ComputedBindingApplier {
 
+    /**
+     * Prevents instantiation.
+     */
     private ComputedBindingApplier() {
     }
 
@@ -52,6 +55,16 @@ final class ComputedBindingApplier {
         }
     }
 
+    /**
+     * Returns a refresh that calls the Controller method and writes the result.
+     * <p>
+     * A refresh that is already running does not start again, so writing the target does not loop.
+     *
+     * @param controller  the Controller
+     * @param methodValue the method, written as {@code #method}
+     * @param target      the control property
+     * @return the refresh
+     */
     private static Runnable refresh(Object controller, String methodValue, Property<Object> target) {
         boolean[] running = {false};
         return () -> {
@@ -67,10 +80,24 @@ final class ComputedBindingApplier {
         };
     }
 
+    /**
+     * Watches JavaFX properties on controls under {@code root}, other than {@code target}.
+     *
+     * @param root    the scene-graph root
+     * @param target  the property the method writes, which is not watched
+     * @param refresh the refresh to run when a watched property changes
+     */
     private static void watchControls(Parent root, Property<?> target, Runnable refresh) {
         watchNode(root, target, refresh);
     }
 
+    /**
+     * Watches one control and walks its children.
+     *
+     * @param node    the node
+     * @param target  the property the method writes, which is not watched
+     * @param refresh the refresh to run when a watched property changes
+     */
     private static void watchNode(Node node, Property<?> target, Runnable refresh) {
         if (node instanceof Control control) {
             watchProperties(control, target, refresh);
@@ -82,6 +109,13 @@ final class ComputedBindingApplier {
         }
     }
 
+    /**
+     * Listens to every JavaFX property on {@code bean} except {@code target}.
+     *
+     * @param bean    the control
+     * @param target  the property the method writes
+     * @param refresh the refresh to run when a watched property changes
+     */
     @SuppressWarnings("unchecked")
     private static void watchProperties(Object bean, Property<?> target, Runnable refresh) {
         ChangeListener<Object> listener = (observable, oldValue, newValue) -> refresh.run();
@@ -99,6 +133,13 @@ final class ComputedBindingApplier {
         }
     }
 
+    /**
+     * Invokes a no-argument property method.
+     *
+     * @param bean   the object that declares the property
+     * @param method the property method
+     * @return the property
+     */
     private static Object readProperty(Object bean, Method method) {
         try {
             return method.invoke(bean);
@@ -107,6 +148,13 @@ final class ComputedBindingApplier {
         }
     }
 
+    /**
+     * Returns the writable JavaFX property named on the control.
+     *
+     * @param control      the control
+     * @param propertyName the property name, such as {@code text}
+     * @return the property
+     */
     @SuppressWarnings("unchecked")
     private static Property<Object> controlProperty(Object control, String propertyName) {
         String methodName = propertyName + "Property";
@@ -125,6 +173,13 @@ final class ComputedBindingApplier {
         }
     }
 
+    /**
+     * Calls the Controller method named by {@code methodValue}.
+     *
+     * @param controller  the Controller
+     * @param methodValue the method, written as {@code #method}
+     * @return the method result
+     */
     private static Object invoke(Object controller, String methodValue) {
         if (controller == null) {
             throw new IllegalArgumentException("No controller for " + methodValue);
@@ -140,6 +195,12 @@ final class ComputedBindingApplier {
         }
     }
 
+    /**
+     * Drops a leading {@code #} from an FXML method value.
+     *
+     * @param methodValue the method value
+     * @return the method name
+     */
     private static String methodName(String methodValue) {
         if (methodValue != null && methodValue.startsWith("#")) {
             return methodValue.substring(1);

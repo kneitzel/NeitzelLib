@@ -4,7 +4,7 @@ import de.neitzel.fx.view.ViewModelClass;
 import jakarta.inject.Singleton;
 
 /**
- * Controller that names {@link TitledViewModel} for its View.
+ * Controller that names {@link titledviewmodel} for its view.
  */
 @Singleton
 @ViewModelClass(TitledViewModel.class)

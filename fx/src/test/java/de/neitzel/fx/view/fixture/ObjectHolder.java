@@ -9,6 +9,9 @@ import javafx.scene.layout.Pane;
  */
 public class ObjectHolder extends Pane {
 
+    /**
+     * The value a direct binding writes.
+     */
     private final ObjectProperty<Object> value = new SimpleObjectProperty<>(this, "value");
 
     /**

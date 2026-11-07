@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.VBox?>
+<?import de.neitzel.fx.example.view.NoteForm?>
 <?import de.neitzel.fx.view.BindingList?>
 <?import de.neitzel.fx.view.DirectBinding?>
 
@@ -14,12 +15,17 @@
     </padding>
     <fx:define>
         <BindingList>
-            <DirectBinding control="streetField" property="text" path="street" direction="both"/>
+            <DirectBinding control="streetField" property="text" path="street" direction="both"
+                           converter="de.neitzel.fx.example.view.StreetConverter"/>
             <DirectBinding control="cityField" property="text" path="city" direction="both"/>
+            <DirectBinding control="noteForm" property="model" path="note" direction="both"/>
         </BindingList>
     </fx:define>
+    <Label fx:id="headingLabel" id="headingLabel"/>
+    <Label fx:id="openedAsLabel" id="openedAsLabel"/>
     <Label text="Street"/>
     <TextField fx:id="streetField" id="streetField"/>
     <Label text="City"/>
     <TextField fx:id="cityField" id="cityField"/>
+    <NoteForm fx:id="noteForm"/>
 </fx:root>

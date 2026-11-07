@@ -24,8 +24,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A child notice is carried onto its parent, with the attribute name prepended to the source.
+ */
 class CarryChildMessageTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -39,6 +45,9 @@ class CarryChildMessageTest {
         }
     }
 
+    /**
+     * A street notice on the address appears on the person as address street.
+     */
     @Test
     void aStreetNoticeOnTheAddressAppearsOnThePersonAsAddressStreet() throws Exception {
         onFx(() -> {
@@ -64,6 +73,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * A nested street notice reads as person address street.
+     */
     @Test
     void aNestedStreetNoticeReadsAsPersonAddressStreet() throws Exception {
         onFx(() -> {
@@ -90,6 +102,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * A bad street is owned by the address and carried as address street.
+     */
     @Test
     void aBadStreetIsOwnedByTheAddressAndCarriedAsAddressStreet() throws Exception {
         onFx(() -> {
@@ -120,6 +135,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * A fixed street drops the notice from the address and the person.
+     */
     @Test
     void aFixedStreetDropsTheNoticeFromTheAddressAndThePerson() throws Exception {
         onFx(() -> {
@@ -143,6 +161,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * Another bad street updates the carried notice in place.
+     */
     @Test
     void anotherBadStreetUpdatesTheCarriedNoticeInPlace() throws Exception {
         onFx(() -> {
@@ -186,6 +207,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * Clearing the address drops the carried notice and a new address brings its own.
+     */
     @Test
     void clearingTheAddressDropsTheCarriedNoticeAndANewAddressBringsItsOwn() throws Exception {
         onFx(() -> {
@@ -225,6 +249,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * Fixing the street leaves the persons own notice.
+     */
     @Test
     void fixingTheStreetLeavesThePersonsOwnNotice() throws Exception {
         onFx(() -> {
@@ -265,6 +292,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * A fixed nested street drops the notice up the path.
+     */
     @Test
     void aFixedNestedStreetDropsTheNoticeUpThePath() throws Exception {
         onFx(() -> {
@@ -293,6 +323,9 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * A shared address carries the street notice on home and on work.
+     */
     @Test
     void aSharedAddressCarriesTheStreetNoticeOnHomeAndOnWork() throws Exception {
         onFx(() -> {
@@ -318,6 +351,11 @@ class CarryChildMessageTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -349,8 +387,16 @@ class CarryChildMessageTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

@@ -21,8 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * The controller and the view-model class are chosen from the document and then reused.
+ */
 class ChooseControllerAndViewModelTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -36,6 +42,9 @@ class ChooseControllerAndViewModelTest {
         }
     }
 
+    /**
+     * Label shows the name recorded when the view model was handed over.
+     */
     @Test
     void labelShowsTheNameRecordedWhenTheViewModelWasHandedOver() throws Exception {
         onFx(() -> {
@@ -49,6 +58,9 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * Label shows the greeting injected into the controller.
+     */
     @Test
     void labelShowsTheGreetingInjectedIntoTheController() throws Exception {
         onFx(() -> {
@@ -62,6 +74,9 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * Label shows the title from the named view model.
+     */
     @Test
     void labelShowsTheTitleFromTheNamedViewModel() throws Exception {
         onFx(() -> {
@@ -81,6 +96,9 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * Label shows the badge from a replacement view model.
+     */
     @Test
     void labelShowsTheBadgeFromAReplacementViewModel() throws Exception {
         onFx(() -> {
@@ -100,6 +118,9 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * Component label shows the caption from the named view model.
+     */
     @Test
     void componentLabelShowsTheCaptionFromTheNamedViewModel() throws Exception {
         onFx(() -> {
@@ -114,6 +135,9 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * A later view that names a different class fails and leaves the first view.
+     */
     @Test
     void aLaterViewThatNamesADifferentClassFailsAndLeavesTheFirstView() throws Exception {
         onFx(() -> {
@@ -134,6 +158,9 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * A later view with no annotation reuses the view model.
+     */
     @Test
     void aLaterViewWithNoAnnotationReusesTheViewModel() throws Exception {
         onFx(() -> {
@@ -155,6 +182,11 @@ class ChooseControllerAndViewModelTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -186,8 +218,16 @@ class ChooseControllerAndViewModelTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

@@ -18,8 +18,14 @@ import java.net.URL;
  */
 final class FxmlControllers {
 
+    /**
+     * The FXML namespace used by {@code fx:controller}.
+     */
     private static final String FXML_NAMESPACE = "http://javafx.com/fxml";
 
+    /**
+     * Prevents instantiation.
+     */
     private FxmlControllers() {
     }
 
@@ -42,6 +48,12 @@ final class FxmlControllers {
         }
     }
 
+    /**
+     * Returns the {@code fx:controller} value on the document root.
+     *
+     * @param fxml the FXML document
+     * @return the class name, or {@code null} when the document names none
+     */
     private static String controllerName(URL fxml) {
         try (InputStream input = fxml.openStream()) {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();

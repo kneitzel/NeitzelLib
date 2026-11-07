@@ -18,8 +18,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A computed binding writes a controller method result and refreshes it when another property changes.
+ */
 class ComputeAValueTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -33,6 +39,9 @@ class ComputeAValueTest {
         }
     }
 
+    /**
+     * Computed binding shows the method result and leaves the model unchanged.
+     */
     @Test
     void computedBindingShowsTheMethodResultAndLeavesTheModelUnchanged() throws Exception {
         onFx(() -> {
@@ -49,6 +58,9 @@ class ComputeAValueTest {
         });
     }
 
+    /**
+     * Typing in another text field updates the computed label.
+     */
     @Test
     void typingInAnotherTextFieldUpdatesTheComputedLabel() throws Exception {
         onFx(() -> {
@@ -65,6 +77,9 @@ class ComputeAValueTest {
         });
     }
 
+    /**
+     * Setting a view model property updates the computed label.
+     */
     @Test
     void settingAViewModelPropertyUpdatesTheComputedLabel() throws Exception {
         onFx(() -> {
@@ -82,6 +97,9 @@ class ComputeAValueTest {
         });
     }
 
+    /**
+     * Changing the computed label does not run the method again.
+     */
     @Test
     void changingTheComputedLabelDoesNotRunTheMethodAgain() throws Exception {
         onFx(() -> {
@@ -97,6 +115,11 @@ class ComputeAValueTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -128,8 +151,16 @@ class ComputeAValueTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

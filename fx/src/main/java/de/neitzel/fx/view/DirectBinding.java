@@ -12,10 +12,29 @@ package de.neitzel.fx.view;
  */
 public class DirectBinding {
 
+    /**
+     * The {@code fx:id} of the control.
+     */
     private String control;
+
+    /**
+     * The control property, such as {@code text}.
+     */
     private String property;
+
+    /**
+     * The Path. One name is an Attribute of this View's ViewModel.
+     */
     private String path;
+
+    /**
+     * The direction: {@code view}, {@code model}, or {@code both}.
+     */
     private String direction;
+
+    /**
+     * The Converter class name, or {@code null} when values pass through.
+     */
     private String converter;
 
     /**

@@ -10,6 +10,9 @@ import java.util.Objects;
  */
 public class Address {
 
+    /**
+     * The street.
+     */
     private String street;
 
     /**
@@ -39,6 +42,12 @@ public class Address {
         this.street = street;
     }
 
+    /**
+     * Compares addresses by street.
+     *
+     * @param other the other address
+     * @return {@code true} when the streets are equal
+     */
     @Override
     public boolean equals(Object other) {
         if (other instanceof Address address) {
@@ -47,6 +56,11 @@ public class Address {
         return false;
     }
 
+    /**
+     * Returns a hash code for the street.
+     *
+     * @return the hash code
+     */
     @Override
     public int hashCode() {
         return Objects.hashCode(street);

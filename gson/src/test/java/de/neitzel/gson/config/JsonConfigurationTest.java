@@ -8,6 +8,9 @@ import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+/**
+ * Checks that {@link JsonConfiguration#get} reads stored JSON, missing keys, defaults, and objects.
+ */
 class JsonConfigurationTest {
 
     /**
@@ -16,6 +19,9 @@ class JsonConfigurationTest {
      * it from JSON representation to the specified class type.
      */
 
+    /**
+     * Returns the integer stored for an existing key.
+     */
     @Test
     void testGetExistingKeyWithValidValue() {
         // Arrange
@@ -34,6 +40,9 @@ class JsonConfigurationTest {
         assertEquals(42, value);
     }
 
+    /**
+     * Returns null when the requested key is absent.
+     */
     @Test
     void testGetNonExistingKey() {
         // Arrange
@@ -51,6 +60,9 @@ class JsonConfigurationTest {
         assertNull(value);
     }
 
+    /**
+     * Returns the stored value when the key exists, even if a default was supplied.
+     */
     @Test
     void testGetWithDefaultValueWhenKeyExists() {
         // Arrange
@@ -69,6 +81,9 @@ class JsonConfigurationTest {
         assertEquals("Hello World", value);
     }
 
+    /**
+     * Returns the supplied default when the key is absent.
+     */
     @Test
     void testGetWithDefaultValueWhenKeyDoesNotExist() {
         // Arrange
@@ -86,6 +101,9 @@ class JsonConfigurationTest {
         assertEquals("Default Value", value);
     }
 
+    /**
+     * Reads a JSON object into {@link TestObject}.
+     */
     @Test
     void testGetWithComplexObject() {
         // Arrange
@@ -107,20 +125,45 @@ class JsonConfigurationTest {
     }
 
     // Helper class for complex object tests
+    /**
+     * Value deserialized in the complex-object test.
+     */
     static class TestObject {
+        /**
+         * The sample name.
+         */
         private final String name;
 
+        /**
+         * The sample age.
+         */
         private final int age;
 
+        /**
+         * Creates a sample with the given name and age.
+         *
+         * @param name the sample name
+         * @param age the sample age
+         */
         TestObject(String name, int age) {
             this.name = name;
             this.age = age;
         }
 
+        /**
+         * Returns the sample name.
+         *
+         * @return the name
+         */
         public String name() {
             return name;
         }
 
+        /**
+         * Returns the sample age.
+         *
+         * @return the age
+         */
         public int age() {
             return age;
         }

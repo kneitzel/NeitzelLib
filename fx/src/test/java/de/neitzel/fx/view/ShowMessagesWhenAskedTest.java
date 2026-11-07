@@ -29,8 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A message stays on the view model until the developer asks for a dialog.
+ */
 class ShowMessagesWhenAskedTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         Platform.setImplicitExit(false);
@@ -45,6 +51,9 @@ class ShowMessagesWhenAskedTest {
         }
     }
 
+    /**
+     * Adding a message does not open a popup or fill a status bar.
+     */
     @Test
     void addingAMessageDoesNotOpenAPopupOrFillAStatusBar() throws Exception {
         onFx(() -> {
@@ -64,6 +73,9 @@ class ShowMessagesWhenAskedTest {
         });
     }
 
+    /**
+     * Direct binding shows the latest message text.
+     */
     @Test
     void directBindingShowsTheLatestMessageText() throws Exception {
         onFx(() -> {
@@ -82,6 +94,9 @@ class ShowMessagesWhenAskedTest {
         });
     }
 
+    /**
+     * Opted in helper shows a new message in a popup.
+     */
     @Test
     void optedInHelperShowsANewMessageInAPopup() throws Exception {
         onFx(() -> {
@@ -104,6 +119,9 @@ class ShowMessagesWhenAskedTest {
         });
     }
 
+    /**
+     * Updating a binding failure does not open another popup.
+     */
     @Test
     void updatingABindingFailureDoesNotOpenAnotherPopup() throws Exception {
         onFx(() -> {
@@ -140,10 +158,22 @@ class ShowMessagesWhenAskedTest {
         });
     }
 
+    /**
+     * Returns the windows open before a check.
+     *
+     * @return the windows that are open
+     */
     private static Set<Window> snapshotWindows() {
         return new HashSet<>(Window.getWindows());
     }
 
+    /**
+     * Returns the window opened during a check whose content is the given text.
+     *
+     * @param text the text
+     * @param alreadyOpen the windows open before the check
+     * @return the window, or {@code null} when none shows the text
+     */
     private static Window windowShowing(String text, Set<Window> alreadyOpen) {
         for (Window window : Window.getWindows()) {
             if (!alreadyOpen.contains(window) && windowShows(window, text)) {
@@ -153,6 +183,13 @@ class ShowMessagesWhenAskedTest {
         return null;
     }
 
+    /**
+     * Returns whether a window's scene shows the given text.
+     *
+     * @param window the window
+     * @param text the text
+     * @return {@code true} when the window shows the text
+     */
     private static boolean windowShows(Window window, String text) {
         if (window.getScene() == null || !(window.getScene().getRoot() instanceof Parent root)) {
             return false;
@@ -168,10 +205,23 @@ class ShowMessagesWhenAskedTest {
         return false;
     }
 
+    /**
+     * Returns whether a labeled node shows the given text.
+     *
+     * @param node the node
+     * @param text the text
+     * @return {@code true} when the node shows the text
+     */
     private static boolean nodeShows(Node node, String text) {
         return node instanceof Labeled labeled && text.equals(labeled.getText());
     }
 
+    /**
+     * Returns the windows that were not open in the earlier snapshot.
+     *
+     * @param alreadyOpen the windows open before the check
+     * @return the windows opened since the snapshot
+     */
     private static List<Window> windowsOpenedSince(Set<Window> alreadyOpen) {
         List<Window> opened = new ArrayList<>();
         for (Window window : Window.getWindows()) {
@@ -182,6 +232,11 @@ class ShowMessagesWhenAskedTest {
         return opened;
     }
 
+    /**
+     * Closes the windows opened during a check.
+     *
+     * @param alreadyOpen the windows open before the check
+     */
     private static void closeWindowsOpenedSince(Set<Window> alreadyOpen) {
         List<Window> open = new ArrayList<>(Window.getWindows());
         for (Window window : open) {
@@ -191,6 +246,12 @@ class ShowMessagesWhenAskedTest {
         }
     }
 
+    /**
+     * Fails when the given text is visible in the scene or in a dialog.
+     *
+     * @param root the loaded scene
+     * @param text the text
+     */
     private static void assertMessageIsNotShown(Parent root, String text) {
         for (Node node : root.lookupAll("*")) {
             if (node instanceof Labeled labeled) {
@@ -202,6 +263,11 @@ class ShowMessagesWhenAskedTest {
         }
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -233,8 +299,16 @@ class ShowMessagesWhenAskedTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

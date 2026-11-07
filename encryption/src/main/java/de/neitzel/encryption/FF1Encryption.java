@@ -15,6 +15,10 @@ import java.security.SecureRandom;
 @SuppressWarnings("unused")
 public class FF1Encryption {
 
+    /**
+     * Random source used when creating a new tweak.
+     * {@link #createNewTweak(int)} fills the tweak from this generator.
+     */
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /**

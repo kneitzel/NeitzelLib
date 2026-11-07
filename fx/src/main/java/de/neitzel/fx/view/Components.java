@@ -24,6 +24,9 @@ import java.util.Map;
  */
 final class Components {
 
+    /**
+     * Prevents instantiation.
+     */
     private Components() {
     }
 
@@ -86,6 +89,13 @@ final class Components {
         modelProperty(component).setValue(model);
     }
 
+    /**
+     * Loads {@code ClassName.fxml} with the Component as root and Controller.
+     *
+     * @param component the Component
+     * @param context   the container that creates nested Components
+     * @return the loaded Component
+     */
     private static Object load(Object component, ApplicationContext context) {
         Class<?> type = component.getClass();
         String document = type.getSimpleName() + ".fxml";
@@ -109,6 +119,14 @@ final class Components {
         }
     }
 
+    /**
+     * Runs the Component's bindings once, when {@code model} first becomes non-null.
+     *
+     * @param component the Component
+     * @param lists     the binding lists captured from its document
+     * @param namespace objects addressed by {@code fx:id}
+     * @param context   the container that creates a named Converter
+     */
     private static void watchModel(Object component, List<BindingList> lists, Map<String, Object> namespace,
                                    ApplicationContext context) {
         Property<Object> model = modelProperty(component);
@@ -129,6 +147,12 @@ final class Components {
         });
     }
 
+    /**
+     * Returns the Component's {@code model} property.
+     *
+     * @param component the Component
+     * @return the property
+     */
     @SuppressWarnings("unchecked")
     private static Property<Object> modelProperty(Object component) {
         try {

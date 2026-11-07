@@ -19,6 +19,10 @@ import java.util.Objects;
  * for resolving and creating components.
  */
 public class ApplicationContext {
+    /**
+     * Components this context can create, keyed by the registered type.
+     * The component scan fills the map, and manual singleton registration updates it.
+     */
     private final Map<Class<?>, ComponentData> components;
 
     /**

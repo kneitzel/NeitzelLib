@@ -21,8 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A direct binding shows one attribute and writes it when the direction says so.
+ */
 class ShowAndEditOneAttributeTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -36,6 +42,9 @@ class ShowAndEditOneAttributeTest {
         }
     }
 
+    /**
+     * Both ways text field shows the name and typing updates the model.
+     */
     @Test
     void bothWaysTextFieldShowsTheNameAndTypingUpdatesTheModel() throws Exception {
         onFx(() -> {
@@ -51,6 +60,9 @@ class ShowAndEditOneAttributeTest {
         });
     }
 
+    /**
+     * Toward view label shows the name follows the field and does not write the model.
+     */
     @Test
     void towardViewLabelShowsTheNameFollowsTheFieldAndDoesNotWriteTheModel() throws Exception {
         onFx(() -> {
@@ -70,6 +82,9 @@ class ShowAndEditOneAttributeTest {
         });
     }
 
+    /**
+     * Entity setter after load leaves the text control unchanged.
+     */
     @Test
     void entitySetterAfterLoadLeavesTheTextControlUnchanged() throws Exception {
         onFx(() -> {
@@ -84,6 +99,9 @@ class ShowAndEditOneAttributeTest {
         });
     }
 
+    /**
+     * Binding a read only getter fails the load.
+     */
     @Test
     void bindingAReadOnlyGetterFailsTheLoad() throws Exception {
         onFx(() -> {
@@ -97,6 +115,9 @@ class ShowAndEditOneAttributeTest {
         });
     }
 
+    /**
+     * Binding a method declared on object fails the load.
+     */
     @Test
     void bindingAMethodDeclaredOnObjectFailsTheLoad() throws Exception {
         onFx(() -> {
@@ -110,6 +131,9 @@ class ShowAndEditOneAttributeTest {
         });
     }
 
+    /**
+     * Null integer attribute uses an integer property.
+     */
     @Test
     void nullIntegerAttributeUsesAnIntegerProperty() throws Exception {
         onFx(() -> {
@@ -122,6 +146,11 @@ class ShowAndEditOneAttributeTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -153,8 +182,16 @@ class ShowAndEditOneAttributeTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

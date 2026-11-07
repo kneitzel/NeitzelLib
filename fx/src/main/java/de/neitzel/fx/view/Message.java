@@ -19,9 +19,24 @@ public final class Message {
         FATAL
     }
 
+    /**
+     * How serious the notice is.
+     */
     private final Severity severity;
+
+    /**
+     * The notice text. A binding failure updates this in place.
+     */
     private String text;
+
+    /**
+     * Where the notice came from, such as a binding Path.
+     */
     private final String source;
+
+    /**
+     * The child notice this one copies, or {@code null} when this notice was added directly.
+     */
     private Message origin;
 
     /**

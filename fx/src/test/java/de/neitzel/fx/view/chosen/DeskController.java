@@ -9,6 +9,9 @@ import jakarta.inject.Singleton;
 @Singleton
 public class DeskController {
 
+    /**
+     * The service the greeting method reads.
+     */
     private final DeskGreeting greeting;
 
     /**

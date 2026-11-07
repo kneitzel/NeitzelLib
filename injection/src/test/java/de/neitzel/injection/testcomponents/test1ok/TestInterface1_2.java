@@ -1,4 +1,7 @@
 package de.neitzel.injection.testcomponents.test1ok;
 
+/**
+ * Interface implemented by more than one scanned component.
+ */
 public interface TestInterface1_2 {
 }

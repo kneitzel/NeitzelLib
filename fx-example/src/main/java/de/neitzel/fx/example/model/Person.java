@@ -10,12 +10,45 @@ import java.util.List;
  */
 public class Person {
 
+    /**
+     * The person's name.
+     */
     private String name = "";
+
+    /**
+     * The person's age in years, or {@code null} when it has not been set.
+     */
     private Integer age;
+
+    /**
+     * The home address.
+     */
     private Address home;
+
+    /**
+     * The visit addresses. After the View loads, this is the list the visit table and Repeat watch.
+     */
     private List<Address> visits = new ArrayList<>();
+
+    /**
+     * The visit selected in the table and the combo box, or {@code null} when none is selected.
+     */
     private Address selectedVisit;
+
+    /**
+     * The tags. After the View loads, this is the list the list view watches.
+     */
     private List<String> tags = new ArrayList<>();
+
+    /**
+     * Whether the person is active. A primitive boolean cannot be null.
+     */
+    private boolean active;
+
+    /**
+     * The person's role, or {@code null} when none is set.
+     */
+    private Role role;
 
     /**
      * Creates an empty person.
@@ -98,7 +131,7 @@ public class Person {
     }
 
     /**
-     * Returns the visit chosen in the combo box.
+     * Returns the visit chosen in the table and the combo box.
      *
      * @return the selected visit, or {@code null} when none is selected
      */
@@ -107,7 +140,7 @@ public class Person {
     }
 
     /**
-     * Sets the visit chosen in the combo box.
+     * Sets the visit chosen in the table and the combo box.
      *
      * @param selectedVisit the selected visit
      */
@@ -133,5 +166,41 @@ public class Person {
      */
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    /**
+     * Returns whether the person is active.
+     *
+     * @return {@code true} when the person is active
+     */
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+     * Sets whether the person is active.
+     *
+     * @param active {@code true} when the person is active
+     */
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    /**
+     * Returns the role.
+     *
+     * @return the role, or {@code null} when none is set
+     */
+    public Role getRole() {
+        return role;
+    }
+
+    /**
+     * Sets the role.
+     *
+     * @param role the role
+     */
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

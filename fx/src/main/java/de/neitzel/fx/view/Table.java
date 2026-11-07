@@ -47,8 +47,10 @@ import java.util.Set;
  * A collection shown with one Component for each element.
  * <p>
  * The developer places the Table in the View and names the collection Attribute, the Row
- * class, and each Column. Filter and Sort change which Rows are showing and in what order.
+ * class, and each Column. A Column may name a starting width; otherwise the Columns open at
+ * equal widths. Filter and Sort change which Rows are showing and in what order.
  * The collection keeps its own order. The body scrolls vertically and the header stays put.
+ * Controls after the Column fields stay at their own width.
  */
 @DefaultProperty("columns")
 public class Table extends VBox {
@@ -202,6 +204,9 @@ public class Table extends VBox {
      * One Filter per Column. A null entry means that Column has no Filter yet.
      */
     private final List<ValueFilter> valueFilters = new ArrayList<>();
+    /**
+     * Index of the Column whose popup is open, or {@code -1} when no popup is open.
+     */
     private int popupIndex = -1;
 
     /**
@@ -409,6 +414,9 @@ public class Table extends VBox {
             }
             if (!seen.add(column.getAttribute())) {
                 throw new IllegalArgumentException("Attribute \"" + column.getAttribute() + "\" is used twice");
+            }
+            if (column.hasWidth() && !(column.getWidth() > 0 && column.getWidth() < Double.POSITIVE_INFINITY)) {
+                throw new IllegalArgumentException("Column \"" + column.getHeader() + "\" needs a positive width");
             }
         }
     }
@@ -1344,40 +1352,98 @@ public class Table extends VBox {
     }
 
     /**
-     * Gives each Column its width, and the same width to each field in that order.
+     * Gives each Column its width.
+     * <p>
+     * Columns with no starting width share the Table width equally. A starting width is kept, and
+     * a later change of the Table's width does not redistribute the Columns. A starting width
+     * narrower than the header text opens at the header text.
      */
     private void ensureWidths() {
         if (columnWidths != null && columnWidths.length == columns.size()) {
             return;
         }
+        columnWidths = new double[columns.size()];
+        if (!anyStartingWidth()) {
+            java.util.Arrays.fill(columnWidths, tableWidth() / columns.size());
+            return;
+        }
+        double specified = 0;
+        int open = 0;
+        for (int index = 0; index < columns.size(); index++) {
+            Column column = columns.get(index);
+            if (column.hasWidth()) {
+                double chosen = Math.max(column.getWidth(), minimumWidth(index));
+                columnWidths[index] = chosen;
+                specified += chosen;
+            } else {
+                open++;
+            }
+        }
+        if (open == 0) {
+            return;
+        }
+        double share = (tableWidth() - specified) / open;
+        for (int index = 0; index < columns.size(); index++) {
+            if (!columns.get(index).hasWidth()) {
+                columnWidths[index] = Math.max(share, minimumWidth(index));
+            }
+        }
+    }
+
+    /**
+     * Returns whether any Column names a starting width.
+     *
+     * @return {@code true} when at least one Column has a starting width
+     */
+    private boolean anyStartingWidth() {
+        for (Column column : columns) {
+            if (column.hasWidth()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the width the equal shares are taken from.
+     *
+     * @return the Table width, or a fallback when the Table has not been laid out
+     */
+    private double tableWidth() {
         double width = getWidth() > 0 ? getWidth() : getPrefWidth();
         if (width <= 0) {
-            width = columns.size() * 80.0;
+            return columns.size() * 80.0;
         }
-        columnWidths = new double[columns.size()];
-        java.util.Arrays.fill(columnWidths, width / columns.size());
+        return width;
     }
 
     /**
      * Applies the stored Column widths to the header and the fields.
+     * <p>
+     * The first fields, one per Column, take those widths. Controls after them keep their own
+     * size. Spacing on an {@link HBox} row is repeated between the header cells.
      */
     private void applyWidths() {
         if (columns.isEmpty() || columnWidths == null) {
             return;
         }
-        double sum = 0;
+        double columnSum = 0;
         for (double width : columnWidths) {
-            sum += width;
+            columnSum += width;
         }
-        header.setPrefWidth(sum);
-        header.setMinWidth(sum);
+        double spacing = rowSpacing();
+        header.setSpacing(spacing);
+        double headerWidth = columnSum + spacing * Math.max(0, columns.size() - 1);
+        header.setPrefWidth(headerWidth);
+        header.setMinWidth(headerWidth);
         for (int index = 0; index < header.getChildren().size(); index++) {
             fixWidth((Region) header.getChildren().get(index), columnWidths[index]);
         }
         for (Node rowNode : body.getChildren()) {
+            double rowWidth = rowNode instanceof HBox box ? widthOf(box, columnSum) : headerWidth;
             if (rowNode instanceof Region region) {
-                region.setPrefWidth(sum);
-                region.setMinWidth(sum);
+                region.setPrefWidth(rowWidth);
+                region.setMinWidth(rowWidth);
             }
             if (rowNode instanceof Parent parent) {
                 int index = 0;
@@ -1392,6 +1458,46 @@ public class Table extends VBox {
                 }
             }
         }
+    }
+
+    /**
+     * Returns the spacing of a Row, so the header can use the same gaps.
+     *
+     * @return the spacing, or {@code 0} when no Row is an {@link HBox}
+     */
+    private double rowSpacing() {
+        for (Node row : body.getChildren()) {
+            if (row instanceof HBox box) {
+                return box.getSpacing();
+            }
+        }
+        for (Node row : rows.values()) {
+            if (row instanceof HBox box) {
+                return box.getSpacing();
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Returns the width that fits the Columns and any controls after them.
+     *
+     * @param box       the Row
+     * @param columnSum the sum of the Column widths
+     * @return the Row width
+     */
+    private double widthOf(HBox box, double columnSum) {
+        double width = columnSum + box.getInsets().getLeft() + box.getInsets().getRight();
+        if (box.getChildren().size() > 1) {
+            width += box.getSpacing() * (box.getChildren().size() - 1);
+        }
+        for (int index = columnWidths.length; index < box.getChildren().size(); index++) {
+            Node child = box.getChildren().get(index);
+            if (child.isManaged() && child instanceof Region region) {
+                width += region.prefWidth(-1);
+            }
+        }
+        return width;
     }
 
     /**

@@ -10,19 +10,61 @@ import java.util.List;
  */
 public class Person {
 
+    /**
+     * The name.
+     */
     private String name;
+    /**
+     * The age in years, or {@code null} when it has not been set.
+     */
     private Integer age;
+    /**
+     * Whether the person is active.
+     */
     private boolean active;
+    /**
+     * The address this model holds.
+     */
     private Address address;
+    /**
+     * The home address.
+     */
     private Address home;
+    /**
+     * The work address.
+     */
     private Address work;
+    /**
+     * Another person, used to follow a cycle.
+     */
     private Person friend;
+    /**
+     * The person's role.
+     */
     private Role role;
+    /**
+     * The birth date.
+     */
     private LocalDate born;
+    /**
+     * The last update.
+     */
     private Date updated;
+    /**
+     * The hire date.
+     */
     private Calendar hired;
+    /**
+     * The tags. after a view loads, this is the list the control watches.
+     */
     private List<String> tags;
+    /**
+     * The addresses. after a view loads, this is the list a repeat watches.
+     */
     private List<Address> addresses;
+    /**
+     * The selected address, or {@code null} when none is selected.
+     */
     private Address selectedAddress;
 
     /**
@@ -62,7 +104,7 @@ public class Person {
     }
 
     /**
-     * Returns the age. The value may be null.
+     * Returns the age. the value may be null.
      *
      * @return the age
      */
@@ -242,7 +284,7 @@ public class Person {
     }
 
     /**
-     * Returns the tags. The value may be null.
+     * Returns the tags. the value may be null.
      *
      * @return the tags
      */
@@ -260,7 +302,7 @@ public class Person {
     }
 
     /**
-     * Returns the addresses. The value may be null.
+     * Returns the addresses. the value may be null.
      *
      * @return the addresses
      */
@@ -278,7 +320,7 @@ public class Person {
     }
 
     /**
-     * Returns the selected address. Null means nothing is selected.
+     * Returns the selected address. null means nothing is selected.
      *
      * @return the selected address, or {@code null}
      */

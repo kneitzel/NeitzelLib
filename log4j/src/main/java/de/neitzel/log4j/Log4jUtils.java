@@ -26,6 +26,10 @@ public class Log4jUtils {
      */
     public static final String DEFAULT_LOG4J_RESOURCE = "/log4j.default.properties";
 
+    /**
+     * Logger used by this utility.
+     * Reports which configuration file is loaded when the file beside the JAR is selected.
+     */
     private static final Logger LOGGER = Logger.getLogger(Log4jUtils.class);
 
     /**

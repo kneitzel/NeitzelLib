@@ -25,8 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A converter failure keeps the previous value and records one error message.
+ */
 class ConvertAndRecordFailureTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -40,6 +46,9 @@ class ConvertAndRecordFailureTest {
         }
     }
 
+    /**
+     * Injected converter prefixes the age text.
+     */
     @Test
     void injectedConverterPrefixesTheAgeText() throws Exception {
         onFx(() -> {
@@ -54,6 +63,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Typing a prefixed age updates the model.
+     */
     @Test
     void typingAPrefixedAgeUpdatesTheModel() throws Exception {
         onFx(() -> {
@@ -69,6 +81,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Toward view loads when the reverse method is absent.
+     */
     @Test
     void towardViewLoadsWhenTheReverseMethodIsAbsent() throws Exception {
         onFx(() -> {
@@ -85,6 +100,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Toward view converter follows a later age.
+     */
     @Test
     void towardViewConverterFollowsALaterAge() throws Exception {
         onFx(() -> {
@@ -103,6 +121,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Toward model converts typed text without following the attribute.
+     */
     @Test
     void towardModelConvertsTypedTextWithoutFollowingTheAttribute() throws Exception {
         onFx(() -> {
@@ -123,6 +144,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Bad age text keeps the previous int and one error message.
+     */
     @Test
     void badAgeTextKeepsThePreviousIntAndOneErrorMessage() throws Exception {
         onFx(() -> {
@@ -146,6 +170,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Another bad age updates the same message.
+     */
     @Test
     void anotherBadAgeUpdatesTheSameMessage() throws Exception {
         onFx(() -> {
@@ -168,6 +195,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * A valid age removes the failure message.
+     */
     @Test
     void aValidAgeRemovesTheFailureMessage() throws Exception {
         onFx(() -> {
@@ -187,6 +217,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Developer info stays latest and is not logged.
+     */
     @Test
     void developerInfoStaysLatestAndIsNotLogged() throws Exception {
         onFx(() -> {
@@ -212,6 +245,9 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Error and fatal messages are written to the log.
+     */
     @Test
     void errorAndFatalMessagesAreWrittenToTheLog() throws Exception {
         onFx(() -> {
@@ -240,6 +276,11 @@ class ConvertAndRecordFailureTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -271,6 +312,12 @@ class ConvertAndRecordFailureTest {
         }
     }
 
+    /**
+     * Runs one check and returns what it wrote to standard error.
+     *
+     * @param action the check
+     * @return the text written to standard error
+     */
     private static String captureErr(FxAction action) throws Exception {
         PrintStream previous = System.err;
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -285,8 +332,16 @@ class ConvertAndRecordFailureTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

@@ -10,6 +10,9 @@ import jakarta.inject.Singleton;
 @Singleton
 public class AgeConverter implements Converter {
 
+    /**
+     * The text written in front of the age.
+     */
     private final AgeSuffix suffix;
 
     /**

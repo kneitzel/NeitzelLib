@@ -17,11 +17,24 @@ import java.util.Set;
  */
 final class LoadSession {
 
+    /**
+     * The sessions open on this thread. The last one is the outermost load.
+     */
     private static final ThreadLocal<Deque<LoadSession>> STACK = new ThreadLocal<>();
 
+    /**
+     * Binding lists created while this session is the current one, in document order.
+     */
     private final List<BindingList> bindingLists = new ArrayList<>();
+
+    /**
+     * Component classes already built during the outermost load.
+     */
     private final Set<Class<?>> built = new HashSet<>();
 
+    /**
+     * Prevents instantiation from outside this class.
+     */
     private LoadSession() {
     }
 

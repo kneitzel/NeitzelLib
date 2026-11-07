@@ -7,6 +7,9 @@ import de.neitzel.fx.view.fixture.Address;
  */
 public class Envelope {
 
+    /**
+     * The address this model holds.
+     */
     private Address address;
 
     /**

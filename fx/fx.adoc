@@ -1,3 +1,6 @@
+// This file is a design sketch. The user guide is link:README.md[Using fx].
+// The container guide is link:../injection/README.md[Injection].
+
 == Komponenten
 
 === injectfx

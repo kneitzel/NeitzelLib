@@ -17,6 +17,9 @@ import java.util.Map;
 @DefaultProperty("elements")
 public class BindingList {
 
+    /**
+     * The binding elements, in document order.
+     */
     private final List<Object> elements = new ArrayList<>();
 
     /**

@@ -5,11 +5,14 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 /**
- * Replacement for the library ViewModel. It exposes a badge property by name and does not
+ * Replacement for the library viewmodel. it exposes a badge property by name and does not
  * extend {@link de.neitzel.fx.view.ViewModel}.
  */
 public class BadgeViewModel {
 
+    /**
+     * The badge text this view model adds beside the model attributes.
+     */
     private final StringProperty badge = new SimpleStringProperty();
 
     /**
@@ -23,7 +26,7 @@ public class BadgeViewModel {
     }
 
     /**
-     * Returns the badge property a Binding element addresses by name.
+     * Returns the badge property a binding element addresses by name.
      *
      * @return the badge property
      */

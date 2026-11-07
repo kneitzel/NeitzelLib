@@ -3,7 +3,7 @@ package de.neitzel.fx.view.chosen;
 import jakarta.inject.Singleton;
 
 /**
- * Service whose text a Controller must show, so a test can see that injection ran.
+ * Service whose text a controller must show, so a test can see that injection ran.
  */
 @Singleton
 public class DeskGreeting {

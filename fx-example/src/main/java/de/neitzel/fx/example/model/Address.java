@@ -1,12 +1,31 @@
 package de.neitzel.fx.example.model;
 
+import java.time.LocalDate;
+
 /**
  * An ordinary address the desk edits.
  */
 public class Address {
 
+    /**
+     * The street.
+     */
     private String street = "";
+
+    /**
+     * The city.
+     */
     private String city = "";
+
+    /**
+     * The day of the visit, or {@code null} when the address is not a dated visit.
+     */
+    private LocalDate visitedOn;
+
+    /**
+     * The note attached to this address, or {@code null} when there is none.
+     */
+    private Note note;
 
     /**
      * Creates an empty address.
@@ -59,6 +78,42 @@ public class Address {
      */
     public void setCity(String city) {
         this.city = city;
+    }
+
+    /**
+     * Returns the day of the visit.
+     *
+     * @return the date, or {@code null} when none is set
+     */
+    public LocalDate getVisitedOn() {
+        return visitedOn;
+    }
+
+    /**
+     * Sets the day of the visit.
+     *
+     * @param visitedOn the date, or {@code null} to clear it
+     */
+    public void setVisitedOn(LocalDate visitedOn) {
+        this.visitedOn = visitedOn;
+    }
+
+    /**
+     * Returns the note attached to this address.
+     *
+     * @return the note, or {@code null} when none is set
+     */
+    public Note getNote() {
+        return note;
+    }
+
+    /**
+     * Sets the note attached to this address.
+     *
+     * @param note the note, or {@code null} when there is none
+     */
+    public void setNote(Note note) {
+        this.note = note;
     }
 
     /**

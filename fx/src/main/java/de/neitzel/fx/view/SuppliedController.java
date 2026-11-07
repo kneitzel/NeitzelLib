@@ -8,6 +8,9 @@ package de.neitzel.fx.view;
  */
 final class SuppliedController implements HasViewModel {
 
+    /**
+     * The ViewModel handed over before the bindings run.
+     */
     private ViewModel viewModel;
 
     /**

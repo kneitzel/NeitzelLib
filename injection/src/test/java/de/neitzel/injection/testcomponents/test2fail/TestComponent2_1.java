@@ -7,6 +7,11 @@ import jakarta.inject.Singleton;
  */
 @Singleton
 public class TestComponent2_1 {
+    /**
+     * Requires a string the scanner cannot resolve.
+     *
+     * @param test unresolved constructor dependency
+     */
     public TestComponent2_1(String test) {
     }
 }

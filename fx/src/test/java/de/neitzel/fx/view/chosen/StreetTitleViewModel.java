@@ -10,6 +10,9 @@ import javafx.beans.property.StringProperty;
  */
 public class StreetTitleViewModel extends ViewModel {
 
+    /**
+     * The caption this view model adds for the street.
+     */
     private final StringProperty caption = new SimpleStringProperty();
 
     /**
@@ -24,7 +27,7 @@ public class StreetTitleViewModel extends ViewModel {
     }
 
     /**
-     * Returns the caption property a Binding element addresses by name.
+     * Returns the caption property a binding element addresses by name.
      *
      * @return the caption property
      */

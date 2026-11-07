@@ -23,8 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A component edits one model instance, and a nested component edits the next.
+ */
 class EditAddressInAComponentTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -38,6 +44,9 @@ class EditAddressInAComponentTest {
         }
     }
 
+    /**
+     * Editing the street updates that address.
+     */
     @Test
     void editingTheStreetUpdatesThatAddress() throws Exception {
         onFx(() -> {
@@ -58,6 +67,9 @@ class EditAddressInAComponentTest {
         });
     }
 
+    /**
+     * Null address leaves the model unset and keeps the street text.
+     */
     @Test
     void nullAddressLeavesTheModelUnsetAndKeepsTheStreetText() throws Exception {
         onFx(() -> {
@@ -75,6 +87,9 @@ class EditAddressInAComponentTest {
         });
     }
 
+    /**
+     * Street label shows the injected prefix.
+     */
     @Test
     void streetLabelShowsTheInjectedPrefix() throws Exception {
         onFx(() -> {
@@ -90,6 +105,9 @@ class EditAddressInAComponentTest {
         });
     }
 
+    /**
+     * Component receives the address view model before its bindings run.
+     */
     @Test
     void componentReceivesTheAddressViewModelBeforeItsBindingsRun() throws Exception {
         onFx(() -> {
@@ -108,6 +126,9 @@ class EditAddressInAComponentTest {
         });
     }
 
+    /**
+     * Nested component shows the inner street.
+     */
     @Test
     void nestedComponentShowsTheInnerStreet() throws Exception {
         onFx(() -> {
@@ -124,6 +145,11 @@ class EditAddressInAComponentTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -155,8 +181,16 @@ class EditAddressInAComponentTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

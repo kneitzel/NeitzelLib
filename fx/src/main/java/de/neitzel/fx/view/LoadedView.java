@@ -8,7 +8,14 @@ import javafx.scene.Parent;
  */
 public final class LoadedView {
 
+    /**
+     * The scene-graph root of the loaded View.
+     */
     private final Parent root;
+
+    /**
+     * The ViewModel the View is bound to, or a replacement that exposes JavaFX properties by name.
+     */
     private final Object viewModel;
 
     /**

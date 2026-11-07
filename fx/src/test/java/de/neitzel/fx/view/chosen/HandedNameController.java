@@ -10,12 +10,15 @@ import jakarta.inject.Singleton;
 @Singleton
 public class HandedNameController implements HasViewModel {
 
+    /**
+     * The name handed to this controller before the bindings run.
+     */
     private String handed;
 
     /**
      * Records a label value that is available only from the handed ViewModel.
      *
-     * @param viewModel the ViewModel for this View
+     * @param viewModel the view model
      */
     @Override
     public void setViewModel(ViewModel viewModel) {

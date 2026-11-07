@@ -77,17 +77,59 @@ import java.util.function.Consumer;
  */
 public class ViewModel {
 
+    /**
+     * Receives error and fatal notices. Info and warn are not logged.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(ViewModel.class);
 
+    /**
+     * The Model instance this ViewModel was built for.
+     */
     private final Object model;
+
+    /**
+     * JavaFX properties keyed by Attribute name.
+     */
     private final Map<String, Property<?>> properties = new HashMap<>();
+
+    /**
+     * Attribute names whose value is a nested ViewModel.
+     */
     private final Set<String> complexAttributes = new HashSet<>();
+
+    /**
+     * Notices on this ViewModel, oldest first.
+     */
     private final List<Message> messages = new ArrayList<>();
+
+    /**
+     * The current conversion failure for an Attribute name, so a later failure updates it in place.
+     */
     private final Map<String, Message> bindingFailures = new HashMap<>();
+
+    /**
+     * Listeners told when a notice is added, removed, or updated.
+     */
     private final List<MessageListener> messageListeners = new ArrayList<>();
+
+    /**
+     * Mirrors that carry a child ViewModel's notices, keyed by the Attribute that leads to the child.
+     */
     private final Map<String, ChildMessageMirror> childMirrors = new HashMap<>();
+
+    /**
+     * The text of {@link #latestMessage}, bound as {@code latestMessage}.
+     */
     private final StringProperty latestMessageText = new SimpleStringProperty();
+
+    /**
+     * Callbacks registered by {@link MessagePopup#showNewMessages} and similar callers.
+     */
     private final List<Consumer<Message>> messageAdded = new ArrayList<>();
+
+    /**
+     * The notice most recently added, or {@code null} when there is none.
+     */
     private Message latestMessage;
 
     /**
@@ -191,6 +233,12 @@ public class ViewModel {
         return NamedProperties.get(this, name);
     }
 
+    /**
+     * Returns the JavaBean attributes of {@code type}, excluding those declared on {@link Object}.
+     *
+     * @param type the Model class
+     * @return the attributes
+     */
     private static List<PropertyDescriptor> descriptors(Class<?> type) {
         try {
             BeanInfo info = Introspector.getBeanInfo(type, Object.class);
@@ -200,6 +248,12 @@ public class ViewModel {
         }
     }
 
+    /**
+     * Returns whether {@code type} itself has a read-write attribute and is not a simple value.
+     *
+     * @param type the declared attribute type
+     * @return {@code true} when the attribute is complex
+     */
     private static boolean isComplex(Class<?> type) {
         if (simpleValue(type)) {
             return false;
@@ -214,6 +268,15 @@ public class ViewModel {
         return false;
     }
 
+    /**
+     * Returns whether {@code type} stays a simple value even when it has setters.
+     * <p>
+     * Primitives, enums, arrays, strings, numbers, booleans, collections, maps, dates, and
+     * {@code java.time} types are simple.
+     *
+     * @param type the declared attribute type
+     * @return {@code true} when the attribute is not complex
+     */
     private static boolean simpleValue(Class<?> type) {
         if (type.isPrimitive() || type.isEnum() || type.isArray()
                 || type == String.class || type == Boolean.class) {
@@ -232,6 +295,15 @@ public class ViewModel {
         return packaged != null && packaged.getName().startsWith("java.time");
     }
 
+    /**
+     * Creates the JavaFX property for a declared attribute type.
+     * <p>
+     * A null number or boolean leaves the primitive property at its default.
+     *
+     * @param type  the declared type
+     * @param value the current value, or {@code null}
+     * @return the property
+     */
     private static Property<?> createProperty(Class<?> type, Object value) {
         if (type == String.class) {
             return new SimpleStringProperty((String) value);
@@ -254,6 +326,12 @@ public class ViewModel {
         return new SimpleObjectProperty<>(value);
     }
 
+    /**
+     * Creates an integer property. A null value leaves it at zero.
+     *
+     * @param value the current value, or {@code null}
+     * @return the property
+     */
     private static IntegerProperty integerProperty(Object value) {
         SimpleIntegerProperty property = new SimpleIntegerProperty();
         if (value != null) {
@@ -262,6 +340,12 @@ public class ViewModel {
         return property;
     }
 
+    /**
+     * Creates a long property. A null value leaves it at zero.
+     *
+     * @param value the current value, or {@code null}
+     * @return the property
+     */
     private static LongProperty longProperty(Object value) {
         SimpleLongProperty property = new SimpleLongProperty();
         if (value != null) {
@@ -270,6 +354,12 @@ public class ViewModel {
         return property;
     }
 
+    /**
+     * Creates a float property. A null value leaves it at zero.
+     *
+     * @param value the current value, or {@code null}
+     * @return the property
+     */
     private static FloatProperty floatProperty(Object value) {
         SimpleFloatProperty property = new SimpleFloatProperty();
         if (value != null) {
@@ -278,6 +368,12 @@ public class ViewModel {
         return property;
     }
 
+    /**
+     * Creates a double property. A null value leaves it at zero.
+     *
+     * @param value the current value, or {@code null}
+     * @return the property
+     */
     private static DoubleProperty doubleProperty(Object value) {
         SimpleDoubleProperty property = new SimpleDoubleProperty();
         if (value != null) {
@@ -286,6 +382,12 @@ public class ViewModel {
         return property;
     }
 
+    /**
+     * Creates a boolean property. A null value leaves it at {@code false}.
+     *
+     * @param value the current value, or {@code null}
+     * @return the property
+     */
     private static BooleanProperty booleanProperty(Object value) {
         SimpleBooleanProperty property = new SimpleBooleanProperty();
         if (value != null) {
@@ -294,6 +396,13 @@ public class ViewModel {
         return property;
     }
 
+    /**
+     * Reads the Attribute through its getter.
+     *
+     * @param getter the getter
+     * @param name   the Attribute name, used when the read fails
+     * @return the current value
+     */
     private Object read(Method getter, String name) {
         try {
             return getter.invoke(model);
@@ -302,6 +411,13 @@ public class ViewModel {
         }
     }
 
+    /**
+     * Writes the Attribute when the property changes.
+     *
+     * @param property the JavaFX property
+     * @param setter   the setter
+     * @param name     the Attribute name, used when the write fails
+     */
     private void watch(Property<?> property, Method setter, String name) {
         property.addListener((observable, oldValue, newValue) -> write(setter, name, newValue));
     }
@@ -314,14 +430,35 @@ public class ViewModel {
      */
     private static final class LazyComplex extends SimpleObjectProperty<Object> {
 
+        /**
+         * The Model instance, kept until the nested ViewModel is built.
+         */
         private final Object current;
+
+        /**
+         * Whether {@link #get()} has already built the nested ViewModel.
+         */
         private boolean realized;
+
+        /**
+         * Whether the change listener is still being attached. Reads during that time are ignored.
+         */
         private boolean attaching = true;
 
+        /**
+         * Holds the Model instance until the nested ViewModel is built.
+         *
+         * @param current the Model instance, or {@code null}
+         */
         private LazyComplex(Object current) {
             this.current = current;
         }
 
+        /**
+         * Builds the nested ViewModel on the first read after the listener is attached.
+         *
+         * @return the nested ViewModel, or {@code null} when the Attribute is null
+         */
         @Override
         public Object get() {
             if (!attaching && !realized) {
@@ -331,15 +468,31 @@ public class ViewModel {
             return super.get();
         }
 
+        /**
+         * Allows the next {@link #get()} to build the nested ViewModel.
+         */
         private void attached() {
             attaching = false;
         }
 
+        /**
+         * Returns whether this attribute still holds {@code instance} and has not built its ViewModel.
+         *
+         * @param instance the Model instance just selected elsewhere
+         * @return {@code true} when a shared read should realize this attribute too
+         */
         private boolean pending(Object instance) {
             return !realized && current == instance;
         }
     }
 
+    /**
+     * Writes the Model instance behind a complex Attribute and carries that child's notices.
+     *
+     * @param property the JavaFX property
+     * @param setter   the setter
+     * @param name     the Attribute name
+     */
     private void watchComplex(Property<?> property, Method setter, String name) {
         property.addListener((observable, oldValue, newValue) -> {
             if (oldValue != newValue) {
@@ -360,6 +513,10 @@ public class ViewModel {
      * @param name  the Attribute that leads to the child
      * @param child the child ViewModel
      */
+    private void attachChild(String name, ViewModel child) {
+        childMirrors.put(name, ChildMessageMirror.attach(this, name, child));
+    }
+
     /**
      * Realizes every other Complex attribute that holds the same Model instance.
      * <p>
@@ -379,10 +536,6 @@ public class ViewModel {
         }
     }
 
-    private void attachChild(String name, ViewModel child) {
-        childMirrors.put(name, ChildMessageMirror.attach(this, name, child));
-    }
-
     /**
      * Drops the copies carried for an Attribute and stops following that child.
      *
@@ -395,6 +548,13 @@ public class ViewModel {
         }
     }
 
+    /**
+     * Writes the Attribute through its setter.
+     *
+     * @param setter the setter
+     * @param name   the Attribute name, used when the write fails
+     * @param value  the value
+     */
     private void write(Method setter, String name, Object value) {
         try {
             setter.invoke(model, value);
@@ -607,6 +767,12 @@ public class ViewModel {
         }
     }
 
+    /**
+     * Returns whether the getter's collection holds simple values.
+     *
+     * @param getter the collection getter
+     * @return {@code true} when the element type is a simple value
+     */
     private static boolean isSimpleValueCollection(Method getter) {
         if (!Collection.class.isAssignableFrom(getter.getReturnType())) {
             return false;
@@ -615,6 +781,12 @@ public class ViewModel {
         return element != null && isSimpleValue(element);
     }
 
+    /**
+     * Returns whether the getter's collection holds Model instances.
+     *
+     * @param getter the collection getter
+     * @return {@code true} when the element type is complex
+     */
     private static boolean isModelCollection(Method getter) {
         if (!Collection.class.isAssignableFrom(getter.getReturnType())) {
             return false;
@@ -623,6 +795,12 @@ public class ViewModel {
         return element != null && isComplex(element);
     }
 
+    /**
+     * Returns the single type argument of a parameterized type.
+     *
+     * @param type the generic return type
+     * @return the element class, or {@code null} when it cannot be read
+     */
     private static Class<?> elementType(Type type) {
         if (!(type instanceof ParameterizedType parameterized) || parameterized.getActualTypeArguments().length != 1) {
             return null;
@@ -630,6 +808,12 @@ public class ViewModel {
         return classOf(parameterized.getActualTypeArguments()[0]);
     }
 
+    /**
+     * Returns the raw class of a type argument, including a wildcard's upper bound.
+     *
+     * @param type the type argument
+     * @return the class, or {@code null} when it cannot be read
+     */
     private static Class<?> classOf(Type type) {
         if (type instanceof Class<?> raw) {
             return raw;
@@ -643,6 +827,12 @@ public class ViewModel {
         return null;
     }
 
+    /**
+     * Returns whether a collection element stays a plain value rather than a ViewModel.
+     *
+     * @param type the element type
+     * @return {@code true} when the element is a simple value
+     */
     private static boolean isSimpleValue(Class<?> type) {
         if (type == String.class || type == Boolean.class || type == boolean.class || type.isEnum()) {
             return true;
@@ -659,6 +849,14 @@ public class ViewModel {
         return TemporalAccessor.class.isAssignableFrom(type) || TemporalAmount.class.isAssignableFrom(type);
     }
 
+    /**
+     * Wraps a collection in one {@link ObservableList} and stores it on the Model when the setter accepts it.
+     *
+     * @param setter  the setter
+     * @param name    the Attribute name
+     * @param current the current collection
+     * @return the list the View watches
+     */
     @SuppressWarnings("unchecked")
     private Object shareSimpleList(Method setter, String name, Object current) {
         if (!(current instanceof Collection<?> collection)) {

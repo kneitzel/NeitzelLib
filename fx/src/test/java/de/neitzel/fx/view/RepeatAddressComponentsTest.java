@@ -28,8 +28,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A repeat places one component in a pane for each model instance.
+ */
 class RepeatAddressComponentsTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -43,6 +49,9 @@ class RepeatAddressComponentsTest {
         }
     }
 
+    /**
+     * Addresses are the address instances on the shared list.
+     */
     @Test
     void addressesAreTheAddressInstancesOnTheSharedList() throws Exception {
         onFx(() -> {
@@ -67,6 +76,9 @@ class RepeatAddressComponentsTest {
         });
     }
 
+    /**
+     * Each address appears as its own form in list order.
+     */
     @Test
     void eachAddressAppearsAsItsOwnFormInListOrder() throws Exception {
         onFx(() -> {
@@ -96,6 +108,9 @@ class RepeatAddressComponentsTest {
         });
     }
 
+    /**
+     * Adding and removing an address updates the pane and the entity.
+     */
     @Test
     void addingAndRemovingAnAddressUpdatesThePaneAndTheEntity() throws Exception {
         onFx(() -> {
@@ -131,6 +146,9 @@ class RepeatAddressComponentsTest {
         });
     }
 
+    /**
+     * Selection is a separate attribute and the forms do not store it.
+     */
     @Test
     void selectionIsASeparateAttributeAndTheFormsDoNotStoreIt() throws Exception {
         onFx(() -> {
@@ -161,6 +179,9 @@ class RepeatAddressComponentsTest {
         });
     }
 
+    /**
+     * A second address form in the same document is another component.
+     */
     @Test
     void aSecondAddressFormInTheSameDocumentIsAnotherComponent() throws Exception {
         onFx(() -> {
@@ -189,10 +210,21 @@ class RepeatAddressComponentsTest {
         });
     }
 
+    /**
+     * Returns the street of each address, in list order.
+     *
+     * @param addresses the addresses
+     * @return the streets, in list order
+     */
     private static List<String> streets(List<Address> addresses) {
         return addresses.stream().map(Address::getStreet).toList();
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -224,8 +256,16 @@ class RepeatAddressComponentsTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

@@ -10,6 +10,9 @@ import javafx.beans.property.StringProperty;
  */
 public class TitledViewModel extends ViewModel {
 
+    /**
+     * The title this view model adds beside the model attributes.
+     */
     private final StringProperty title = new SimpleStringProperty();
 
     /**
@@ -24,7 +27,7 @@ public class TitledViewModel extends ViewModel {
     }
 
     /**
-     * Returns the title property a Binding element addresses by name.
+     * Returns the title property a binding element addresses by name.
      *
      * @return the title property
      */

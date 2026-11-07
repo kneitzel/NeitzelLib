@@ -10,6 +10,9 @@ import jakarta.inject.Singleton;
 @Singleton
 public class PrefixedAgeConverter implements Converter {
 
+    /**
+     * The unit written in front of an age.
+     */
     private final AgeUnit ageUnit;
 
     /**

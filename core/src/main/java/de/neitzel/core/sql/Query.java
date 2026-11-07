@@ -242,8 +242,16 @@ public class Query<T> {
      */
     private Stream<T> streamFromResultSet(final ResultSet rs, final Function<ResultSet, T> factory) {
         Iterator<T> iterator = new Iterator<>() {
+            /**
+             * Whether this iterator has already looked ahead in the {@link ResultSet}.
+             * A later hasNext call reuses that look-ahead until next consumes the row.
+             */
             private boolean hasNextChecked = false;
 
+            /**
+             * Whether the look-ahead found another row in the {@link ResultSet}.
+             * The value is meaningful only after the look-ahead has run.
+             */
             private boolean hasNext;
 
             /**

@@ -14,6 +14,9 @@ import java.util.Map;
  */
 final class RepeatApplier {
 
+    /**
+     * Prevents instantiation.
+     */
     private RepeatApplier() {
     }
 
@@ -47,6 +50,13 @@ final class RepeatApplier {
         listen(pane, type, context, values);
     }
 
+    /**
+     * Returns the collection Attribute named on the ViewModel.
+     *
+     * @param viewModel the ViewModel for this View
+     * @param name      the collection Attribute
+     * @return the property, or {@code null} when the name is not an Attribute
+     */
     private static Property<?> collection(Object viewModel, String name) {
         if (viewModel instanceof ViewModel model) {
             return model.property(name);
@@ -54,6 +64,17 @@ final class RepeatApplier {
         return NamedProperties.get(viewModel, name);
     }
 
+    /**
+     * Adds and removes Component children as the collection changes.
+     * <p>
+     * A permutation or an element update is left as it is. An add or remove keeps the children
+     * in list order.
+     *
+     * @param pane    the pane named by the repeat
+     * @param type    the Component class
+     * @param context the container that creates each Component
+     * @param values  the collection
+     */
     @SuppressWarnings("unchecked")
     private static void listen(Pane pane, Class<?> type, ApplicationContext context, ObservableList<?> values) {
         ObservableList<Object> elements = (ObservableList<Object>) values;
@@ -74,12 +95,26 @@ final class RepeatApplier {
         });
     }
 
+    /**
+     * Creates one Component and sets its model to {@code element}.
+     *
+     * @param type    the Component class
+     * @param context the container
+     * @param element the Model instance
+     * @return the loaded Component
+     */
     private static Node child(Class<?> type, ApplicationContext context, Object element) {
         Object component = Components.fresh(type, context);
         Components.setModel(component, element);
         return (Node) component;
     }
 
+    /**
+     * Returns the Component class named by the repeat.
+     *
+     * @param className the class name
+     * @return the class
+     */
     private static Class<?> componentType(String className) {
         try {
             return Class.forName(className);

@@ -10,8 +10,19 @@ package de.neitzel.fx.view;
  */
 public class ComputedBinding {
 
+    /**
+     * The {@code fx:id} of the control that receives the method result.
+     */
     private String control;
+
+    /**
+     * The control property that receives the method result, such as {@code text}.
+     */
     private String property;
+
+    /**
+     * The Controller method, written as {@code #method}.
+     */
     private String method;
 
     /**

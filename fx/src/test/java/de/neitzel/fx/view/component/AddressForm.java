@@ -14,21 +14,39 @@ import javafx.scene.layout.VBox;
 /**
  * Component that shows one address.
  * <p>
- * The container injects the caption service. The street label shows that service's prefix.
+ * The container injects the caption service. the street label shows that service's prefix.
  */
 @Singleton
 public class AddressForm extends VBox implements HasViewModel {
 
+    /**
+     * The service that supplies the street caption.
+     */
     private final StreetCaption captions;
+    /**
+     * The model this component edits. A parent view or a repeat sets it once.
+     */
     private final ObjectProperty<Object> model = new SimpleObjectProperty<>(this, "model");
 
+    /**
+     * The label filled by the component's own binding.
+     */
     @FXML
     private Label streetLabel;
 
+    /**
+     * The street field filled by the component's own binding.
+     */
     @FXML
     private TextField streetField;
 
+    /**
+     * The view model handed over before the component's bindings run.
+     */
     private ViewModel receivedViewModel;
+    /**
+     * The street text visible when the view model is handed over.
+     */
     private String streetTextAtHandOff;
 
     /**
@@ -50,7 +68,7 @@ public class AddressForm extends VBox implements HasViewModel {
     }
 
     /**
-     * Returns the model property a parent View sets with a Direct binding.
+     * Returns the model property a parent view sets with a direct binding.
      *
      * @return the model property
      */
@@ -79,7 +97,7 @@ public class AddressForm extends VBox implements HasViewModel {
     /**
      * Records the ViewModel handed to this component, and the street text at that moment.
      *
-     * @param viewModel the ViewModel selected for the address
+     * @param viewModel the view model
      */
     @Override
     public void setViewModel(ViewModel viewModel) {

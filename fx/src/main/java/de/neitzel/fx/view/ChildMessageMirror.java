@@ -17,11 +17,33 @@ import java.util.Set;
  */
 final class ChildMessageMirror implements MessageListener {
 
+    /**
+     * The parent that receives copies of the child's notices.
+     */
     private final ViewModel parent;
+
+    /**
+     * The Attribute that leads to the child. It is prepended to each copied source.
+     */
     private final String attribute;
+
+    /**
+     * The child whose notices are carried.
+     */
     private final ViewModel child;
+
+    /**
+     * Copies already carried, keyed by the identity of the child notice.
+     */
     private final Map<Message, Message> copies = new IdentityHashMap<>();
 
+    /**
+     * Creates a mirror. {@link #attach} registers it and copies notices already present.
+     *
+     * @param parent    the parent ViewModel
+     * @param attribute the Attribute that leads to the child
+     * @param child     the child ViewModel
+     */
     private ChildMessageMirror(ViewModel parent, String attribute, ViewModel child) {
         this.parent = parent;
         this.attribute = attribute;
@@ -97,6 +119,11 @@ final class ChildMessageMirror implements MessageListener {
         parent.noteMessageText(copy);
     }
 
+    /**
+     * Copies {@code message} onto the parent unless that copy is already there or would cycle.
+     *
+     * @param message the child notice
+     */
     private void carry(Message message) {
         if (copies.containsKey(message) || repeats(message)) {
             return;

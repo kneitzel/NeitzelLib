@@ -13,10 +13,13 @@ import javafx.scene.layout.VBox;
 @ViewModelClass(StreetTitleViewModel.class)
 public class CaptionAddressForm extends VBox {
 
+    /**
+     * The model this component edits. A parent view or a repeat sets it once.
+     */
     private final ObjectProperty<Object> model = new SimpleObjectProperty<>(this, "model");
 
     /**
-     * Returns the model property a parent View sets with a Direct binding.
+     * Returns the model property a parent view sets with a direct binding.
      *
      * @return the model property
      */

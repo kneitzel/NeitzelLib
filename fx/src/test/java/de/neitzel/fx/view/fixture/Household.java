@@ -5,6 +5,9 @@ package de.neitzel.fx.view.fixture;
  */
 public class Household {
 
+    /**
+     * The person in this household.
+     */
     private Person person;
 
     /**

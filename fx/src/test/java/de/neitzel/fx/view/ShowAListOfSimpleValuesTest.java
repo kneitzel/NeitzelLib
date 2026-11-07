@@ -20,8 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A list of simple values is one shared list on the control and the model.
+ */
 class ShowAListOfSimpleValuesTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -35,6 +41,9 @@ class ShowAListOfSimpleValuesTest {
         }
     }
 
+    /**
+     * List view and person share the tag list.
+     */
     @Test
     void listViewAndPersonShareTheTagList() throws Exception {
         onFx(() -> {
@@ -61,6 +70,11 @@ class ShowAListOfSimpleValuesTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -92,8 +106,16 @@ class ShowAListOfSimpleValuesTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

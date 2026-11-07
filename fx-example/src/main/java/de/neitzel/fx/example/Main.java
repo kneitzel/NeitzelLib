@@ -9,6 +9,9 @@ import javafx.application.Application;
  */
 public final class Main {
 
+    /**
+     * Prevents instantiation. The class is only a launch entry point.
+     */
     private Main() {
     }
 

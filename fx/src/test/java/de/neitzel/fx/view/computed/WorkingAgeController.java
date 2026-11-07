@@ -5,11 +5,14 @@ import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 
 /**
- * Controller that derives a label from the name field and does not write the Model.
+ * Controller that derives a label from the name field and does not write the model.
  */
 @Singleton
 public class WorkingAgeController {
 
+    /**
+     * The name field a computed binding reads.
+     */
     @FXML
     private TextField nameField;
 

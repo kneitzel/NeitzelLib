@@ -43,11 +43,15 @@ Some encryption classes that use format-preserving-encryption.
 
 ### fx
 
-JavaFX library that binds an FXML View to an ordinary Java Model. See [fx/README.md](fx/README.md).
+JavaFX library that binds an FXML view to an ordinary Java model. See [fx/README.md](fx/README.md).
+
+### injection
+
+Package scanner and type-based container used by `fx`. See [injection/README.md](injection/README.md).
 
 ### fx-example
 
-Person desk that shows how to use `fx`. Run `mvn -pl fx-example javafx:run`.
+Person desk that shows how to use `fx` and `injection`. Run `mvn -pl fx-example -am javafx:run`. See [fx-example/README.md](fx-example/README.md).
 
 ### gson
 

@@ -13,6 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Checks which types the component scanner accepts in the test component packages.
+ */
 class InjectableComponentScannerTest {
 
     /**

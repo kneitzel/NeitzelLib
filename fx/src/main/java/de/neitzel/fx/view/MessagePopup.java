@@ -12,6 +12,9 @@ import javafx.scene.control.Label;
  */
 public final class MessagePopup {
 
+    /**
+     * Prevents instantiation.
+     */
     private MessagePopup() {
     }
 

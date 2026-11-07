@@ -12,8 +12,14 @@ import java.util.Map;
  */
 final class ViewModels {
 
+    /**
+     * ViewModels already built, keyed by Model identity.
+     */
     private static final Map<Object, Object> BY_INSTANCE = new IdentityHashMap<>();
 
+    /**
+     * Prevents instantiation.
+     */
     private ViewModels() {
     }
 
@@ -75,6 +81,16 @@ final class ViewModels {
         return annotation.value();
     }
 
+    /**
+     * Constructs a ViewModel or a replacement with the Model instance.
+     * <p>
+     * A result that is not a {@link ViewModel} is registered here. A {@link ViewModel} registers
+     * itself from its constructor, before its Attributes are walked.
+     *
+     * @param model          the Model instance
+     * @param viewModelClass the class to construct
+     * @return the constructed object
+     */
     private static Object construct(Object model, Class<?> viewModelClass) {
         Constructor<?> constructor = constructor(model, viewModelClass);
         constructor.setAccessible(true);
@@ -94,6 +110,13 @@ final class ViewModels {
         }
     }
 
+    /**
+     * Returns the constructor that takes the Model, preferring the most specific parameter type.
+     *
+     * @param model          the Model instance
+     * @param viewModelClass the class to construct
+     * @return the constructor
+     */
     private static Constructor<?> constructor(Object model, Class<?> viewModelClass) {
         Constructor<?> chosen = null;
         for (Constructor<?> candidate : viewModelClass.getDeclaredConstructors()) {

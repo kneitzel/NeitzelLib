@@ -14,6 +14,9 @@ import java.util.Map;
  */
 final class DirectBindingApplier {
 
+    /**
+     * Prevents instantiation.
+     */
     private DirectBindingApplier() {
     }
 
@@ -68,6 +71,13 @@ final class DirectBindingApplier {
         }
     }
 
+    /**
+     * Aligns a plain Attribute in the named direction.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the Attribute
+     * @param direction       {@code view}, {@code model}, or {@code both}
+     */
     private static void alignPlain(Property<?> controlProperty, Property<?> attribute, String direction) {
         switch (direction) {
             case "both" -> alignBoth(controlProperty, attribute);
@@ -84,11 +94,35 @@ final class DirectBindingApplier {
      * name as the source, so a parent only carries the extended copy.
      */
     private static final class Resolved {
+
+        /**
+         * The Attribute the Path names.
+         */
         private final Property<?> attribute;
+
+        /**
+         * Whether that Attribute is complex.
+         */
         private final boolean complex;
+
+        /**
+         * The ViewModel that owns the Attribute. A conversion failure is recorded here.
+         */
         private final ViewModel owner;
+
+        /**
+         * The last segment of the Path, used as the failure source.
+         */
         private final String name;
 
+        /**
+         * Records one resolved Path.
+         *
+         * @param attribute the Attribute
+         * @param complex   whether the Attribute is complex
+         * @param owner     the ViewModel that owns it
+         * @param name      the last segment
+         */
         private Resolved(Property<?> attribute, boolean complex, ViewModel owner, String name) {
             this.attribute = attribute;
             this.complex = complex;
@@ -165,6 +199,13 @@ final class DirectBindingApplier {
         ViewModels.of(instance, requested);
     }
 
+    /**
+     * Follows a Path through the Model instances behind the ViewModels.
+     *
+     * @param viewModel the ViewModel for this View
+     * @param path      the Path
+     * @return the Model instance at the end of the Path, or {@code null} when a step is null
+     */
     private static Object instanceAt(Object viewModel, String path) {
         if (!(viewModel instanceof ViewModel root)) {
             return null;
@@ -179,6 +220,13 @@ final class DirectBindingApplier {
         return current;
     }
 
+    /**
+     * Reads one JavaBean attribute through {@code get} or {@code is}.
+     *
+     * @param bean the Model instance
+     * @param name the attribute name
+     * @return the current value
+     */
     private static Object readAttribute(Object bean, String name) {
         String suffix = Character.toUpperCase(name.charAt(0)) + name.substring(1);
         for (String prefix : List.of("get", "is")) {
@@ -194,6 +242,13 @@ final class DirectBindingApplier {
         throw new IllegalArgumentException("No read-write attribute for path \"" + name + "\"");
     }
 
+    /**
+     * Returns the JavaFX property named on a ViewModel or a replacement.
+     *
+     * @param target the ViewModel or replacement
+     * @param name   the property name
+     * @return the property, or {@code null} when that name is not declared
+     */
     private static Property<?> propertyOf(Object target, String name) {
         if (target instanceof ViewModel viewModel) {
             return viewModel.property(name);
@@ -201,10 +256,23 @@ final class DirectBindingApplier {
         return NamedProperties.get(target, name);
     }
 
+    /**
+     * Reports a Path that is not a read-write Attribute.
+     *
+     * @param path the Path
+     * @return the failure
+     */
     private static IllegalArgumentException missing(String path) {
         return new IllegalArgumentException("No read-write attribute for path \"" + path + "\"");
     }
 
+    /**
+     * Asks the container for the named Converter.
+     *
+     * @param context   the container
+     * @param className the Converter class name
+     * @return the Converter
+     */
     private static Converter converter(ApplicationContext context, String className) {
         try {
             Class<?> type = Class.forName(className);
@@ -245,6 +313,16 @@ final class DirectBindingApplier {
         }
     }
 
+    /**
+     * Writes the converted Attribute onto the control. A failure keeps the previous control value.
+     *
+     * @param control   the control property
+     * @param attribute the Attribute
+     * @param converter the Converter
+     * @param owner     the ViewModel that records a failure
+     * @param source    the Attribute name used as the failure source
+     * @param link      the guard against hearing this write
+     */
     private static void pushControl(Property<Object> control, Property<Object> attribute, Converter converter,
                                     ViewModel owner, String source, Link link) {
         try {
@@ -261,6 +339,16 @@ final class DirectBindingApplier {
         }
     }
 
+    /**
+     * Writes the converted control value onto the Attribute. A failure keeps the previous Attribute.
+     *
+     * @param control   the control property
+     * @param attribute the Attribute
+     * @param converter the Converter
+     * @param owner     the ViewModel that records a failure
+     * @param source    the Attribute name used as the failure source
+     * @param link      the guard against hearing this write
+     */
     private static void pushAttribute(Property<Object> control, Property<Object> attribute, Converter converter,
                                       ViewModel owner, String source, Link link) {
         try {
@@ -277,6 +365,12 @@ final class DirectBindingApplier {
         }
     }
 
+    /**
+     * Returns the exception message, or a fallback when it is missing.
+     *
+     * @param failure the conversion failure
+     * @return the text recorded on the ViewModel
+     */
     private static String failureText(RuntimeException failure) {
         String text = failure.getMessage();
         if (text == null || text.isEmpty()) {
@@ -289,9 +383,20 @@ final class DirectBindingApplier {
      * Guards one converted binding against hearing its own writes.
      */
     private static final class Link {
+
+        /**
+         * Whether this binding is currently writing one side, so the other listener stays quiet.
+         */
         private boolean applying;
     }
 
+    /**
+     * Returns the writable JavaFX property named on the control.
+     *
+     * @param control      the control
+     * @param propertyName the property name, such as {@code text}
+     * @return the property
+     */
     private static Property<?> controlProperty(Object control, String propertyName) {
         String methodName = propertyName + "Property";
         try {
@@ -309,6 +414,15 @@ final class DirectBindingApplier {
         }
     }
 
+    /**
+     * Keeps a complex Attribute and the control aligned in both directions.
+     * <p>
+     * The control receives the Model instance. A later control value is stored as that instance's
+     * ViewModel.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the complex Attribute
+     */
     @SuppressWarnings("unchecked")
     private static void alignBothComplex(Property<?> controlProperty, Property<?> attribute) {
         Property<Object> control = (Property<Object>) controlProperty;
@@ -328,6 +442,12 @@ final class DirectBindingApplier {
         });
     }
 
+    /**
+     * Shows a complex Attribute on the control and follows later changes. The control does not write back.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the complex Attribute
+     */
     @SuppressWarnings("unchecked")
     private static void alignTowardViewComplex(Property<?> controlProperty, Property<?> attribute) {
         Property<Object> control = (Property<Object>) controlProperty;
@@ -336,6 +456,12 @@ final class DirectBindingApplier {
         source.addListener((observable, oldValue, newValue) -> control.setValue(modelBehind(newValue)));
     }
 
+    /**
+     * Shows a complex Attribute once, then writes the Attribute when the control changes.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the complex Attribute
+     */
     @SuppressWarnings("unchecked")
     private static void alignTowardModelComplex(Property<?> controlProperty, Property<?> attribute) {
         Property<Object> control = (Property<Object>) controlProperty;
@@ -349,6 +475,12 @@ final class DirectBindingApplier {
         });
     }
 
+    /**
+     * Returns the Model instance stored in a complex Attribute.
+     *
+     * @param value the Attribute value, a ViewModel or {@code null}
+     * @return the Model instance, or {@code null}
+     */
     private static Object modelBehind(Object value) {
         if (value instanceof ViewModel viewModel) {
             return viewModel.model();
@@ -356,16 +488,34 @@ final class DirectBindingApplier {
         return null;
     }
 
+    /**
+     * Sets the control property to the shared list. Adds and removes are then visible on both sides.
+     *
+     * @param controlProperty the control property, such as {@code items}
+     * @param values          the list the ViewModel and the Model share
+     */
     @SuppressWarnings("unchecked")
     private static void assignList(Property<?> controlProperty, ObservableList<?> values) {
         ((Property<Object>) controlProperty).setValue(values);
     }
 
+    /**
+     * Binds the control and the Attribute in both directions.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the Attribute
+     */
     @SuppressWarnings("unchecked")
     private static void alignBoth(Property<?> controlProperty, Property<?> attribute) {
         ((Property<Object>) controlProperty).bindBidirectional((Property<Object>) attribute);
     }
 
+    /**
+     * Shows the Attribute and follows later changes. Edits to the control stay on the control.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the Attribute
+     */
     @SuppressWarnings("unchecked")
     private static void alignTowardView(Property<?> controlProperty, Property<?> attribute) {
         Property<Object> control = (Property<Object>) controlProperty;
@@ -374,6 +524,12 @@ final class DirectBindingApplier {
         source.addListener((observable, oldValue, newValue) -> control.setValue(newValue));
     }
 
+    /**
+     * Shows the current value, then writes the Attribute when the control changes.
+     *
+     * @param controlProperty the control property
+     * @param attribute       the Attribute
+     */
     @SuppressWarnings("unchecked")
     private static void alignTowardModel(Property<?> controlProperty, Property<?> attribute) {
         Property<Object> control = (Property<Object>) controlProperty;

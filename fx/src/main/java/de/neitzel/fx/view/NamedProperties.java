@@ -12,6 +12,9 @@ import java.lang.reflect.Method;
  */
 final class NamedProperties {
 
+    /**
+     * Prevents instantiation.
+     */
     private NamedProperties() {
     }
 

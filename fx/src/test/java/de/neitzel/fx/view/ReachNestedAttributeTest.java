@@ -31,8 +31,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * A path steps through a nested view model, and a null step leaves the binding unapplied.
+ */
 class ReachNestedAttributeTest {
 
+    /**
+     * Starts the JavaFX toolkit once for this class.
+     */
     @BeforeAll
     static void startJavaFx() throws InterruptedException {
         CountDownLatch started = new CountDownLatch(1);
@@ -46,6 +52,9 @@ class ReachNestedAttributeTest {
         }
     }
 
+    /**
+     * Complex attribute holds the view model for the nested address.
+     */
     @Test
     void complexAttributeHoldsTheViewModelForTheNestedAddress() throws Exception {
         onFx(() -> {
@@ -61,6 +70,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Both ways text field reads and writes the nested street.
+     */
     @Test
     void bothWaysTextFieldReadsAndWritesTheNestedStreet() throws Exception {
         onFx(() -> {
@@ -78,6 +90,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Toward view label follows the nested street and does not write.
+     */
     @Test
     void towardViewLabelFollowsTheNestedStreetAndDoesNotWrite() throws Exception {
         onFx(() -> {
@@ -99,6 +114,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Both ways binding on a complex path yields the model instance.
+     */
     @Test
     void bothWaysBindingOnAComplexPathYieldsTheModelInstance() throws Exception {
         onFx(() -> {
@@ -117,6 +135,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Filling a missing address stores the view model and writes the model.
+     */
     @Test
     void fillingAMissingAddressStoresTheViewModelAndWritesTheModel() throws Exception {
         onFx(() -> {
@@ -137,6 +158,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Missing address leaves the control and the model unchanged.
+     */
     @Test
     void missingAddressLeavesTheControlAndTheModelUnchanged() throws Exception {
         onFx(() -> {
@@ -151,6 +175,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Null complex attribute holds null.
+     */
     @Test
     void nullComplexAttributeHoldsNull() throws Exception {
         onFx(() -> {
@@ -163,6 +190,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Attributes that reach the same address share its view model.
+     */
     @Test
     void attributesThatReachTheSameAddressShareItsViewModel() throws Exception {
         onFx(() -> {
@@ -183,6 +213,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Equal addresses keep separate view models.
+     */
     @Test
     void equalAddressesKeepSeparateViewModels() throws Exception {
         onFx(() -> {
@@ -206,6 +239,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * A person who is their own friend reuses the same view model.
+     */
     @Test
     void aPersonWhoIsTheirOwnFriendReusesTheSameViewModel() throws Exception {
         onFx(() -> {
@@ -219,6 +255,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Two people who point at each other reuse the view models already built.
+     */
     @Test
     void twoPeopleWhoPointAtEachOtherReuseTheViewModelsAlreadyBuilt() throws Exception {
         onFx(() -> {
@@ -236,6 +275,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Enums booleans and date values stay simple values.
+     */
     @Test
     void enumsBooleansAndDateValuesStaySimpleValues() throws Exception {
         onFx(() -> {
@@ -260,6 +302,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * A collection stays the collection rather than a view model.
+     */
     @Test
     void aCollectionStaysTheCollectionRatherThanAViewModel() throws Exception {
         onFx(() -> {
@@ -281,6 +326,9 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Two loads of the same person share the view model.
+     */
     @Test
     void twoLoadsOfTheSamePersonShareTheViewModel() throws Exception {
         onFx(() -> {
@@ -299,6 +347,11 @@ class ReachNestedAttributeTest {
         });
     }
 
+    /**
+     * Runs one check on the JavaFX application thread.
+     *
+     * @param action the check
+     */
     private static void onFx(FxAction action) throws Exception {
         if (Platform.isFxApplicationThread()) {
             action.run();
@@ -330,8 +383,16 @@ class ReachNestedAttributeTest {
         }
     }
 
+    /**
+     * One check that runs on the JavaFX application thread.
+     */
     @FunctionalInterface
     private interface FxAction {
+        /**
+         * Runs the check.
+         *
+         * @throws Exception when the check fails
+         */
         void run() throws Exception;
     }
 }

@@ -9,8 +9,19 @@ package de.neitzel.fx.view;
  */
 public class Repeat {
 
+    /**
+     * The {@code fx:id} of the pane that holds the Component children.
+     */
     private String pane;
+
+    /**
+     * The Component class name. Each element gets a new instance of that class.
+     */
     private String component;
+
+    /**
+     * The collection Attribute. The list holds the Model instances.
+     */
     private String collection;
 
     /**

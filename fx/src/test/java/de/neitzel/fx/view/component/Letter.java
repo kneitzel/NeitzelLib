@@ -5,6 +5,9 @@ package de.neitzel.fx.view.component;
  */
 public class Letter {
 
+    /**
+     * The envelope this letter holds.
+     */
     private Envelope envelope;
 
     /**
