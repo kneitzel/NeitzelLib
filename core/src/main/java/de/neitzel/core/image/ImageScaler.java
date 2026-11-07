@@ -18,6 +18,41 @@ import java.io.InputStream;
 public class ImageScaler {
 
     /**
+     * Fits an image within positive bounds without enlargement, retaining aspect ratio
+     * to the nearest pixel (at least one pixel per dimension). Composites alpha onto
+     * the supplied opaque background and returns an independent RGB image.
+     *
+     * @param source source pixels, never modified
+     * @param maxWidth maximum output width
+     * @param maxHeight maximum output height
+     * @param background opaque background colour
+     * @return fitted image with no alpha channel
+     * @throws IllegalArgumentException for non-positive bounds or translucent background
+     */
+    public static BufferedImage fitOpaque(final BufferedImage source, final int maxWidth,
+                                         final int maxHeight, final Color background) {
+        java.util.Objects.requireNonNull(source, "source");
+        java.util.Objects.requireNonNull(background, "background");
+        if (maxWidth < 1 || maxHeight < 1 || background.getAlpha() != 255)
+            throw new IllegalArgumentException("Positive bounds and an opaque background are required");
+        double scale = Math.min(1.0, Math.min((double) maxWidth / source.getWidth(),
+                (double) maxHeight / source.getHeight()));
+        int width = Math.max(1, (int) Math.round(source.getWidth() * scale));
+        int height = Math.max(1, (int) Math.round(source.getHeight() * scale));
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = result.createGraphics();
+        try {
+            graphics.setColor(background);
+            graphics.fillRect(0, 0, width, height);
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            graphics.drawImage(source, 0, 0, width, height, null);
+        } finally {
+            graphics.dispose();
+        }
+        return result;
+    }
+
+    /**
      * Specifies the target image format for scaling operations.
      * <p>
      * This variable defines the file format that will be used when writing
