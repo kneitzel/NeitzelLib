@@ -1,0 +1,26 @@
+# Tray lifecycle
+
+`TraySupport.attach(stage, awtImage, tooltip, mayQuit, quit)` attaches one primary
+JavaFX window to the native AWT system tray. Call attach and lifecycle methods on
+the FX thread. The asynchronous backend keeps AWT initialization off that thread.
+`availableProperty()` becomes true only after the icon is installed. While
+available, window close hides the stage and implicit JavaFX exit is disabled.
+Ordinary minimization is unchanged. Open shows, deiconifies and focuses the stage.
+
+The tray menu offers Open and Quit. `requestQuit()` restores the window and calls
+`mayQuit` on the FX thread; false cancels without removing the icon. On acceptance,
+the registration is removed and `quit` runs (typically Platform::exit). Applications
+own Save/Discard/Cancel prompts. `close()` removes handlers/icon and restores the
+previous implicit-exit setting; call it during application shutdown as well.
+
+Unsupported, failed or still-pending tray installation never hides the only window.
+Window close restores it instead. Applications must retain an accessible explicit
+Quit action for that fallback. Native callbacks are marshalled onto FX. An install
+that completes after disposal is immediately removed, including during shutdown.
+
+An overload accepts a Backend for alternative tray implementations. Its future
+resolves to a Registration, or null if unsupported; Registration.close must be
+safe from any thread. This is also the public seam for lifecycle tests. The tests
+exercise real JavaFX Stage close/open, cancelled/accepted quit, and unsupported
+fallback with deterministic native registrations. Native platform behavior must
+also be checked in the consuming application.
