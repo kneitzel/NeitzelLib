@@ -33,7 +33,8 @@ domain or usable under a license compatible with this project's license.
 
 ### core
 
-Core classes that require no additional dependencies
+Core utilities, including [foreground desktop observations](core/docs/foreground-detection.md)
+using JNA for optional native desktop integration.
 
 ### encryption
 
