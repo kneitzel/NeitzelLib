@@ -34,7 +34,7 @@ domain or usable under a license compatible with this project's license.
 ### core
 
 Core utilities, including [foreground desktop observations](core/docs/foreground-detection.md)
-using JNA for optional native desktop integration.
+using JNA for optional native desktop integration, and [native application configuration folders](core/docs/application-directories.md).
 
 ### encryption
 
