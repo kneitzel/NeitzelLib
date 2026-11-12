@@ -1,0 +1,3 @@
+<?import javafx.scene.layout.StackPane?>
+<?import de.neitzel.fx.view.component.AddressForm?>
+<StackPane xmlns:fx="http://javafx.com/fxml/1"><AddressForm prefWidth="not-a-number"/></StackPane>

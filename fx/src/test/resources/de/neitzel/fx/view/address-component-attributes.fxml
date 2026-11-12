@@ -1,0 +1,8 @@
+<?import javafx.scene.layout.GridPane?>
+<?import de.neitzel.fx.view.component.AddressForm?>
+<?import de.neitzel.fx.view.fixture.SampleAddress?>
+<GridPane xmlns:fx="http://javafx.com/fxml/1">
+ <fx:define><SampleAddress fx:id="sample" street="Main"/></fx:define>
+ <AddressForm fx:id="first" caption="Home &amp; work" prefWidth="190" maxWidth="360" visible="false" alignment="CENTER_RIGHT" model="$sample" GridPane.columnIndex="1"/>
+ <AddressForm fx:id="second" caption="Second" prefWidth="280" model="$sample" GridPane.rowIndex="1"/>
+</GridPane>

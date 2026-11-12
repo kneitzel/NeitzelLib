@@ -247,6 +247,14 @@ A component's `@ViewModelClass` applies to that component's model, not to the pa
 
 ## Component
 
+Component elements accept writable FXML properties, including custom attributes and inherited
+layout properties such as `prefWidth`. The container constructs the Component first; its own
+FXML and `initialize()` run before the containing document's property values are applied.
+JavaFX performs the normal property conversion and rejects unknown properties or invalid values.
+Object references such as `model="$address"` retain their identity and are assigned after the
+Component's model listener is installed. Static layout constraints such as `GridPane.rowIndex`
+remain handled by the containing FXMLLoader.
+
 A component is a class the container can create. It extends a pane, loads `ClassName.fxml` from its own package through `fx:root`, and is the controller of that file. It has no `fx:controller`. It exposes one JavaFX property named `model`.
 
 `AddressForm` edits the home address. `VisitForm` edits one visit in the repeated list. `NoteForm` edits a note. `VisitRow` edits one table row. Each is `@Singleton`, extends `VBox` or `HBox`, and has `modelProperty()`.
