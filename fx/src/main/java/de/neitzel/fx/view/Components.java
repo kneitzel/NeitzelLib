@@ -6,7 +6,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.util.Builder;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
+import java.util.LinkedHashMap;
+import java.util.Set;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -58,8 +63,84 @@ final class Components {
         if (!LoadSession.claimFirst(type)) {
             component = context.createComponent(type.asSubclass(Object.class));
         }
-        Object created = component;
-        return () -> load(created, context);
+        return new ComponentBuilder(component, context);
+    }
+
+    /**
+     * Collects instance properties while FXML constructs an injected Component.
+     * Properties are applied after its own document and model listener are ready.
+     */
+    private static final class ComponentBuilder extends AbstractMap<String, Object> implements Builder<Object> {
+        /** The injected instance. */
+        private final Object component;
+        /** The context used to load its document. */
+        private final ApplicationContext context;
+        /** Values already resolved by the containing FXMLLoader. */
+        private final Map<String, Object> values = new LinkedHashMap<>();
+
+        /**
+         * Creates a builder for an injected instance.
+         * @param component the instance
+         * @param context its dependency context
+         */
+        private ComponentBuilder(Object component, ApplicationContext context) {
+            this.component = component;
+            this.context = context;
+        }
+
+        /**
+         * Records a property for application after Component initialization.
+         * @param key the property name
+         * @param value the resolved value
+         * @return the previous value
+         */
+        @Override
+        public Object put(String key, Object value) {
+            return values.put(key, value);
+        }
+
+        /**
+         * Returns the recorded properties.
+         * @return the property entries
+         */
+        @Override
+        public Set<Entry<String, Object>> entrySet() {
+            return values.entrySet();
+        }
+
+        /**
+         * Loads the Component and applies properties with standard FXML coercion.
+         * @return the initialized Component
+         */
+        @Override
+        public Object build() {
+            Object result = load(component, context);
+            if (!values.isEmpty()) {
+                // A second fx:root load uses the public FXMLLoader API for bean setters,
+                // enum/numeric coercion and diagnostics, without depending on BeanAdapter
+                // internals or serializing values (which may be Model object references).
+                FXMLLoader properties = new FXMLLoader();
+                properties.setRoot(result);
+                properties.setClassLoader(result.getClass().getClassLoader());
+                StringBuilder document = new StringBuilder("<fx:root xmlns:fx=\"http://javafx.com/fxml/1\" type=\"")
+                        .append(result.getClass().getName()).append('"');
+                int index = 0;
+                for (Entry<String, Object> entry : values.entrySet()) {
+                    String variable = "componentValue" + index++;
+                    properties.getNamespace().put(variable, entry.getValue());
+                    document.append(' ').append(entry.getKey()).append("=\"$")
+                            .append(variable).append('"');
+                }
+                document.append("/>");
+                try {
+                    properties.load(new ByteArrayInputStream(document.toString().getBytes(StandardCharsets.UTF_8)));
+                } catch (IOException failure) {
+                    throw new IllegalStateException("Could not apply Component properties to "
+                            + result.getClass().getName(), failure);
+                }
+            }
+            return result;
+        }
     }
 
     /**

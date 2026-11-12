@@ -146,6 +146,49 @@ class EditAddressInAComponentTest {
     }
 
     /**
+     * Attributes retain FXML conversion and identity while injection precedes setters.
+     */
+    @Test
+    void componentAttributesApplyAfterInitialization() throws Exception {
+        onFx(() -> {
+            var context = new ApplicationContext("de.neitzel.fx.view.component");
+            var loaded = ViewLoader.load(getClass().getResource("address-component-attributes.fxml"),
+                    new Person("Ada"), context);
+            var first = (AddressForm) loaded.getRoot().lookup("#first");
+            var second = (AddressForm) loaded.getRoot().lookup("#second");
+            assertEquals("Home & work", first.getCaption());
+            assertEquals(190, first.getPrefWidth());
+            assertEquals(360, first.getMaxWidth());
+            assertEquals(false, first.isVisible());
+            assertEquals(javafx.geometry.Pos.CENTER_RIGHT, first.getAlignment());
+            assertEquals(1, javafx.scene.layout.GridPane.getColumnIndex(first));
+            assertSame(first.getModel(), second.getModel());
+            assertEquals("Second", second.getCaption());
+            assertEquals(280, second.getPrefWidth());
+            assertSame(first, context.getComponent(AddressForm.class));
+            TextField field = (TextField) first.lookup("#streetField");
+            assertEquals("Main", field.getText());
+            field.setText("Oak");
+            assertEquals("Oak", ((Address) first.getModel()).getStreet());
+        });
+    }
+
+    /**
+     * Invalid names and malformed values fail rather than disappearing in the builder.
+     */
+    @Test
+    void invalidComponentAttributesFailTheLoad() throws Exception {
+        onFx(() -> {
+            for (String kind : java.util.List.of("unknown", "number")) {
+                var context = new ApplicationContext("de.neitzel.fx.view.component");
+                org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                        () -> ViewLoader.load(getClass().getResource("address-component-invalid-" + kind + ".fxml"),
+                                new Person("Ada"), context));
+            }
+        });
+    }
+
+    /**
      * Runs one check on the JavaFX application thread.
      *
      * @param action the check
