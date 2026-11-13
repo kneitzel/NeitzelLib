@@ -5,3 +5,6 @@ debug.out
 /nbactions.xml
 dependency-reduced-pom.xml
 .DS_Store
+
+# Machine-local designer paths, snapshots and drafts
+.neitzel-fx-designer/

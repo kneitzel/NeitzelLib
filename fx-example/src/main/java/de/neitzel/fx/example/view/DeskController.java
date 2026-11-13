@@ -1,6 +1,7 @@
 package de.neitzel.fx.example.view;
 
 import de.neitzel.fx.example.model.Address;
+import de.neitzel.fx.example.model.Role;
 import de.neitzel.fx.view.HasViewModel;
 import de.neitzel.fx.view.Message;
 import de.neitzel.fx.view.ViewModel;
@@ -8,6 +9,7 @@ import de.neitzel.fx.view.ViewModelClass;
 import jakarta.inject.Singleton;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ChoiceBox;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -34,6 +36,16 @@ public class DeskController implements HasViewModel {
      */
     @FXML
     private TextField tagField;
+
+    /** Role values are supplied in the application runtime, not instantiated by the designer host. */
+    @FXML
+    private ChoiceBox<Role> roleChoice;
+
+    /** Supplies enum choices before the declarative value binding is applied. */
+    @FXML
+    public void initialize() {
+        roleChoice.getItems().setAll(Role.values());
+    }
 
     /**
      * The person view model, set before the bindings run.

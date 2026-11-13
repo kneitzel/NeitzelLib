@@ -97,4 +97,54 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>designer-preview</id>
+            <dependencies>
+                <dependency>
+                    <groupId>de.neitzel.fxdesigner</groupId>
+                    <artifactId>designer-preview-api</artifactId>
+                    <version>0.1.0-SNAPSHOT</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.6.1</version>
+                        <executions>
+                            <execution>
+                                <id>designer-preview-sources</id>
+                                <phase>generate-test-sources</phase>
+                                <goals><goal>add-test-source</goal><goal>add-test-resource</goal></goals>
+                                <configuration>
+                                    <sources><source>src/designer/java</source></sources>
+                                    <resources><resource><directory>src/designer/resources</directory></resource></resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <proc>full</proc>
+                            <annotationProcessorPaths combine.self="override">
+                                <path>
+                                    <groupId>de.neitzel.fxdesigner</groupId>
+                                    <artifactId>designer-model-processor</artifactId>
+                                    <version>0.1.0-SNAPSHOT</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <compilerArgs>
+                                <arg>-Adesigner.models=de.neitzel.fx.example.model.Person,de.neitzel.fx.example.model.Address,de.neitzel.fx.example.model.Note</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
