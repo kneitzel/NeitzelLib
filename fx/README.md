@@ -503,3 +503,7 @@ These are the `IllegalArgumentException` messages a document can produce. The vi
 | `No component found for type:` | the container was asked for a controller, component, or converter it did not scan |
 
 A conversion failure does not fail the load. It records a message, as [Converter](#converter) describes.
+
+Generated Java ViewModels can share the existing runtime storage and identity registry; see
+[the generated ViewModel runtime contract](docs/generated-viewmodels.md) for stored-property
+access, declarative service defaults, compatible overrides and module-path registration.

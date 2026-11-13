@@ -47,20 +47,19 @@ final class ViewModels {
      * @return the ViewModel for that instance, or the replacement
      */
     static Object of(Object model, Class<?> viewModelClass) {
+        Class<?> selected = ViewModelDefaults.select(model.getClass(), viewModelClass, model.getClass().getClassLoader());
         Object existing = BY_INSTANCE.get(model);
         if (existing != null) {
             if (viewModelClass != null && viewModelClass != ViewModel.class
-                    && existing.getClass() != viewModelClass) {
+                    && !selected.isInstance(existing)) {
                 throw new IllegalArgumentException(
                         "ViewModel is " + existing.getClass().getName()
                                 + " but the View names " + viewModelClass.getName());
             }
             return existing;
         }
-        if (viewModelClass == null || viewModelClass == ViewModel.class) {
-            return new ViewModel(model);
-        }
-        return construct(model, viewModelClass);
+        if (selected == ViewModel.class) return new ViewModel(model);
+        return construct(model, selected);
     }
 
     /**
@@ -101,6 +100,7 @@ final class ViewModels {
             }
             return created;
         } catch (InvocationTargetException failure) {
+            BY_INSTANCE.remove(model);
             if (failure.getCause() instanceof RuntimeException runtime) {
                 throw runtime;
             }

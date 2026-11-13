@@ -169,6 +169,13 @@ public class ViewModel {
         }
     }
 
+    /** Returns a stored Attribute only, without invoking a generated or custom accessor. */
+    protected final Property<?> storedProperty(String name) {
+        Property<?> property = properties.get(name);
+        if (property == null) throw new IllegalArgumentException("No stored Attribute: " + name);
+        return property;
+    }
+
     /**
      * Returns the JavaFX property for an Attribute name.
      * <p>
