@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?neitzel-model de.neitzel.fx.example.model.Address?>
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
@@ -9,7 +10,7 @@
 <?import de.neitzel.fx.view.DirectBinding?>
 
 <fx:root type="javafx.scene.layout.VBox" xmlns="http://javafx.com/javafx"
-         xmlns:fx="http://javafx.com/fxml" spacing="6">
+         xmlns:fx="http://javafx.com/fxml/1" spacing="6">
     <padding>
         <Insets top="4" right="4" bottom="4" left="4"/>
     </padding>

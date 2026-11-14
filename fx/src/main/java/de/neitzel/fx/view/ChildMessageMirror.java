@@ -6,6 +6,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Carries one child ViewModel's current notices onto its parent.
@@ -15,6 +17,7 @@ import java.util.Set;
  * source is the Attribute name, a dot, and the child source. A further parent carries that copy
  * the same way, so the source grows into a Path. The copy is not logged again.
  */
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 final class ChildMessageMirror implements MessageListener {
 
     /**
@@ -36,19 +39,6 @@ final class ChildMessageMirror implements MessageListener {
      * Copies already carried, keyed by the identity of the child notice.
      */
     private final Map<Message, Message> copies = new IdentityHashMap<>();
-
-    /**
-     * Creates a mirror. {@link #attach} registers it and copies notices already present.
-     *
-     * @param parent    the parent ViewModel
-     * @param attribute the Attribute that leads to the child
-     * @param child     the child ViewModel
-     */
-    private ChildMessageMirror(ViewModel parent, String attribute, ViewModel child) {
-        this.parent = parent;
-        this.attribute = attribute;
-        this.child = child;
-    }
 
     /**
      * Starts carrying {@code child} onto {@code parent} under {@code attribute}.

@@ -2,42 +2,26 @@ package de.neitzel.fx.view;
 
 import javafx.beans.property.Property;
 import javafx.scene.Parent;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * The scene-graph root and ViewModel produced by loading a View for a Model instance.
  */
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class LoadedView {
 
     /**
      * The scene-graph root of the loaded View.
      */
+    @Getter
     private final Parent root;
 
     /**
      * The ViewModel the View is bound to, or a replacement that exposes JavaFX properties by name.
      */
     private final Object viewModel;
-
-    /**
-     * Creates the result of one load.
-     *
-     * @param root      the scene-graph root
-     * @param viewModel the ViewModel built for the Model instance, or a replacement that exposes
-     *                  JavaFX properties by name
-     */
-    LoadedView(Parent root, Object viewModel) {
-        this.root = root;
-        this.viewModel = viewModel;
-    }
-
-    /**
-     * Returns the scene-graph root.
-     *
-     * @return the root
-     */
-    public Parent getRoot() {
-        return root;
-    }
 
     /**
      * Returns the ViewModel the View is bound to.

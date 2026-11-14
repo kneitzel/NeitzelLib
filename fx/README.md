@@ -1,5 +1,15 @@
 # Using fx
 
+## Documentation map
+
+- [Build a complete application from scratch](docs/quick-start.md).
+- [Architecture, MVVM, identity, threading and lifetime](docs/architecture.md).
+- [Walk through the person desk](../fx-example/README.md).
+- This page is the detailed FXML and runtime reference.
+- [Generated ViewModel classes and registries](docs/generated-viewmodels.md).
+- [Bounded integer spinners](docs/integer-spinners.md) and [system tray support](docs/tray-support.md).
+- [Dependency injection](../injection/README.md).
+
 ## Introduction
 
 `fx` binds an FXML view to an ordinary Java model. The model stays a JavaBean. The library builds one view model for that instance, loads the view, and applies the binding elements declared in the FXML.
@@ -9,12 +19,32 @@ You write the model, the FXML, and, where a screen needs them, a controller, reu
 The worked example is the `fx-example` module, package `de.neitzel.fx.example`. From the NeitzelLib root, with Java 21:
 
 ```bash
-mvn -pl fx-example -am javafx:run
+./mvnw -pl fx-example -am -Dmaven.test.failure.ignore=false install
+./mvnw -f fx-example/pom.xml javafx:run
 ```
 
 The launch class is `de.neitzel.fx.example.Main`. `Main` does not extend `Application`. It calls `Application.launch(DeskApp.class, args)`, and `DeskApp.start` builds the scene on the JavaFX thread.
 
-Depend on `de.neitzel.lib:fx`. That module depends on `injection` and on JavaFX base, controls, graphics, fxml, and web. Application types the container constructs use `jakarta.inject.Singleton` or `jakarta.inject.Named`.
+Depend on `de.neitzel.lib:fx`. That module depends on `core`, `injection` and on JavaFX base, controls, graphics, fxml, and web. Application types the container constructs use `jakarta.inject.Singleton` or `jakarta.inject.Named`.
+
+## Dependencies
+
+These are the versions configured by this source snapshot, not a promise of compatibility with every newer release:
+
+| Part | Baseline / relationship | Consumer responsibility |
+| --- | --- | --- |
+| JDK | Java 21 | Select a matching JDK for compilation and launch |
+| Maven | Minimum 3.8.6; wrapper 3.9.11 | Use the wrapper or an installed Maven |
+| Library | `de.neitzel.lib:fx:1.0-SNAPSHOT` | Install the local reactor first; no Central publication is assumed |
+| Internal modules | `fx` directly depends on `core` and `injection` | Resolved transitively through Maven |
+| JavaFX | 21.0.7: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
+| Injection scanning | Reflections 0.10.2 | Brought by `injection` |
+| Injection annotations | `jakarta.inject-api` 2.0.1 | Use Jakarta annotations, not `javax.inject` |
+| Logging | SLF4J API 2.0.17 | Choose one logging backend; the example uses `slf4j-simple` 2.0.17 at runtime |
+| Library build | Lombok 1.18.42 and test/analysis tooling | Not required in ordinary consumer source; use your own annotations only if wanted |
+| Designer | Optional preview API / Model processor | Needed only for the selected Designer workflow, not normal `ViewLoader` use |
+
+The quick-start POM adds only `fx` and a logging backend. Do not copy library build-time dependencies into an application just to obtain runtime binding. A project using injection alone needs the `injection` artifact and does not need JavaFX.
 
 ## Quick start
 
@@ -135,9 +165,9 @@ A binding that names no such control fails with `No control "` and the id. A mis
 
 The desk puts all three on `name`. The name field is `both`. Shown name (`nameEcho`) is `view`: typing there leaves `Person.name` and the name field unchanged, and typing in the name field updates the echo. Name draft (`nameDraft`) is `model`: it opens as `Ada Lovelace`, stays there while the name field changes, and typing in the draft writes `Person.name` and updates the name field and the echo.
 
-A direction other than `view`, `model`, or `both` fails the load with `Not a direction:`.
+Always specify `direction`: it has no default. A non-null value other than `view`, `model`, or `both` fails the load with `Not a direction:`. Omitting it can currently fail with a `NullPointerException` during binding application. The ObservableList shortcut described above bypasses direction handling; do not rely on that shortcut to omit the declaration.
 
-For a complex last segment the control receives the model instance behind the view model, and the same three directions apply to later changes of that attribute. The home form's `model` property is `home` in both directions, so the form edits that address and a later replacement of `home` would follow. The desk sets the home address once.
+For a complex last segment the control receives the model instance behind the view model, and the same three directions apply to later changes of that attribute. The home form's `model` property is `home` in both directions, so the form edits that address. A later change of the ViewModel's `home` property updates the Component's Model property, but its internal bindings do not reattach; create a new Component to edit another Model. The desk sets the home address once.
 
 ## Paths
 
@@ -145,7 +175,7 @@ A path is attribute names separated by `.`. One name is an attribute of this vie
 
 `home.street` on the home street label steps through the home view model, and `view` applies to `street`. When a complex attribute along the path is null, that binding is left unapplied and both sides keep their current values. The load still succeeds.
 
-The path is resolved when the binding is applied. A binding whose last segment is complex follows later changes of that attribute. A longer path stays with the child view model that was in place when the binding was applied. The home street label is `home.street`. Replacing `person.home` with another address later would leave that label on the street it was bound to.
+The path is resolved when the binding is applied. A binding whose last segment is complex follows later changes of that attribute. A longer path stays with the child view model that was in place when the binding was applied. The home street label is `home.street`. Replacing the ViewModel's `home` property later would leave that label on the street it was bound to. Calling the bean setter directly would not notify either binding.
 
 A list is not indexed in a path. Repeat a component, place a table, or hand a list of simple values to a control.
 
@@ -170,7 +200,7 @@ The age field is the desk's `both` converter. `AgeConverter` takes `AgeSuffix` i
 
 A converter is not applied to a complex attribute or to an `ObservableList`. Those bindings assign the model instance or the list.
 
-When a conversion throws, the other side keeps its previous value. The control keeps the text that was typed, because the failed write does not replace it. The view model that owns the last path segment records one error message. The source is that segment's name. The text is the exception message, or `Conversion failed` when the exception message is null or empty. A later failure of that same binding updates the message in place. A later success removes it.
+When a conversion throws, the other side keeps its previous value. The control keeps the text that was typed, because the failed write does not replace it. The view model that owns the last path segment records one error message. The source is that segment's name. The text is the exception message, or `Conversion failed` when the exception message is null or empty. A later failure for that same Attribute updates the message in place. A later success removes it.
 
 On the desk, `nope` in the age field leaves the age at 41, leaves the field text `nope`, and sets `latestMessage` to an error whose source is `age`. Typing `years 41` again clears it. A blank home street leaves the street as it was and records source `home.street` on the person, because the failure is owned by the address and carried onto the parent. The notice label shows `Street is required`. A later real street clears that notice. See [Messages](#messages).
 
@@ -193,7 +223,7 @@ public String greeting() {
 }
 ```
 
-The library calls `greeting` when the binding is applied, and again when a JavaFX property changes on a `Control` in this view, other than the greeting label, or when an attribute property on this view's `ViewModel` changes. Typing the name updates the greeting because the name field changed. Typing the age updates it because the age attribute changed. Writing the greeting label does not call `greeting` again. Nodes that are not controls are not watched. A replacement view model that does not extend `ViewModel` is not watched.
+The library calls `greeting` when the binding is applied, and again when a JavaFX property changes on a `Control` in this view, other than the target property, or when an attribute property on this view's `ViewModel` changes. Typing the name updates the greeting because the name field changed. Typing the age updates it because the age attribute changed. Writing the greeting label does not call `greeting` again. Nodes that are not controls are not watched, and controls added after binding setup are not automatically subscribed. Computed methods should be fast and free of side effects; this is broad notification-based refresh, not dependency analysis. A replacement view model that does not extend `ViewModel` is not watched.
 
 A missing method fails the load with `No computed method "` and the method value. No controller fails with `No controller for`. A method that throws fails with `Could not call`.
 
@@ -211,7 +241,7 @@ A second view whose document names the same controller class receives that same 
 
 ## Choosing the ViewModel class
 
-With no annotation, the library builds `ViewModel`. Put `@ViewModelClass` on the controller or the component to name a subclass, or another object that exposes JavaFX properties by name. The class needs a constructor that takes the model instance. If several one-argument constructors match, the most specific parameter type wins. The library calls that constructor. The container does not create the view model.
+With no annotation, the library uses a registered generated default when one applies, otherwise it builds `ViewModel`. See the [generated runtime contract](docs/generated-viewmodels.md). Put `@ViewModelClass` on the controller or the component to name a subclass, or another object that exposes JavaFX properties by name. The class needs a constructor that takes the model instance. If several one-argument constructors match, the most specific parameter type wins. The library calls that constructor. The container does not create the view model.
 
 ```java
 @Singleton
@@ -239,15 +269,23 @@ public class PersonViewModel extends ViewModel {
 
 The desk binds `titleLabel` to path `title`, direction `view`. The label shows `titled-Ada Lovelace`, and it follows the name because the subclass listens to the name property. A binding addresses `titleProperty` by the name `title`.
 
-The first view of an instance fixes the class. A later view that names a different class fails the load with `ViewModel is ` the existing class ` but the View names ` the requested class, and the first view stays as it was. A later view with no annotation reuses the view model. That is what `NameLine.fxml` does.
+The first view of an instance fixes the class. A later view requesting a class that the existing ViewModel does not satisfy fails the load with `ViewModel is ` the existing class ` but the View names ` the requested class, and the first view stays as it was. A compatible superclass/interface request reuses the existing instance. A later view with no annotation also reuses the view model. That is what `NameLine.fxml` does.
 
 No matching constructor fails with `No constructor taking the Model on` and the class name.
 
-A component's `@ViewModelClass` applies to that component's model, not to the parent. The library builds that class before the path is read, so a generic view model is not fixed first. An earlier binding in the same list that already resolved a path into that instance would have fixed the class, and a different annotation would then fail the load. The desk does not do that. The person's class is fixed from the controller before the home form's model is set, and `AddressForm` names no view model class, so the address uses `ViewModel`.
+A component's `@ViewModelClass` applies to that component's model, not to the parent. The library builds that class before the path is read, so a generic view model is not fixed first. An earlier binding in the same list that already resolved a path into that instance would have fixed the class, and an incompatible annotation would then fail the load. The desk does not do that. The person's class is fixed from the controller before the home form's model is set, and `AddressForm` names no view model class, so the address uses `ViewModel`.
 
 ## Component
 
-A component is a class the container can create. It extends a pane, loads `ClassName.fxml` from its own package through `fx:root`, and is the controller of that file. It has no `fx:controller`. It exposes one JavaFX property named `model`.
+Component elements accept writable FXML properties, including custom attributes and inherited
+layout properties such as `prefWidth`. The container constructs the Component first; its own
+FXML and `initialize()` run before the containing document's property values are applied.
+JavaFX performs the normal property conversion and rejects unknown properties or invalid values.
+Object references such as `model="$address"` retain their identity and are assigned after the
+Component's model listener is installed. Static layout constraints such as `GridPane.rowIndex`
+remain handled by the containing FXMLLoader.
+
+A component is a class the container can create. It extends `Parent` (usually a Pane subclass such as `VBox`), loads `ClassName.fxml` from its own package through `fx:root`, and is the controller of that file. It has no `fx:controller`. It exposes one JavaFX property named `model`.
 
 `AddressForm` edits the home address. `VisitForm` edits one visit in the repeated list. `NoteForm` edits a note. `VisitRow` edits one table row. Each is `@Singleton`, extends `VBox` or `HBox`, and has `modelProperty()`.
 
@@ -260,7 +298,7 @@ The home document binds the form and sets `model` from the path. When the path's
 
 The component's own bindings run once, the first time `model` becomes non-null. A later change of `model` does not apply them again. Set the model once. To show another instance, load another component.
 
-`initialize` runs during the component's FXML load, before `model` is set. `AddressForm` uses that moment to copy the injected heading onto its label, which does not need the address. `setViewModel` on a component runs after `model` is set to a non-null model and before that component's bindings. `AddressForm` implements `HasViewModel` and writes `Opened as ` plus the city at that moment. Editing the city afterward leaves the label on the city the form opened with. The sample home opens as `Opened as Sample City`.
+`initialize` runs during the component's FXML load, before `model` is set. `AddressForm` uses that moment to copy the injected heading onto its label, which does not need the address. For a Component implementing `HasViewModel`, `setViewModel` runs after `model` is set to a non-null Model and before its bindings, but only when the selected presentation object extends `ViewModel`. An arbitrary replacement does not receive this callback. `AddressForm` implements `HasViewModel` and writes `Opened as ` plus the city at that moment. Editing the city afterward leaves the label on the city the form opened with. The sample home opens as `Opened as Sample City`.
 
 The first component of a class in one load is `context.getComponent`, the cached singleton. Each further one in that same load is `context.createComponent`. Repeat and table rows always use `createComponent`, so they are new instances and the cached singleton of that class stays unused by the rows. `getComponent(VisitForm.class)` after the desk loads is still the singleton, and the three forms in the visit pane are other instances.
 
@@ -272,7 +310,7 @@ A component class needs `ClassName.fxml` beside it. A missing document fails wit
 
 A nested component is the same mechanism one level down. The child document names the next class as an element and binds its `model`.
 
-`AddressForm.fxml` binds `noteForm` to path `note` and contains `<NoteForm fx:id="noteForm"/>`. `NoteForm.fxml` binds its text field to path `text`. The sample home note is `Kept at home`. Editing the note field writes `Address.note`.
+`AddressForm.fxml` binds `noteForm` to path `note` and contains `<NoteForm fx:id="noteForm"/>`. `NoteForm.fxml` binds its text field to path `text`. The sample home note is `Kept at home`. Editing the note field writes `text` on the existing `Note` held by `Address.note`; it does not replace that Note object.
 
 `VisitForm` does not contain `NoteForm`. A visit added after the desk has loaded is built in a new load. The first component of a class in that load is the cached singleton again, so a `NoteForm` nested in the repeated form would be the instance already showing under the home address. Keeping the note on the home form, which is loaded once, leaves that singleton where it was placed.
 
@@ -280,7 +318,7 @@ A null `note` leaves the nested binding unapplied. `NoteForm` stays empty and th
 
 ## Repeat
 
-A `Repeat` element in the same binding list names a pane, a component class, and a collection attribute. The library places one new component in that pane for each model instance, in list order. Adding or removing an element updates the pane. A permutation or a replacement of an element at the same index does not.
+A `Repeat` element in the same binding list names a pane, a component class, and a collection attribute. The library places one new component in that pane for each model instance, in list order. Adding or removing an element updates the pane. A permutation or an extractor update notification does not. Replacing an element with `set(index, newValue)` produces remove/add notifications and is handled.
 
 ```xml
 <Repeat pane="visitPane" component="de.neitzel.fx.example.view.VisitForm" collection="visits"/>
@@ -355,7 +393,7 @@ A table shows a collection of model instances with column headers. Each element 
 
 An empty collection shows the headers and a blank body. Rows scroll vertically inside the table. The header stays put and follows the body's horizontal scroll. Hidden rows are kept and reused when a filter is cleared.
 
-Add and remove update the body. A permutation or an update at the same index is ignored. The table refreshes filter and sort when a text control in a row changes. Other controls in the row do not retrigger it. The field's own direct binding still writes on any property change.
+Add and remove update the body. A permutation or an extractor update notification is ignored; `set(index, replacement)` is handled as remove/add. The table refreshes filter and sort when a text control in a row changes. Other controls in the row do not retrigger it. The field's own direct binding still writes on any property change.
 
 A column attribute must be a simple value: string, boolean, enum, a primitive other than `char` and `void`, a `Number`, a `Date`, a `Calendar`, or a `java.time` temporal. `visitedOn` is a `LocalDate`, so it is a column. A complex attribute fails the load with `Attribute "` name `" is not a simple value`.
 
@@ -425,7 +463,7 @@ The search box hides checklist entries whose text does not contain the query, ig
 
 ## Messages
 
-Every view model has a list of messages and a latest message. A message has a severity, a text, and a source.
+Every runtime `ViewModel` has a list of messages and a latest message. A replacement object that does not extend `ViewModel` does not automatically provide this message machinery. A message has a severity, a text, and a source.
 
 | Severity | What happens |
 | --- | --- |
@@ -441,7 +479,7 @@ viewModel.addMessage(new Message(
         "desk"));
 ```
 
-`getMessages()` is an unmodifiable list, oldest first. `getLatestMessage()` is the most recently added notice. An in-place update of a binding failure does not change which notice is latest, and it is logged again when the severity is error or fatal.
+`getMessages()` is an unmodifiable live list, oldest first. There is no public remove/clear operation for application-added messages; converter failures have their own internal recovery removal. `getLatestMessage()` is the most recently added notice. An in-place update of a binding failure does not change which notice is latest, and it is logged again when the severity is error or fatal.
 
 `latestMessage` is also a string property, the text of the latest message, or null when there is none. It is not a model attribute. The notice label binds it toward the view:
 
@@ -449,7 +487,7 @@ viewModel.addMessage(new Message(
 <DirectBinding control="noticeLabel" property="text" path="latestMessage" direction="view"/>
 ```
 
-The library does not open a popup or fill a status bar on its own. `MessagePopup.showNewMessages(viewModel)` shows each message added after that call. The desk calls it once, after load. The dialog has no header, its content is a label of the message text, and its button is OK. `Dialog.show()` does not block the caller. Messages already on the view model are not shown. An in-place update does not open another dialog.
+A `FATAL` notice does not terminate the application. The library does not open a popup or fill a status bar on its own. `MessagePopup.showNewMessages(viewModel)` shows each message added after that call. The desk calls it once, after load. The dialog has no header, its content is a label of the message text, and its button is OK. `Dialog.show()` does not block the caller. Messages already on the view model are not shown. An in-place update does not open another dialog.
 
 A child message is carried onto the parent. The copy is a different `Message`, with the source extended by the attribute name, so `street` on an address becomes `home.street` on the person. The copy is not written to the log again. When the child drops the message, the parent drops that copy. An in-place text change updates the copy. Setting the complex attribute to null drops the parent's copies and leaves the child's own message. Setting a new child copies the messages that child already has. The same address object on two attributes carries the notice under both attribute names. A cycle does not copy a message back onto a view model that already holds it.
 
@@ -480,12 +518,12 @@ These are the `IllegalArgumentException` messages a document can produce. The vi
 | `No controller ` | `fx:controller` names a missing class |
 | `No control "` | `fx:id` is missing |
 | `No property ` | the control has no such JavaFX property |
-| `Not a direction:` | direction is not `view`, `model`, or `both` |
+| `Not a direction:` | an explicitly supplied direction is not `view`, `model`, or `both`; an omitted direction can instead cause `NullPointerException` |
 | `No read-write attribute for path "` | the path is not an attribute |
 | `Not a binding element:` | a child of `BindingList` is not a direct binding, a computed binding, or a repeat |
 | `No converter ` / `Not a converter:` | the converter class is missing or does not implement `Converter` |
 | `No controller for ` / `No computed method "` | a computed binding has no controller or no such method |
-| `ViewModel is ` … ` but the View names ` | a later view names a different view model class |
+| `ViewModel is ` … ` but the View names ` | a later view requests an incompatible view model class |
 | `No constructor taking the Model on ` | the named view model class has no matching constructor |
 | `No component document ` | `ClassName.fxml` is missing |
 | `No model property on ` | the component has no `modelProperty` |
@@ -495,3 +533,27 @@ These are the `IllegalArgumentException` messages a document can produce. The vi
 | `No component found for type:` | the container was asked for a controller, component, or converter it did not scan |
 
 A conversion failure does not fail the load. It records a message, as [Converter](#converter) describes.
+
+Generated Java ViewModels can share the existing runtime storage and identity registry; see
+[the generated ViewModel runtime contract](docs/generated-viewmodels.md) for stored-property
+access, declarative service defaults, compatible overrides and module-path registration.
+
+
+## Public API checklist
+
+The reference above covers the FXML declarations and their behavior. These are the public entry points by responsibility:
+
+| Responsibility | Types and key members |
+| --- | --- |
+| Load | `ViewLoader.load`, `LoadedView.getRoot`, `getViewModel`, `property` |
+| Presentation state | `ViewModel.property`, protected `storedProperty`, `HasViewModel.setViewModel`, `@ViewModelClass` |
+| Declarations | `BindingList`, `DirectBinding`, `ComputedBinding`, `Repeat`; JavaBean setters correspond to the FXML attributes described above |
+| Convert values | `Converter.toControlValue`, `toAttributeValue` |
+| Table | `Table` collection/row/columns/selection, `Column` header/attribute/width |
+| Messages | `Message` severity/text/source, `Message.Severity`, `ViewModel.addMessage`, `getMessages`, `getLatestMessage`, `MessagePopup.showNewMessages` |
+| Generated defaults | `ViewModelRegistry`, `ViewModelRegistration`, `ViewModelRegistrations`, `ViewModelDefaults.select` |
+| Independent helpers | `IntegerSpinners.nonNegative`, `TraySupport` and its `Backend`/`Registration` |
+
+`property(name)` returns `Property<?>`: cast to the known property type when writing from Java, for example `((StringProperty) loaded.property("name")).set("Grace")`. Generated accessors avoid these casts. `storedProperty` is for subclasses and reads only stored Model Attributes; it does not invoke custom reflective accessors. Internal loaders, appliers and identity-cache helpers are implementation details, not extension APIs.
+
+For threading, strong identity retention, context reuse, the absence of a general disposal API, and JPMS reflection, see [architecture and lifetime](docs/architecture.md). For an independent application POM and runnable files, use the [complete quick start](docs/quick-start.md).

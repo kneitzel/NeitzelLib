@@ -36,31 +36,30 @@ final class ViewModels {
     /**
      * Returns the ViewModel for a Model instance.
      * <p>
-     * Builds {@code viewModelClass} with the Model when none exists yet. A null class, or
-     * {@link ViewModel} itself, builds the generic ViewModel. The class may extend {@link ViewModel}
-     * or be a replacement that exposes JavaFX properties by name. The container does not create it.
-     * The first View fixes the class. A later View that names a different class fails. A later
-     * View that names none reuses the ViewModel.
+     * Selects a registered default or compatible explicit class before construction. Without
+     * a registered default, a null class or {@link ViewModel} itself uses the generic ViewModel.
+     * An unregistered replacement may expose JavaFX properties by name. The container does not
+     * create it. The first View fixes the instance; later compatible superclass/interface requests
+     * reuse it, while incompatible requests fail. A View naming no class reuses the instance.
      *
      * @param model          the Model instance
      * @param viewModelClass the class named by {@link ViewModelClass}, or {@code null}
      * @return the ViewModel for that instance, or the replacement
      */
     static Object of(Object model, Class<?> viewModelClass) {
+        Class<?> selected = ViewModelDefaults.select(model.getClass(), viewModelClass, model.getClass().getClassLoader());
         Object existing = BY_INSTANCE.get(model);
         if (existing != null) {
             if (viewModelClass != null && viewModelClass != ViewModel.class
-                    && existing.getClass() != viewModelClass) {
+                    && !selected.isInstance(existing)) {
                 throw new IllegalArgumentException(
                         "ViewModel is " + existing.getClass().getName()
                                 + " but the View names " + viewModelClass.getName());
             }
             return existing;
         }
-        if (viewModelClass == null || viewModelClass == ViewModel.class) {
-            return new ViewModel(model);
-        }
-        return construct(model, viewModelClass);
+        if (selected == ViewModel.class) return new ViewModel(model);
+        return construct(model, selected);
     }
 
     /**
@@ -101,6 +100,7 @@ final class ViewModels {
             }
             return created;
         } catch (InvocationTargetException failure) {
+            BY_INSTANCE.remove(model);
             if (failure.getCause() instanceof RuntimeException runtime) {
                 throw runtime;
             }

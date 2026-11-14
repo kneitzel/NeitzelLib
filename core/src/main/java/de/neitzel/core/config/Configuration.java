@@ -2,8 +2,6 @@ package de.neitzel.core.config;
 
 import de.neitzel.core.io.FileUtils;
 import de.neitzel.core.util.Strings;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,6 +12,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Properties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Provides a utility class for managing configuration properties in an
@@ -22,6 +22,7 @@ import java.util.Properties;
  * and updating properties.
  */
 @Slf4j
+@RequiredArgsConstructor
 public class Configuration {
 
     /**
@@ -41,15 +42,6 @@ public class Configuration {
      */
     public Configuration() {
         this(new Properties());
-    }
-
-    /**
-     * Constructs a new Configuration instance using the provided properties.
-     *
-     * @param properties the Properties object containing configuration key-value pairs
-     */
-    public Configuration(final Properties properties) {
-        this.properties = properties;
     }
 
     /**

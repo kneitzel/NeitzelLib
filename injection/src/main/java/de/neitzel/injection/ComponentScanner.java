@@ -3,8 +3,6 @@ package de.neitzel.injection;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import org.reflections.Reflections;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -15,6 +13,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.Getter;
+import org.reflections.Reflections;
 
 /**
  * Scans a base package for Jakarta CDI-style components and derives dependency-injection metadata.
@@ -63,6 +63,7 @@ public class ComponentScanner {
      * in the dependency injection system, ensuring that only resolvable, uniquely identifiable
      * components can be instantiated and injected.
      */
+    @Getter
     private final Set<Class<?>> notUniqueTypes = new HashSet<>();
 
     /**
@@ -93,6 +94,7 @@ public class ComponentScanner {
      * Errors added to this list provide detailed descriptions of the specific
      * issues that prevent certain components from being instantiated correctly.
      */
+    @Getter
     private final List<String> errors = new ArrayList<>();
 
     /**
@@ -115,6 +117,7 @@ public class ComponentScanner {
      * This map includes concrete component classes as keys and, where unique, their injectable
      * super types (interfaces/superclasses) as additional keys.
      */
+    @Getter
     private final Map<Class<?>, ComponentData> instantiableComponents = new HashMap<>();
 
     /**
@@ -528,34 +531,6 @@ public class ComponentScanner {
      */
     private boolean isUnknownDependency(Class<?> type) {
         return !instantiableComponents.containsKey(type) && !notUniqueTypes.contains(type);
-    }
-
-    /**
-     * Returns the mapping of resolvable injectable types to their {@link ComponentData}.
-     *
-     * @return a map of types to instantiation/injection metadata
-     */
-    public Map<Class<?>, ComponentData> getInstantiableComponents() {
-        return instantiableComponents;
-    }
-
-    /**
-     * Returns the set of super types (interfaces/superclasses) that are implemented by multiple
-     * components and therefore cannot be uniquely resolved.
-     *
-     * @return set of non-unique injectable types
-     */
-    public Set<Class<?>> getNotUniqueTypes() {
-        return notUniqueTypes;
-    }
-
-    /**
-     * Returns collected errors discovered during scanning and resolution.
-     *
-     * @return list of human-readable error messages
-     */
-    public List<String> getErrors() {
-        return errors;
     }
 
     /**

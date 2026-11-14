@@ -1,5 +1,8 @@
 package de.neitzel.fx.view;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * A Direct binding declared in FXML.
  * <p>
@@ -10,6 +13,8 @@ package de.neitzel.fx.view;
  * Model instance behind the ViewModel. Direction values are {@code view}, {@code model}, and
  * {@code both}. The Converter value is the class name. The container creates that class.
  */
+@Getter
+@Setter
 public class DirectBinding {
 
     /**
@@ -37,93 +42,4 @@ public class DirectBinding {
      */
     private String converter;
 
-    /**
-     * Sets the {@code fx:id} of the control.
-     *
-     * @param control the control id
-     */
-    public void setControl(String control) {
-        this.control = control;
-    }
-
-    /**
-     * Sets the control property name, such as {@code text}.
-     *
-     * @param property the property name
-     */
-    public void setProperty(String property) {
-        this.property = property;
-    }
-
-    /**
-     * Sets the Path. One name is an Attribute of this View's ViewModel.
-     *
-     * @param path the path
-     */
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    /**
-     * Sets the direction. Accepted values are {@code view}, {@code model}, and {@code both}.
-     *
-     * @param direction the direction value
-     */
-    public void setDirection(String direction) {
-        this.direction = direction;
-    }
-
-    /**
-     * Sets the Converter class name. The container creates that class.
-     *
-     * @param converter the converter class name, or {@code null} when values pass through
-     */
-    public void setConverter(String converter) {
-        this.converter = converter;
-    }
-
-    /**
-     * Returns the {@code fx:id} of the control.
-     *
-     * @return the control id
-     */
-    public String getControl() {
-        return control;
-    }
-
-    /**
-     * Returns the control property name.
-     *
-     * @return the property name
-     */
-    public String getProperty() {
-        return property;
-    }
-
-    /**
-     * Returns the Path.
-     *
-     * @return the path
-     */
-    public String getPath() {
-        return path;
-    }
-
-    /**
-     * Returns the direction value.
-     *
-     * @return {@code view}, {@code model}, or {@code both}
-     */
-    public String getDirection() {
-        return direction;
-    }
-
-    /**
-     * Returns the Converter class name.
-     *
-     * @return the class name, or {@code null} when values pass through
-     */
-    public String getConverter() {
-        return converter;
-    }
 }

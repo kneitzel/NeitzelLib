@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "contexts": {
+    "person-desk": {
+      "applicationModule": "fx-example",
+      "mavenProfiles": ["designer-preview"],
+      "launchMode": "classpath",
+      "buildRuntime": "java21",
+      "targetRuntime": "java21",
+      "preview": {
+        "sourceSet": "test",
+        "provider": "de.neitzel.fx.example.preview.DeskPreviewProvider",
+        "defaultExample": "desk"
+      }
+    }
+  }
+}

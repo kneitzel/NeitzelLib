@@ -1,17 +1,23 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.injection.ApplicationContext;
-import javafx.beans.property.Property;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.util.Builder;
-
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import javafx.beans.property.Property;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.util.Builder;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Loads a Component from {@code ClassName.fxml} in the Component's package.
@@ -58,8 +64,75 @@ final class Components {
         if (!LoadSession.claimFirst(type)) {
             component = context.createComponent(type.asSubclass(Object.class));
         }
-        Object created = component;
-        return () -> load(created, context);
+        return new ComponentBuilder(component, context);
+    }
+
+    /**
+     * Collects instance properties while FXML constructs an injected Component.
+     * Properties are applied after its own document and model listener are ready.
+     */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    private static final class ComponentBuilder extends AbstractMap<String, Object> implements Builder<Object> {
+        /** The injected instance. */
+        private final Object component;
+        /** The context used to load its document. */
+        private final ApplicationContext context;
+        /** Values already resolved by the containing FXMLLoader. */
+        private final Map<String, Object> values = new LinkedHashMap<>();
+
+        /**
+         * Records a property for application after Component initialization.
+         * @param key the property name
+         * @param value the resolved value
+         * @return the previous value
+         */
+        @Override
+        public Object put(String key, Object value) {
+            return values.put(key, value);
+        }
+
+        /**
+         * Returns the recorded properties.
+         * @return the property entries
+         */
+        @Override
+        public Set<Entry<String, Object>> entrySet() {
+            return values.entrySet();
+        }
+
+        /**
+         * Loads the Component and applies properties with standard FXML coercion.
+         * @return the initialized Component
+         */
+        @Override
+        public Object build() {
+            Object result = load(component, context);
+            if (!values.isEmpty()) {
+                // A second fx:root load uses the public FXMLLoader API for bean setters,
+                // enum/numeric coercion and diagnostics, without depending on BeanAdapter
+                // internals or serializing values (which may be Model object references).
+                FXMLLoader properties = new FXMLLoader();
+                properties.setRoot(result);
+                properties.setClassLoader(result.getClass().getClassLoader());
+                StringBuilder document = new StringBuilder("<fx:root xmlns:fx=\"http://javafx.com/fxml/1\" type=\"")
+                        .append(result.getClass().getName()).append('"');
+                int index = 0;
+                for (Entry<String, Object> entry : values.entrySet()) {
+                    String variable = "componentValue" + index++;
+                    properties.getNamespace().put(variable, entry.getValue());
+                    document.append(' ').append(entry.getKey()).append("=\"$")
+                            .append(variable).append('"');
+                }
+                document.append("/>");
+                try {
+                    properties.load(new ByteArrayInputStream(document.toString().getBytes(StandardCharsets.UTF_8)));
+                } catch (IOException failure) {
+                    throw new IllegalStateException("Could not apply Component properties to "
+                            + result.getClass().getName(), failure);
+                }
+            }
+            return result;
+        }
     }
 
     /**

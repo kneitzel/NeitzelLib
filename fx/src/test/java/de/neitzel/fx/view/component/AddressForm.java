@@ -68,6 +68,22 @@ public class AddressForm extends VBox implements HasViewModel {
     }
 
     /**
+     * Returns the custom caption after initialization.
+     * @return the caption
+     */
+    public String getCaption() {
+        return streetLabel.getText();
+    }
+
+    /**
+     * Sets a custom FXML attribute; the label must already be injected.
+     * @param caption the caption
+     */
+    public void setCaption(String caption) {
+        streetLabel.setText(caption);
+    }
+
+    /**
      * Returns the model property a parent view sets with a direct binding.
      *
      * @return the model property

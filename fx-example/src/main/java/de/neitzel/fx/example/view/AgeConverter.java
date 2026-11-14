@@ -3,27 +3,19 @@ package de.neitzel.fx.example.view;
 import de.neitzel.fx.view.Converter;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Translates an age between the Model and the text field.
  */
 @Singleton
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public class AgeConverter implements Converter {
 
     /**
      * The text written in front of the age.
      */
     private final AgeSuffix suffix;
-
-    /**
-     * Creates a converter that reads its suffix from the injected service.
-     *
-     * @param suffix the suffix written in front of the age
-     */
-    @Inject
-    public AgeConverter(AgeSuffix suffix) {
-        this.suffix = suffix;
-    }
 
     /**
      * Writes the suffix in front of the age.

@@ -8,7 +8,7 @@ The worked example is the person desk in `fx-example`, package `de.neitzel.fx.ex
 
 ## Quick start
 
-Depend on the module. It brings Reflections and `jakarta.inject-api`. The parent artifact is `de.neitzel.lib:neitzellib:1.0-SNAPSHOT`. Java 21.
+Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The parent artifact is `de.neitzel.lib:neitzellib:1.0-SNAPSHOT`. Java 21.
 
 ```xml
 <dependency>
@@ -171,3 +171,53 @@ The desk does not call `addSingleton`. Its services are the scanned classes.
 ## What this container does not do
 
 It does not match qualifiers, read `@Named` values, inject by name, bind configuration properties, or call lifecycle methods. It does not create a new instance per injection. `fx` view models are built by `fx`, not by this container.
+
+
+## A standalone service example
+
+Injection does not require a JavaFX application or toolkit. After installing the local snapshot as described in the [complete Maven quick start](../fx/docs/quick-start.md), use the dependency above and put these public types in separate files in the same `example.services` package:
+
+```java
+package example.services;
+
+@jakarta.inject.Singleton
+public class Greeting {
+    public String text() { return "Hello"; }
+}
+```
+
+```java
+package example.services;
+
+@jakarta.inject.Named
+public class Printer {
+    private final Greeting greeting;
+    public Printer(Greeting greeting) { this.greeting = greeting; }
+    public void print() { System.out.println(greeting.text()); }
+}
+```
+
+```java
+package example.services;
+
+import de.neitzel.injection.ApplicationContext;
+
+public class Main {
+    public static void main(String[] args) {
+        var context = new ApplicationContext("example.services");
+        context.getComponent(Printer.class).print();
+        // A fresh Printer still receives the same Greeting singleton.
+        context.createComponent(Printer.class).print();
+    }
+}
+```
+
+The lone constructor needs no `@Inject`. Use explicit `@Inject` when choosing among constructors. Keep a scan root narrow enough to contain the intended implementations and their dependencies. For named modules, open reflected packages; see the [reflection notes](../fx/docs/architecture.md#modules-and-reflection).
+
+## Low-level metadata API
+
+`ComponentScanner` exposes its instantiable component map, ambiguous type set and error list for diagnostics. These are its own mutable collections, not immutable snapshots; avoid changing them while inspecting results. It resolves dependencies before instance construction, which is why registering a missing service later cannot repair an already rejected component.
+
+`ComponentData` represents discovered construction metadata: component type, `Scope`, selected constructor, injected fields and setters, and cached instance. Its constructors accept a type/scope, a prebuilt instance, or complete construction metadata. Member lists are copied at construction. `setInstance` stores an instance only for `SINGLETON` and rejects a second assignment; it does not cache a `PROTOTYPE`. This is a low-level representation, not a builder for reconfiguring an existing context. Prefer `ApplicationContext` for application code.
+
+A manually supplied singleton does not receive member injection. The container does not close supplied or constructed objects. Your application owns their resources and shutdown, and must serialize access if it uses a context across threads.

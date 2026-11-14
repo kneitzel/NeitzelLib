@@ -1,11 +1,16 @@
 package de.neitzel.fx.example.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * A short note attached to an address.
  * <p>
  * The class is a complex attribute of {@link Address}: it has a read-write property of its own.
  * The home address form nests a component that edits this note.
  */
+@Getter
+@Setter
 public class Note {
 
     /**
@@ -28,21 +33,4 @@ public class Note {
         this.text = text;
     }
 
-    /**
-     * Returns the note text.
-     *
-     * @return the text
-     */
-    public String getText() {
-        return text;
-    }
-
-    /**
-     * Sets the note text.
-     *
-     * @param text the text
-     */
-    public void setText(String text) {
-        this.text = text;
-    }
 }

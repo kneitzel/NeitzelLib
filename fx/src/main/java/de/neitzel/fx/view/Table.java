@@ -1,6 +1,24 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.injection.ApplicationContext;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.Property;
@@ -23,25 +41,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
-import java.time.temporal.TemporalAccessor;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * A collection shown with one Component for each element.
@@ -98,6 +99,8 @@ public class Table extends VBox {
     /**
      * The collection Attribute.
      */
+    @Getter
+    @Setter
     private String collection;
 
     /**
@@ -108,6 +111,7 @@ public class Table extends VBox {
     /**
      * The Columns, in declared order.
      */
+    @Getter
     private final ObservableList<Column> columns = FXCollections.observableArrayList();
 
     /**
@@ -259,24 +263,6 @@ public class Table extends VBox {
     }
 
     /**
-     * Sets the collection Attribute.
-     *
-     * @param collection the collection Attribute
-     */
-    public void setCollection(String collection) {
-        this.collection = collection;
-    }
-
-    /**
-     * Returns the collection Attribute.
-     *
-     * @return the collection Attribute
-     */
-    public String getCollection() {
-        return collection;
-    }
-
-    /**
      * Sets the Row class name.
      *
      * @param row the Row class name
@@ -292,15 +278,6 @@ public class Table extends VBox {
      */
     public String getRow() {
         return rowClass;
-    }
-
-    /**
-     * Returns the Columns in declared order.
-     *
-     * @return the Columns
-     */
-    public ObservableList<Column> getColumns() {
-        return columns;
     }
 
     /**

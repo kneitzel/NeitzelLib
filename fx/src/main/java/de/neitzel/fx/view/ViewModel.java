@@ -1,25 +1,5 @@
 package de.neitzel.fx.view;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.FloatProperty;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.Property;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleFloatProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleLongProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -42,6 +22,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.FloatProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.Property;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleFloatProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleLongProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The object a View binds to, built at runtime for one Model instance.
@@ -75,12 +73,8 @@ import java.util.function.Consumer;
  * status bar unless the developer asks. {@link MessagePopup#showNewMessages} shows each newly added
  * Message in a dialog. An in-place update does not.
  */
+@Slf4j
 public class ViewModel {
-
-    /**
-     * Receives error and fatal notices. Info and warn are not logged.
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(ViewModel.class);
 
     /**
      * The Model instance this ViewModel was built for.
@@ -167,6 +161,13 @@ public class ViewModel {
                 properties.put(name, property);
             }
         }
+    }
+
+    /** Returns a stored Attribute only, without invoking a generated or custom accessor. */
+    protected final Property<?> storedProperty(String name) {
+        Property<?> property = properties.get(name);
+        if (property == null) throw new IllegalArgumentException("No stored Attribute: " + name);
+        return property;
     }
 
     /**
@@ -763,7 +764,7 @@ public class ViewModel {
     private static void logSevere(Message message) {
         Message.Severity severity = message.getSeverity();
         if (severity == Message.Severity.ERROR || severity == Message.Severity.FATAL) {
-            LOGGER.error(message.getText());
+            log.error(message.getText());
         }
     }
 

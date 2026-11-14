@@ -1,13 +1,14 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.injection.ApplicationContext;
-import javafx.beans.property.Property;
-import javafx.collections.ObservableList;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import javafx.beans.property.Property;
+import javafx.collections.ObservableList;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Connects one Direct binding to a control property and a ViewModel Attribute.
@@ -93,6 +94,7 @@ final class DirectBindingApplier {
      * {@code name} is the last segment. A conversion failure is recorded on {@code owner} with that
      * name as the source, so a parent only carries the extended copy.
      */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class Resolved {
 
         /**
@@ -115,20 +117,6 @@ final class DirectBindingApplier {
          */
         private final String name;
 
-        /**
-         * Records one resolved Path.
-         *
-         * @param attribute the Attribute
-         * @param complex   whether the Attribute is complex
-         * @param owner     the ViewModel that owns it
-         * @param name      the last segment
-         */
-        private Resolved(Property<?> attribute, boolean complex, ViewModel owner, String name) {
-            this.attribute = attribute;
-            this.complex = complex;
-            this.owner = owner;
-            this.name = name;
-        }
     }
 
     /**

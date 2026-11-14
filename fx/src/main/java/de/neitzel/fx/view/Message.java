@@ -1,5 +1,7 @@
 package de.neitzel.fx.view;
 
+import lombok.Getter;
+
 /**
  * A notice on a ViewModel with a severity, a text, and a source.
  */
@@ -22,16 +24,19 @@ public final class Message {
     /**
      * How serious the notice is.
      */
+    @Getter
     private final Severity severity;
 
     /**
      * The notice text. A binding failure updates this in place.
      */
+    @Getter
     private String text;
 
     /**
      * Where the notice came from, such as a binding Path.
      */
+    @Getter
     private final String source;
 
     /**
@@ -50,33 +55,6 @@ public final class Message {
         this.severity = severity;
         this.text = text;
         this.source = source;
-    }
-
-    /**
-     * Returns how serious the notice is.
-     *
-     * @return the severity
-     */
-    public Severity getSeverity() {
-        return severity;
-    }
-
-    /**
-     * Returns the notice text.
-     *
-     * @return the text
-     */
-    public String getText() {
-        return text;
-    }
-
-    /**
-     * Returns where the notice came from.
-     *
-     * @return the source
-     */
-    public String getSource() {
-        return source;
     }
 
     /**

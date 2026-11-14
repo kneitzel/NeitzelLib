@@ -3,6 +3,7 @@ package de.neitzel.fx.view;
 import de.neitzel.injection.ApplicationContext;
 import javafx.beans.DefaultProperty;
 import javafx.scene.Parent;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ public class BindingList {
     /**
      * The binding elements, in document order.
      */
+    @Getter
     private final List<Object> elements = new ArrayList<>();
 
     /**
@@ -27,18 +29,6 @@ public class BindingList {
      */
     public BindingList() {
         LoadSession.register(this);
-    }
-
-    /**
-     * Returns the binding elements in this list.
-     * <p>
-     * FXML appends child elements to the returned list. A child is a {@link DirectBinding}, a
-     * {@link ComputedBinding}, or a {@link Repeat}.
-     *
-     * @return the mutable list of binding elements
-     */
-    public List<Object> getElements() {
-        return elements;
     }
 
     /**

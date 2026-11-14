@@ -22,6 +22,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * A wrapper implementation of the {@link ResultSet} interface that modifies or intercepts
@@ -31,6 +32,7 @@ import java.util.Map;
  * If any additional behaviors or transformations are applied, they are documented
  * in the respective overridden method descriptions.
  */
+@RequiredArgsConstructor
 public class TrimmingResultSet implements ResultSet {
 
     /**
@@ -43,15 +45,6 @@ public class TrimmingResultSet implements ResultSet {
      * SQL query execution lifecycle.
      */
     private final ResultSet resultSet;
-
-    /**
-     * Initializes a new instance of the TrimmingResultSet class, wrapping the provided ResultSet.
-     *
-     * @param resultSet the ResultSet to be wrapped and processed by this TrimmingResultSet instance
-     */
-    public TrimmingResultSet(ResultSet resultSet) {
-        this.resultSet = resultSet;
-    }
 
     /**
      * Moves the cursor forward one row from its current position in the ResultSet.
@@ -933,18 +926,6 @@ public class TrimmingResultSet implements ResultSet {
         return resultSet.getNCharacterStream(columnLabel);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Retrieves the value of the designated column in the current row of this ResultSet object
      * as an Object in the Java programming language. The value will be converted to the specified
@@ -965,8 +946,6 @@ public class TrimmingResultSet implements ResultSet {
         return resultSet.getObject(columnIndex, map);
     }
 
-
-
     /**
      * Retrieves the value of the specified column as a {@link Ref} object.
      *
@@ -978,8 +957,6 @@ public class TrimmingResultSet implements ResultSet {
     public Ref getRef(final int columnIndex) throws SQLException {
         return resultSet.getRef(columnIndex);
     }
-
-
 
     /**
      * Retrieves the Blob object designated by the given column index from the current row of the result set.
@@ -993,8 +970,6 @@ public class TrimmingResultSet implements ResultSet {
         return resultSet.getBlob(columnIndex);
     }
 
-
-
     /**
      * Retrieves the CLOB value at the specified column index from the underlying ResultSet.
      *
@@ -1006,8 +981,6 @@ public class TrimmingResultSet implements ResultSet {
     public Clob getClob(final int columnIndex) throws SQLException {
         return resultSet.getClob(columnIndex);
     }
-
-
 
     /**
      * Retrieves an SQL Array object from the specified column index

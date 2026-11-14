@@ -24,3 +24,29 @@ safe from any thread. This is also the public seam for lifecycle tests. The test
 exercise real JavaFX Stage close/open, cancelled/accepted quit, and unsupported
 fallback with deterministic native registrations. Native platform behavior must
 also be checked in the consuming application.
+
+
+## Application integration
+
+Keep the handle as application state and give users a Quit button/menu even if the tray is unavailable:
+
+```java
+// In Application.start(Stage stage); icon is a java.awt.Image.
+tray = TraySupport.attach(stage, icon, "My application",
+        () -> confirmUnsavedChanges(), Platform::exit);
+quitButton.setOnAction(event -> tray.requestQuit());
+```
+
+```java
+// Application field and shutdown hook:
+private TraySupport tray;
+
+@Override
+public void stop() {
+    if (tray != null) tray.close();
+}
+```
+
+Import `de.neitzel.fx.tray.TraySupport` and `javafx.application.Platform`. Supply your own `java.awt.Image`, confirmation function and Button. This is an integration fragment, not a complete application. `mayQuit` must return whether quitting may proceed; the library does not save documents itself. `isAvailable()` reads current availability, while the read-only `availableProperty()` can drive a status label. A pending installation is not availability.
+
+Use one owner for the application's primary tray lifecycle: JavaFX implicit exit is global, so independent handles are not a coordinated multi-window policy. This API does not intercept every operating-system application Quit action. `close()` is idempotent and releases only its own registration and handlers; ordinary application resources still need their own cleanup.

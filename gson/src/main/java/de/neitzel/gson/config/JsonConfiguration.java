@@ -3,13 +3,13 @@ package de.neitzel.gson.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import lombok.Builder;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Builder;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Represents a configuration utility class that manages application settings and allows
@@ -20,6 +20,7 @@ import java.util.Map;
  * the configuration on the filesystem and retrieve it as needed.
  */
 @Builder(builderClassName = "ConfigurationBuilder")
+@RequiredArgsConstructor
 public class JsonConfiguration {
     /**
      * The name of the application.
@@ -65,21 +66,6 @@ public class JsonConfiguration {
      * for specific types.
      */
     private final Gson gson;
-
-    /**
-     * Constructs a new {@code JsonConfiguration} instance with the specified parameters.
-     *
-     * @param appName  the name of the application
-     * @param homeDir  the home directory path for the application
-     * @param settings a map containing configuration settings as key-value pairs
-     * @param gson     the Gson instance used for JSON serialization and deserialization
-     */
-    public JsonConfiguration(String appName, String homeDir, Map<String, String> settings, Gson gson) {
-        this.appName = appName;
-        this.homeDir = homeDir;
-        this.settings = settings;
-        this.gson = gson;
-    }
 
     /**
      * Stores a key-value pair into the configuration settings.

@@ -1,6 +1,8 @@
 package de.neitzel.net.imap;
 
 import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Represents an IMAP account with server configuration, user credentials, and protocol details.
@@ -8,6 +10,8 @@ import java.util.Objects;
  * representation, equality checks, and hashing.
  */
 @SuppressWarnings("unused")
+@Getter
+@Setter
 public class ImapAccount {
 
     /**
@@ -41,78 +45,6 @@ public class ImapAccount {
      */
     public ImapAccount() {
         // default constructor only
-    }
-
-    /**
-     * Retrieves the server address associated with this IMAP
-     *
-     * @return the server address as a String.
-     */
-    public String getServer() {
-        return server;
-    }
-
-    /**
-     * Sets the server address for the IMAP account.
-     *
-     * @param server the server address to be configured for the IMAP account
-     */
-    public void setServer(String server) {
-        this.server = server;
-    }
-
-    /**
-     * Retrieves the username associated with this IMAP account.
-     *
-     * @return the username of the IMAP account as a String.
-     */
-    public String getUser() {
-        return user;
-    }
-
-    /**
-     * Sets the username associated with the IMAP account.
-     *
-     * @param user The username to be set for this IMAP account.
-     */
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    /**
-     * Retrieves the password associated with this IMAP account.
-     *
-     * @return the password of the IMAP account.
-     */
-    public String getPassword() {
-        return password;
-    }
-
-    /**
-     * Sets the password for the IMAP account.
-     *
-     * @param password The password to be set for the account.
-     */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    /**
-     * Retrieves the protocol used by this IMAP account.
-     *
-     * @return the protocol as a String, which defines the communication method for the IMAP account.
-     */
-    public String getProtocol() {
-        return protocol;
-    }
-
-    /**
-     * Sets the protocol used by the IMAP account.
-     *
-     * @param protocol the protocol to be used, e.g., "IMAP" or "IMAPS".
-     */
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
     }
 
     /**
