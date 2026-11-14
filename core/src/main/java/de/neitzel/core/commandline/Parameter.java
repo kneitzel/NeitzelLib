@@ -1,13 +1,13 @@
 package de.neitzel.core.commandline;
 
+import java.util.List;
+import java.util.function.Consumer;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * The `Parameter` class defines a command-line parameter with associated metadata,
@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 @Builder
 @Getter
 @Setter
+@AllArgsConstructor
 public class Parameter {
 
     /**
@@ -165,30 +166,4 @@ public class Parameter {
     public Parameter() {
     }
 
-    /**
-     * Constructs a new Parameter with the given attributes.
-     *
-     * @param name               The name of the parameter.
-     * @param minNumberValues    The minimum number of values allowed for this parameter.
-     * @param maxNumberValues    The maximum number of values allowed for this parameter.
-     * @param multipleEntries    Indicates whether multiple entries are allowed for this parameter.
-     * @param shortDescription   A brief description of the parameter.
-     * @param longDescription    A detailed description of the parameter.
-     * @param callback           A consumer function that processes a list of values associated with this parameter.
-     * @param isHelpCommand      Indicates whether this parameter represents a help command.
-     * @param isDefaultParameter Indicates whether this parameter is the default parameter.
-     * @param aliasList          A list of aliases for this parameter.
-     */
-    public Parameter(String name, int minNumberValues, int maxNumberValues, boolean multipleEntries, String shortDescription, String longDescription, Consumer<List<String>> callback, boolean isHelpCommand, boolean isDefaultParameter, List<String> aliasList) {
-        this.name = name;
-        this.minNumberValues = minNumberValues;
-        this.maxNumberValues = maxNumberValues;
-        this.multipleEntries = multipleEntries;
-        this.shortDescription = shortDescription;
-        this.longDescription = longDescription;
-        this.callback = callback;
-        this.isHelpCommand = isHelpCommand;
-        this.isDefaultParameter = isDefaultParameter;
-        this.aliasList = aliasList;
-    }
 }

@@ -39,7 +39,22 @@ Paths below are relative to this module. Java sources share `src/main/java/de/ne
 | `src/test/resources/de/neitzel/fx/example/NameLine.fxml` | Test-only second View of the same Person without reusable Component nodes |
 | `view/AgeConverter`, `StreetConverter`, `VisitedOnConverter` | Text adaptation, validation failures and ISO dates |
 
-Use the actual source directories to locate helper services such as `AgeSuffix`, `StreetPolicy` and `FormHeading`. The injection guide explains constructor, field and setter injection with these types. No code generation is required to run this example; `PersonViewModel` is handwritten.
+Use the actual source directories to locate helper services such as `AgeSuffix`, `StreetPolicy` and `FormHeading`. The injection guide explains constructor, field and setter injection with these types. No Designer code generation is required to run this example; `PersonViewModel` is handwritten.
+
+## Lombok and annotation processing
+
+`Person`, `Address` and `Note` use `@Getter`/`@Setter` to generate ordinary JavaBean
+accessors. Their defaults, mutable lists and object identity are unchanged; no
+`@Data` equality or string representation is generated. JavaFX property methods
+remain explicit. `AgeConverter` and `VisitRow` use
+`@RequiredArgsConstructor(onConstructor_ = @Inject)` so the generated public
+constructors retain the injection annotation.
+
+Lombok is inherited from the parent as a compile-time-only dependency. The
+optional `designer-preview` profile explicitly lists **both** Lombok and the
+Designer Model metadata processor. Keep both when changing that profile:
+metadata discovery must see the generated accessors during compilation. The
+normal build needs no Designer processor; Lombok still runs.
 
 ## Try the behaviors
 

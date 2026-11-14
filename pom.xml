@@ -266,6 +266,33 @@
                 </executions>
             </plugin>
 
+            <!-- Javadoc reads source without annotation processing. Expand Lombok only
+                 for documentation; compile the original sources as before. -->
+            <plugin>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok-maven-plugin</artifactId>
+                <version>1.18.20.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                        <version>${lombok.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+                    <outputDirectory>${project.build.directory}/delombok</outputDirectory>
+                    <addOutputDirectory>false</addOutputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>expand-lombok-for-javadoc</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>delombok</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -277,7 +304,7 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <sourcepath>${project.build.sourceDirectory}</sourcepath>
+                            <sourcepath>${project.build.directory}/delombok</sourcepath>
                         </configuration>
                     </execution>
                 </executions>
@@ -346,6 +373,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven.javadoc.plugin}</version>
+                <configuration>
+                    <sourcepath>${project.build.directory}/delombok</sourcepath>
+                </configuration>
                 <reportSets>
                     <reportSet>
                         <reports>

@@ -1,8 +1,5 @@
 package de.neitzel.core.sql;
 
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -19,6 +16,9 @@ import java.util.Spliterators;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * A generic class for managing SQL queries and their execution using JDBC.
@@ -28,6 +28,7 @@ import java.util.stream.StreamSupport;
  * @param <T> The type of the objects returned by the query.
  */
 @Slf4j
+@RequiredArgsConstructor
 public class Query<T> {
 
     /**
@@ -73,15 +74,6 @@ public class Query<T> {
      * This variable stores the query string used for processing or execution purposes within the application.
      */
     private String queryText;
-
-    /**
-     * Constructs a new Query object with the given database connection.
-     *
-     * @param connection The Connection object used to interact with the database.
-     */
-    public Query(Connection connection) {
-        this.connection = connection;
-    }
 
     /**
      * Executes the given SQL query using the provided database connection.

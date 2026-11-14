@@ -75,3 +75,22 @@ Some additions for quarkus that might be useful.
 The [complete quick start](fx/docs/quick-start.md) includes local snapshot installation, a standalone Maven POM, Java classes, FXML and launch commands. Continue with [MVVM and runtime architecture](fx/docs/architecture.md), the [FXML reference](fx/README.md), and the [person desk walkthrough](fx-example/README.md). The [injection guide](injection/README.md) also covers use without JavaFX.
 
 Build with Java 21. Maven wrapper version is 3.9.11; the project requires Maven 3.8.6 or later. Library version `1.0-SNAPSHOT` denotes development artifacts, not a published stable release. The parent POM currently ignores Surefire failures: check test reports, as explained in the quick start, rather than relying only on Maven's exit code.
+
+## Java source conventions
+
+Use focused Lombok annotations for mechanical accessors, constructors and logging;
+see [the contributor instructions](AGENTS.md). The parent already configures
+Lombok 1.18.42 as a provided dependency and an explicit annotation processor.
+It is not required at runtime. Each checkout has a `lombok.config` boundary so
+workstation-level settings cannot silently change generated APIs.
+
+Keep behavior-bearing methods and JavaFX property operations explicit. Records
+remain records, and identity-based Models do not acquire generated equality.
+The [Person desk example](fx-example/README.md) demonstrates Lombok JavaBeans
+and constructor injection while retaining ordinary JavaBean APIs.
+
+API documentation runs Lombok's [delombok](https://projectlombok.org/features/delombok)
+step at `process-classes` and reads `target/delombok`, including generated methods.
+The plugin uses the same `${lombok.version}` as compilation; its output is not
+added to the compiler source roots. Run `verify` (or at least `process-classes`)
+before invoking standalone Javadoc/site reporting.

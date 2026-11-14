@@ -1,5 +1,8 @@
 package de.neitzel.fx.view;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * One Column of a {@link Table}.
  * <p>
@@ -11,53 +14,21 @@ public class Column {
     /**
      * The header text.
      */
+    @Getter
+    @Setter
     private String header;
 
     /**
      * The Attribute of the row element.
      */
+    @Getter
+    @Setter
     private String attribute;
 
     /**
      * The starting width, or {@code null} when this Column takes an equal share of the Table.
      */
     private Double width;
-
-    /**
-     * Sets the header text.
-     *
-     * @param header the header text
-     */
-    public void setHeader(String header) {
-        this.header = header;
-    }
-
-    /**
-     * Returns the header text.
-     *
-     * @return the header text
-     */
-    public String getHeader() {
-        return header;
-    }
-
-    /**
-     * Sets the Attribute name.
-     *
-     * @param attribute the Attribute of the row element
-     */
-    public void setAttribute(String attribute) {
-        this.attribute = attribute;
-    }
-
-    /**
-     * Returns the Attribute name.
-     *
-     * @return the Attribute of the row element
-     */
-    public String getAttribute() {
-        return attribute;
-    }
 
     /**
      * Sets the starting width.

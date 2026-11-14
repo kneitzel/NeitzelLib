@@ -1,22 +1,23 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.injection.ApplicationContext;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javafx.beans.property.Property;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.util.Builder;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap;
-import java.util.LinkedHashMap;
-import java.util.Set;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.List;
-import java.util.Map;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Loads a Component from {@code ClassName.fxml} in the Component's package.
@@ -70,6 +71,7 @@ final class Components {
      * Collects instance properties while FXML constructs an injected Component.
      * Properties are applied after its own document and model listener are ready.
      */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class ComponentBuilder extends AbstractMap<String, Object> implements Builder<Object> {
         /** The injected instance. */
         private final Object component;
@@ -77,16 +79,6 @@ final class Components {
         private final ApplicationContext context;
         /** Values already resolved by the containing FXMLLoader. */
         private final Map<String, Object> values = new LinkedHashMap<>();
-
-        /**
-         * Creates a builder for an injected instance.
-         * @param component the instance
-         * @param context its dependency context
-         */
-        private ComponentBuilder(Object component, ApplicationContext context) {
-            this.component = component;
-            this.context = context;
-        }
 
         /**
          * Records a property for application after Component initialization.

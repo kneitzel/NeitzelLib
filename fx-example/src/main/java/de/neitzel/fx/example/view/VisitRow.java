@@ -7,6 +7,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
 import javafx.scene.layout.HBox;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Row that edits one visit in the visit table.
@@ -16,6 +17,7 @@ import javafx.scene.layout.HBox;
  * order: street, city, then the visit date. Remove sits after them and is not a column.
  */
 @Singleton
+@RequiredArgsConstructor(onConstructor_ = @Inject)
 public class VisitRow extends HBox {
 
     /**
@@ -27,16 +29,6 @@ public class VisitRow extends HBox {
      * The visit this row edits. The table sets it once.
      */
     private final ObjectProperty<Object> model = new SimpleObjectProperty<>(this, "model");
-
-    /**
-     * Creates a row that can remove its visit.
-     *
-     * @param desk the desk controller
-     */
-    @Inject
-    public VisitRow(DeskController desk) {
-        this.desk = desk;
-    }
 
     /**
      * Returns the model property the table sets.

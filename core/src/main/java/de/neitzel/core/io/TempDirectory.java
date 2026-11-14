@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.stream.Stream;
+import lombok.Getter;
 
 /**
  * A utility class for creating and managing a temporary directory.
@@ -23,6 +24,7 @@ public class TempDirectory implements AutoCloseable {
      * The directory can be used to safely store temporary runtime files. It is automatically
      * deleted along with its content when the associated TempDirectory object is closed.
      */
+    @Getter
     private final Path directory;
 
     /**
@@ -35,15 +37,6 @@ public class TempDirectory implements AutoCloseable {
      */
     public TempDirectory(String prefix) throws IOException {
         this.directory = Files.createTempDirectory(prefix);
-    }
-
-    /**
-     * Retrieves the path of the temporary directory associated with this instance.
-     *
-     * @return the {@code Path} of the temporary directory
-     */
-    public Path getDirectory() {
-        return directory;
     }
 
     /**
