@@ -16,10 +16,10 @@
 
 You write the model, the FXML, and, where a screen needs them, a controller, reusable components, and converters. The library creates the view model. The [injection](../injection/README.md) container creates the controller, each component, and each converter.
 
-The worked example is the `fx-example` module, package `de.neitzel.fx.example`. From the NeitzelLib root, with Java 21:
+The worked example is the `fx-example` module, package `de.neitzel.fx.example`. From the NeitzelLib root, with Java 25:
 
 ```bash
-./mvnw -pl fx-example -am -Dmaven.test.failure.ignore=false install
+./mvnw -pl fx-example -am install
 ./mvnw -f fx-example/pom.xml javafx:run
 ```
 
@@ -33,15 +33,15 @@ These are the versions configured by this source snapshot, not a promise of comp
 
 | Part | Baseline / relationship | Consumer responsibility |
 | --- | --- | --- |
-| JDK | Java 21 | Select a matching JDK for compilation and launch |
-| Maven | Minimum 3.8.6; wrapper 3.9.11 | Use the wrapper or an installed Maven |
+| JDK | Java 25 | Select a matching JDK for compilation and launch |
+| Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
 | Library | `de.neitzel.lib:fx:1.0-SNAPSHOT` | Install the local reactor first; no Central publication is assumed |
 | Internal modules | `fx` directly depends on `core` and `injection` | Resolved transitively through Maven |
-| JavaFX | 21.0.7: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
+| JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
 | Injection scanning | Reflections 0.10.2 | Brought by `injection` |
 | Injection annotations | `jakarta.inject-api` 2.0.1 | Use Jakarta annotations, not `javax.inject` |
-| Logging | SLF4J API 2.0.17 | Choose one logging backend; the example uses `slf4j-simple` 2.0.17 at runtime |
-| Library build | Lombok 1.18.42 and test/analysis tooling | Not required in ordinary consumer source; use your own annotations only if wanted |
+| Logging | SLF4J API 2.0.20 | Choose one logging backend; the example uses `slf4j-simple` 2.0.20 at runtime |
+| Library build | Lombok 1.18.48 and test/analysis tooling | Not required in ordinary consumer source; use your own annotations only if wanted |
 | Designer | Optional preview API / Model processor | Needed only for the selected Designer workflow, not normal `ViewLoader` use |
 
 The quick-start POM adds only `fx` and a logging backend. Do not copy library build-time dependencies into an application just to obtain runtime binding. A project using injection alone needs the `injection` artifact and does not need JavaFX.

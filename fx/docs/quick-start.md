@@ -1,19 +1,19 @@
 # Your first JavaFX application
 
-This walkthrough creates a complete Maven project with one editable name and a label that follows it. It uses Java 21, JavaFX 21.0.7 and the current `1.0-SNAPSHOT` NeitzelLib sources. These are local development artifacts; the instructions do not assume that this snapshot is published in Maven Central.
+This walkthrough creates a complete Maven project with one editable name and a label that follows it. It uses Java 25, JavaFX 27.0.1 and the current `1.0-SNAPSHOT` NeitzelLib sources. These are local development artifacts; the instructions do not assume that this snapshot is published in Maven Central.
 
 ## Prepare the library
 
-Install a JDK 21. Use the library's Maven wrapper (3.9.11), or a separate Maven installation version 3.8.6 or newer. Check `java -version` and `./mvnw -version` before building; on macOS, select the JDK with `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` if necessary.
+Install a JDK 25. Use the library's Maven wrapper (3.9.11), or a separate Maven installation version 3.9.11 or newer. Check `java -version` and `./mvnw -version` before building; on macOS, select the JDK with `export JAVA_HOME=$(/usr/libexec/java_home -v 25)` if necessary.
 
 ```bash
 git clone https://gitea.neitzel.de/konrad/NeitzelLib.git
 cd NeitzelLib
-./mvnw -pl fx-example -am -Dmaven.test.failure.ignore=false install
+./mvnw -pl fx-example -am install
 ./mvnw -f fx-example/pom.xml javafx:run
 ```
 
-The `install` command installs the parent POM, `core`, `injection` and `fx` into your local Maven repository and builds the example. The repository hardcodes Surefire failure-ignore, so Maven success alone does not establish passing tests, even with the explicit flag. Inspect the XML reports as shown below. The `javafx:run` command opens the [person desk example](../../fx-example/README.md). Run `javafx:run` only on the example POM, not with `-am`: the reactor parent is not a JavaFX application.
+The `install` command installs the parent POM, `core`, `injection` and `fx` into your local Maven repository and builds the example. Surefire fails the build when a test fails. The XML reports show which tests ran. The `javafx:run` command opens the [person desk example](../../fx-example/README.md). Run `javafx:run` only on the example POM, not with `-am`: the reactor parent is not a JavaFX application.
 
 Check test results after the build (requires Python 3):
 
@@ -59,7 +59,7 @@ hello-fx/
   <artifactId>hello-fx</artifactId>
   <version>1.0-SNAPSHOT</version>
   <properties>
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <dependencies>
@@ -71,7 +71,7 @@ hello-fx/
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
-      <version>2.0.17</version>
+      <version>2.0.20</version>
       <scope>runtime</scope>
     </dependency>
   </dependencies>
@@ -80,7 +80,7 @@ hello-fx/
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.14.1</version>
+        <version>3.16.0</version>
       </plugin>
       <plugin>
         <groupId>org.openjfx</groupId>
@@ -155,7 +155,7 @@ public final class HelloApp extends Application {
 <?import javafx.scene.control.TextField?>
 <?import de.neitzel.fx.view.BindingList?>
 <?import de.neitzel.fx.view.DirectBinding?>
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+<VBox xmlns="http://javafx.com/javafx/27" xmlns:fx="http://javafx.com/fxml/1"
       spacing="12" prefWidth="360" prefHeight="120">
     <fx:define>
         <BindingList>

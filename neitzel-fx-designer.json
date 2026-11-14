@@ -5,8 +5,10 @@
       "applicationModule": "fx-example",
       "mavenProfiles": ["designer-preview"],
       "launchMode": "classpath",
-      "buildRuntime": "java21",
-      "targetRuntime": "java21",
+      "buildRuntime": "java25",
+      "targetRuntime": "java25",
+      "buildJava": 25,
+      "targetJava": 25,
       "preview": {
         "sourceSet": "test",
         "provider": "de.neitzel.fx.example.preview.DeskPreviewProvider",

@@ -2,7 +2,9 @@ package de.neitzel.fx.tray;
 
 import com.sun.glass.ui.Application;
 
-/** Isolates the JavaFX 21 native Quit hook, which has no public JavaFX equivalent. */
+import java.util.Map;
+
+/** Isolates the JavaFX native Quit hook, which has no public JavaFX equivalent. */
 final class MacApplicationQuit {
     private MacApplicationQuit() {}
 
@@ -24,7 +26,12 @@ final class MacApplicationQuit {
             @Override public void handleWillUnhideAction(Application a, long t) { if (previous != null) previous.handleWillUnhideAction(a,t); }
             @Override public void handleDidUnhideAction(Application a, long t) { if (previous != null) previous.handleDidUnhideAction(a,t); }
             @Override public void handleOpenFilesAction(Application a, long t, String[] files) { if (previous != null) previous.handleOpenFilesAction(a,t,files); }
-            @Override public boolean handleThemeChanged(String theme) { return previous != null && previous.handleThemeChanged(theme); }
+            @Override
+            public void handlePreferencesChanged(Map<String, Object> preferences) {
+                if (previous != null) {
+                    previous.handlePreferencesChanged(preferences);
+                }
+            }
         };
         app.setEventHandler(handler);
         return () -> {

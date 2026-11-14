@@ -19,7 +19,7 @@
         <appName>${project.artifactId}</appName>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
 
-        <quarkus.platform.version>3.30.1</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
     </properties>
 
     <dependencies>

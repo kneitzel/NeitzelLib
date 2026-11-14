@@ -12,6 +12,6 @@ contract, including safe `toString` output. Keep Lombok compile-time-only and
 preserve every annotation processor in profile-specific configurations.
 
 Run affected module tests, including FXML/reflection and generated metadata when
-models change. Inspect Surefire XML: the parent currently ignores test failures.
+models change. Inspect Surefire XML for test totals and skips.
 Do not install changed runtime artifacts over a Designer-pinned baseline without
 explicitly qualifying and recording the replacement.

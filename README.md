@@ -75,13 +75,13 @@ Some additions for quarkus that might be useful.
 
 The [complete quick start](fx/docs/quick-start.md) includes local snapshot installation, a standalone Maven POM, Java classes, FXML and launch commands. Continue with [MVVM and runtime architecture](fx/docs/architecture.md), the [FXML reference](fx/README.md), and the [person desk walkthrough](fx-example/README.md). The [injection guide](injection/README.md) also covers use without JavaFX.
 
-Build with Java 21. Maven wrapper version is 3.9.11; the project requires Maven 3.8.6 or later. Library version `1.0-SNAPSHOT` denotes development artifacts, not a published stable release. The parent POM currently ignores Surefire failures: check test reports, as explained in the quick start, rather than relying only on Maven's exit code.
+Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Library version `1.0-SNAPSHOT` denotes development artifacts, not a published stable release. Surefire fails the build if tests fail.
 
 ## Java source conventions
 
 Use focused Lombok annotations for mechanical accessors, constructors and logging;
 see [the contributor instructions](AGENTS.md). The parent already configures
-Lombok 1.18.42 as a provided dependency and an explicit annotation processor.
+Lombok 1.18.48 as a provided dependency and an explicit annotation processor.
 It is not required at runtime. Each checkout has a `lombok.config` boundary so
 workstation-level settings cannot silently change generated APIs.
 

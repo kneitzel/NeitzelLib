@@ -4,14 +4,14 @@ This runnable application demonstrates [NeitzelLib FX](../fx/README.md) and [inj
 
 ## Build and run
 
-From the NeitzelLib root with JDK 21:
+From the NeitzelLib root with JDK 25:
 
 ```bash
 ./mvnw -pl fx-example -am install
 ./mvnw -f fx-example/pom.xml javafx:run
 ```
 
-The first command installs local `1.0-SNAPSHOT` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. The repository currently ignores Surefire failures; verify XML reports as shown in the [quick start](../fx/docs/quick-start.md), even when Maven reports success.
+The first command installs local `1.0-SNAPSHOT` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
 
 The packaged alternative, after `package` or `install`, is:
 
