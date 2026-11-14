@@ -37,6 +37,17 @@ class ForegroundDetectorTest {
         }
     }
 
+    @Test void windowDiagnosticsIgnoreTitlesEvenWhenTheyMatchApplicationMetadata() {
+        var application = new ForegroundDetector.Application("test", "example.editor", "Editor", 42);
+        var withoutTitle = new ForegroundDetector.Window("window-1", application, null);
+        // A title can coincide with application metadata that diagnostics legitimately include.
+        assertTrue(withoutTitle.toString().contains("Editor"));
+        for (String title : new String[] {"Editor", "private-document-title"}) {
+            var window = new ForegroundDetector.Window("window-1", application, title);
+            assertEquals(withoutTitle.toString(), window.toString());
+        }
+    }
+
     @Test @EnabledIfSystemProperty(named = "desktop.native.tests", matches = "true")
     void nativeForegroundAndInventoryAreObservableWithoutLoggingTitles() {
         try (var detector = ForegroundDetector.system()) {
@@ -47,8 +58,14 @@ class ForegroundDetectorTest {
             var inventory = detector.inventory();
             assertTrue(inventory.available(), inventory.limitation());
             assertFalse(inventory.applications().isEmpty());
-            if (snapshot.window() != null && snapshot.window().title() != null && !snapshot.window().title().isEmpty())
-                assertFalse(snapshot.window().toString().contains(snapshot.window().title()));
+            if (snapshot.window() != null) {
+                var window = snapshot.window();
+                var withoutTitle = new ForegroundDetector.Window(window.id(), window.application(), null);
+                // Compare independence from the title, not accidental substring overlap.
+                // A boolean assertion keeps real desktop metadata out of failure messages.
+                assertTrue(withoutTitle.toString().equals(window.toString()),
+                        "Window diagnostics must not depend on the title");
+            }
             System.out.println("Native desktop smoke: namespace=" + snapshot.application().namespace()
                     + ", appCount=" + inventory.applications().size() + ", windowCount=" + inventory.windows().size()
                     + ", titleAvailable=" + (snapshot.window() != null && snapshot.window().title() != null));
