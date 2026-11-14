@@ -38,6 +38,7 @@ public final class TraySupport implements AutoCloseable {
     private volatile boolean closed;
     private boolean quitting;
     private Registration registration;
+    private final Runnable removeNativeQuit;
     private final Object lifecycleLock = new Object();
 
     /** Attaches asynchronously to the platform tray. Call on the JavaFX application thread. */
@@ -56,6 +57,7 @@ public final class TraySupport implements AutoCloseable {
         this.mayQuit = Objects.requireNonNull(mayQuit);
         this.quit = Objects.requireNonNull(quit);
         previousImplicitExit = Platform.isImplicitExit();
+        removeNativeQuit = MacApplicationQuit.install(() -> onFx(this::requestQuit));
         closeHandler = event -> {
             event.consume();
             if (available.get()) stage.hide(); else open();
@@ -105,6 +107,7 @@ public final class TraySupport implements AutoCloseable {
             closed = true;
             if (registration != null) registration.close();
         }
+        removeNativeQuit.run();
         stage.removeEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, closeHandler);
         available.set(false);
         Platform.setImplicitExit(previousImplicitExit);

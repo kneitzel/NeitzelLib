@@ -33,8 +33,15 @@ class TraySupportTest {
                 stage.fireEvent(new WindowEvent(stage,WindowEvent.WINDOW_CLOSE_REQUEST));
                 assertFalse(stage.isShowing()); assertFalse(exited.get());
                 open.get().run(); assertTrue(stage.isShowing());
-                quit.get().run(); assertFalse(exited.get());
-                allowed.set(true); quit.get().run(); assertTrue(exited.get());
+                Runnable nativeQuit = System.getProperty("os.name", "").startsWith("Mac")
+                        ? () -> {
+                            var app = com.sun.glass.ui.Application.GetApplication();
+                            app.getEventHandler().handleQuitAction(app, System.nanoTime());
+                        } : quit.get();
+                // Native Quit must use the same confirmation as the tray, even hidden.
+                stage.hide(); nativeQuit.run();
+                assertTrue(stage.isShowing()); assertFalse(exited.get());
+                allowed.set(true); nativeQuit.run(); assertTrue(exited.get());
                 tray.close(); assertTrue(removed.get());
                 var unavailable=TraySupport.attach(stage,new BufferedImage(16,16,BufferedImage.TYPE_INT_ARGB),"test",() -> true,() -> {},
                         (icon,label,onOpen,onQuit) -> CompletableFuture.completedFuture(null));

@@ -13,6 +13,16 @@ the registration is removed and `quit` runs (typically Platform::exit). Applicat
 own Save/Discard/Cancel prompts. `close()` removes handlers/icon and restores the
 previous implicit-exit setting; call it during application shutdown as well.
 
+On macOS, native application Quit requests (including Dock/menu Quit) use this
+same confirmation path, including when the window is hidden or the tray is
+unavailable. JavaFX normally translates these requests into window-close events;
+AWT Desktop quit handlers do not intercept them. `MacApplicationQuit` isolates
+the JavaFX 21 Glass hook, delegates other application events to the previous
+handler, and restores it on close. One primary-window attachment owns this hook.
+This uses an internal JavaFX API and needs rechecking when upgrading JavaFX.
+Classpath applications need no extra flags. When JavaFX is on the module path,
+add `--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED` at runtime.
+
 Unsupported, failed or still-pending tray installation never hides the only window.
 Window close restores it instead. Applications must retain an accessible explicit
 Quit action for that fallback. Native callbacks are marshalled onto FX. An install
