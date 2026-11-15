@@ -35,6 +35,7 @@ public final class DockingManager {
     private final java.util.Set<DockAreaId> allocatedAreaIds = new java.util.HashSet<>();
     private long nextGroupId;
     private long nextWindowId;
+    private long nextWindowFocusOrder;
     private final Map<DockWindowId, FloatingWindow> floatingWindows = new LinkedHashMap<>();
     private final Map<DockGroupId, DockWindowId> groupWindows = new LinkedHashMap<>();
     private final Map<DockableId, ReturnLocation> returnTargets = new LinkedHashMap<>();
@@ -341,8 +342,8 @@ public final class DockingManager {
             tab.setContent(null);
             if (sourceDrag != receiverDrag) sourceDrag.uninstallTab(tab);
             source.tabs.getTabs().remove(tab);
-            receiver.tabs.getTabs().add(insertionIndex, tab);
             if (sourceDrag != receiverDrag) receiverDrag.installTab(tab, id);
+            receiver.tabs.getTabs().add(insertionIndex, tab);
             tab.setContent(dockables.get(id).getContent());
             receiver.tabs.getSelectionModel().select(tab);
             normalizeLayout(source.id);
@@ -933,6 +934,24 @@ public final class DockingManager {
     private DockDragController dragFor(Group group) {
         DockWindowId id = groupWindows.get(group.id);
         return id == null ? drag : floatingWindows.get(id).drag;
+    }
+
+    long nextWindowFocusOrder() { return ++nextWindowFocusOrder; }
+
+    void restoreDragFocus(DockableId id) {
+        Dockable dockable = dockables.get(id);
+        Group group = containing(id);
+        if (dockable == null || group == null) return;
+        if (isGroupVisible(group)) focus(dockable);
+        else ((DockGroupPane) group.tabs).focusSelectedHeader();
+    }
+
+    List<DockDragController> dragControllers() {
+        var controllers = new java.util.ArrayList<DockDragController>();
+        if (drag != null) controllers.add(drag);
+        floatingWindows.values().forEach(window -> controllers.add(window.drag));
+        controllers.sort(java.util.Comparator.comparingLong(DockDragController::frontOrder).reversed());
+        return controllers;
     }
 
     private Group createFloatingGroup(javafx.geometry.Rectangle2D bounds) {

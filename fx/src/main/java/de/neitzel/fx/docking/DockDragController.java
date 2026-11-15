@@ -15,6 +15,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,10 +30,13 @@ final class DockDragController {
     }
     private record Proposal(DockTarget target, Bounds marker) { }
     private record Header(DockableId id, Bounds bounds) { }
+    private record Destination(DockDragController controller, Proposal proposal) { }
 
     private final DockingManager manager;
     private final DockPane pane;
     private final Scene scene;
+    private final Stage window;
+    private final javafx.beans.value.ChangeListener<Boolean> windowFocus;
     private final Supplier<List<GroupSurface>> surfaces;
     private final Map<String, DockableId> headers = new HashMap<>();
     private final EventHandler<MouseEvent> mouseHandler = this::mouse;
@@ -42,11 +46,20 @@ final class DockDragController {
     private double startY;
     private boolean dragging;
     private long nextHeaderId;
+    private long frontOrder;
+    private javafx.stage.Popup floatingPreview;
+    private javafx.scene.shape.Rectangle floatingFrame;
 
     DockDragController(DockingManager manager, DockPane pane, Supplier<List<GroupSurface>> surfaces) {
         this.manager = manager;
         this.pane = pane;
         this.scene = pane.getScene();
+        this.window = (Stage) scene.getWindow();
+        frontOrder = manager.nextWindowFocusOrder();
+        windowFocus = (observable, old, focused) -> {
+            if (focused) frontOrder = manager.nextWindowFocusOrder();
+        };
+        window.focusedProperty().addListener(windowFocus);
         this.surfaces = surfaces;
         pane.addEventFilter(MouseEvent.ANY, mouseHandler);
         scene.addEventFilter(KeyEvent.KEY_PRESSED, keyHandler);
@@ -142,8 +155,15 @@ final class DockDragController {
     void dispose() {
         pane.removeEventFilter(MouseEvent.ANY, mouseHandler);
         scene.removeEventFilter(KeyEvent.KEY_PRESSED, keyHandler);
+        window.focusedProperty().removeListener(windowFocus);
         headers.clear();
         cancel();
+        if (floatingPreview != null) {
+            floatingPreview.getScene().removeEventFilter(KeyEvent.KEY_PRESSED, keyHandler);
+            floatingPreview.getContent().clear();
+            floatingPreview = null;
+            floatingFrame = null;
+        }
     }
 
     private void mouse(MouseEvent event) {
@@ -169,23 +189,83 @@ final class DockDragController {
             boolean apply = dragging;
             cancel();
             if (apply) {
-                Proposal proposal = proposal(id, event.getScreenX(), event.getScreenY());
-                if (proposal != null) manager.move(id, proposal.target());
+                Destination destination = destination(id, event.getScreenX(), event.getScreenY());
+                if (destination != null && destination.proposal() != null) {
+                    if (!(manager.move(id, destination.proposal().target()) instanceof ActionResult.Applied)) manager.restoreDragFocus(id);
+                } else manager.restoreDragFocus(id);
                 event.consume();
             }
         }
     }
 
     private void preview(double screenX, double screenY) {
-        Proposal proposal = proposal(pressed, screenX, screenY);
-        if (proposal != null) {
-            MoveCheck check = manager.checkMove(pressed, proposal.target());
-            if (!(check instanceof MoveCheck.Rejected)) {
-                pane.showDropIndicator(proposal.marker(), check instanceof MoveCheck.NoChange);
-                return;
+        Destination destination = destination(pressed, screenX, screenY);
+        Proposal proposal = destination == null ? null : destination.proposal();
+        MoveCheck check = proposal == null ? null : manager.checkMove(pressed, proposal.target());
+        boolean accepted = check != null && !(check instanceof MoveCheck.Rejected);
+        boolean floating = accepted && destination.controller() == null;
+        hidePreviews(floating);
+        if (floating) showFloatingPreview(proposal.marker());
+        else if (accepted) destination.controller().pane.showDropIndicator(proposal.marker(), check instanceof MoveCheck.NoChange);
+    }
+
+    private void showFloatingPreview(Bounds bounds) {
+        if (floatingPreview == null) {
+            floatingPreview = new javafx.stage.Popup();
+            floatingPreview.setAutoFix(false);
+            floatingPreview.setAutoHide(false);
+            floatingPreview.setHideOnEscape(false);
+            floatingFrame = new javafx.scene.shape.Rectangle();
+            floatingFrame.getStyleClass().add("dock-floating-preview-frame");
+            floatingFrame.setFill(javafx.scene.paint.Color.rgb(80, 140, 220, .16));
+            floatingFrame.setStroke(javafx.scene.paint.Color.rgb(50, 110, 190));
+            floatingFrame.setStrokeType(javafx.scene.shape.StrokeType.INSIDE);
+            javafx.scene.control.Label label = new javafx.scene.control.Label("Float");
+            label.getStyleClass().add("dock-floating-preview-label");
+            javafx.scene.layout.StackPane preview = new javafx.scene.layout.StackPane(floatingFrame, label);
+            preview.getStyleClass().add("dock-floating-preview");
+            preview.setMouseTransparent(true);
+            floatingPreview.getContent().add(preview);
+            floatingPreview.getScene().addEventFilter(KeyEvent.KEY_PRESSED, keyHandler);
+        }
+        floatingFrame.setWidth(bounds.getWidth());
+        floatingFrame.setHeight(bounds.getHeight());
+        if (!floatingPreview.isShowing()) floatingPreview.show(window, bounds.getMinX(), bounds.getMinY());
+        else {
+            floatingPreview.setAnchorX(bounds.getMinX());
+            floatingPreview.setAnchorY(bounds.getMinY());
+        }
+    }
+
+    long frontOrder() { return frontOrder; }
+
+    private Destination destination(DockableId id, double x, double y) {
+        for (DockDragController controller : manager.dragControllers()) {
+            Stage candidate = controller.window;
+            if (candidate.isShowing() && x >= candidate.getX() && x <= candidate.getX() + candidate.getWidth()
+                    && y >= candidate.getY() && y <= candidate.getY() + candidate.getHeight()) {
+                return new Destination(controller, controller.proposal(id, x, y));
             }
         }
+        DockTarget target = DockTarget.floating(new javafx.geometry.Rectangle2D(x - 100, y - 20, 600, 400));
+        MoveCheck check = manager.checkMove(id, target);
+        if (check instanceof MoveCheck.Allowed allowed && allowed.destination() instanceof ResolvedDockTarget.Detachment floating) {
+            var bounds = floating.bounds();
+            return new Destination(null, new Proposal(DockTarget.floating(bounds), new BoundingBox(
+                    bounds.getMinX(), bounds.getMinY(), bounds.getWidth(), bounds.getHeight())));
+        }
+        return null;
+    }
+
+    private void hidePreviews() { hidePreviews(false); }
+
+    private void hidePreviews(boolean keepFloatingPreview) {
         pane.hideDropIndicator();
+        if (!keepFloatingPreview && floatingPreview != null) floatingPreview.hide();
+        manager.dragControllers().forEach(controller -> {
+            controller.pane.hideDropIndicator();
+            if (controller != this && controller.floatingPreview != null) controller.floatingPreview.hide();
+        });
     }
 
     private Proposal proposal(DockableId id, double screenX, double screenY) {
@@ -335,7 +415,9 @@ final class DockDragController {
 
     private void key(KeyEvent event) {
         if (pressed != null && event.getCode() == KeyCode.ESCAPE) {
+            DockableId id = pressed;
             cancel();
+            manager.restoreDragFocus(id);
             event.consume();
         }
     }
@@ -343,6 +425,6 @@ final class DockDragController {
     private void cancel() {
         pressed = null;
         dragging = false;
-        pane.hideDropIndicator();
+        hidePreviews();
     }
 }

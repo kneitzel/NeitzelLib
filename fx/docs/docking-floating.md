@@ -43,7 +43,8 @@ module for a desktop demonstration:
 6. Open Project's tab menu to inspect the disabled Float command.
 
 The buttons and tab menus use the same manager operations. This example covers
-command-based transfers. Native drag-and-drop between windows is supplied by its subsequent ticket.
+command-based transfers. The [dragging guide](docking-drag.md) covers native
+mouse gestures between windows and their keyboard-focus qualification.
 The [floating-window close guide](docking-close.md#closing-a-floating-window)
 describes shared consent for all tabs in a window.
 
@@ -58,8 +59,9 @@ sequence `1` → `12` → `123` → `1234`; the other editor remains unchanged.
 
 This sequence passed on macOS 27.2 with Java 25 and JavaFX 27.0.1 on 2026-11-15
 (one native test, zero failures, errors or skips). It qualifies command/menu
-transfers on that environment; native cross-window pointer dragging and other
-OS environments need their own qualification.
+transfers on that environment. Cross-window pointer dragging has its separate
+[desktop qualification](docking-drag.md#window-routing-and-input-delivery);
+other OS environments have not been qualified.
 
 Run only with an exclusive desktop slot, since the test posts real keystrokes:
 
