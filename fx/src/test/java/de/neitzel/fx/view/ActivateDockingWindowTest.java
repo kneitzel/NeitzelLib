@@ -84,11 +84,18 @@ class ActivateDockingWindowTest {
         };
         AnimationTimer clickAfterDisplay = new AnimationTimer() {
             private int pulses;
+            private long lastClick;
 
             @Override
             public void handle(long now) {
+                if (stage.isFocused()) {
+                    focused.countDown();
+                    stop();
+                    return;
+                }
                 if (++pulses < 2) return;
-                stop();
+                if (now - lastClick < 250_000_000) return;
+                lastClick = now;
                 Bounds bounds = stage.getScene().getRoot().localToScreen(
                         stage.getScene().getRoot().getBoundsInLocal());
                 Robot robot = new Robot();
@@ -109,8 +116,9 @@ class ActivateDockingWindowTest {
         try {
             // A native click activates the application even if the previous test or
             // another application owned desktop focus. RequestFocus alone cannot
-            // establish that precondition reliably on macOS. Two pulses allow the
-            // newly shown native window to display before the Robot sends input.
+            // establish that precondition reliably on macOS. FX pulses do not
+            // guarantee that the native compositor has displayed the window;
+            // retry only this focus precondition within the bounded wait.
             assertTrue(focused.await(5, TimeUnit.SECONDS), "Desktop did not focus the requested window");
         } finally {
             FxThread.onFx(() -> {

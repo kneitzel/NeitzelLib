@@ -6,11 +6,17 @@ import lombok.Setter;
 
 /** JavaBean definition of a named initial tab group, usable in ordinary FXML. */
 @Getter @Setter
-public final class DockGroupDefinition {
+public final class DockGroupDefinition implements DockLayoutNode {
     private String destinationId;
     private Side tabSide = Side.TOP;
     private double preferredWidth = 200;
     private double preferredHeight = 150;
+    private double minimumWidth = 80;
+    private double minimumHeight = 80;
+    private boolean persistent = true;
+    private boolean visibleWhenEmpty = true;
+    private boolean releaseSpaceWhenEmpty;
+    private SplitDirections splitDirections = SplitDirections.ALL;
 
     /** Creates a definition for FXML configuration. */
     public DockGroupDefinition() { }

@@ -1,6 +1,7 @@
 package de.neitzel.fx.docking;
 
 import java.util.Objects;
+import javafx.geometry.Side;
 
 /** A destination for a Dockable. */
 public sealed interface DockTarget {
@@ -8,6 +9,10 @@ public sealed interface DockTarget {
     static DockTarget area(DockAreaId id) { return new Area(id); }
     static DockTarget group(DockGroupId id, TabPosition position) { return new Group(id, position); }
     static DockTarget group(DockGroupId id) { return group(id, TabPosition.append()); }
+    static DockTarget split(DockGroupId id, Side side) { return new Split(id, side); }
+    record Split(DockGroupId id, Side side) implements DockTarget {
+        public Split { Objects.requireNonNull(id, "id"); Objects.requireNonNull(side, "side"); }
+    }
     record Area(DockAreaId id) implements DockTarget {
         public Area { Objects.requireNonNull(id, "id"); }
     }

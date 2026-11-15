@@ -17,6 +17,8 @@ public final class Dockable {
     @Getter private final Node content;
     @Getter @Setter private Supplier<? extends Node> focusTarget;
     @Getter @Setter private Runnable onDiscarded;
+    @Getter @Setter private CloseCheck closeCheck;
+    @Getter @Setter private Runnable onClosed;
     private final StringProperty title = new SimpleStringProperty(this, "title", "");
     private final ObjectProperty<Node> icon = new SimpleObjectProperty<>(this, "icon");
 

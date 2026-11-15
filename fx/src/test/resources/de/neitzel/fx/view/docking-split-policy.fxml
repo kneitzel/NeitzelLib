@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import de.neitzel.fx.docking.*?>
+<DockPane xmlns:fx="http://javafx.com/fxml/1">
+    <initialLayout>
+        <DockLayout>
+            <center><DockGroupDefinition destinationId="editors" splitDirections="VERTICAL"
+                minimumWidth="100" minimumHeight="300"/></center>
+        </DockLayout>
+    </initialLayout>
+</DockPane>

@@ -75,6 +75,12 @@ Changing a JavaBean setter directly after loading does not notify controls. All 
 
 ## Automated regression coverage
 
+The standalone `de.neitzel.fx.example.docking.CloseDockingMain` launcher shows
+an editor waiting for an asynchronous close decision. Choose Close Notes, then
+Keep open to continue editing or Allow close to release its content. The tab
+close control and context menu use the same consent callback. See the
+[tab-close guide](../fx/docs/docking-close.md) for the library contract.
+
 `src/test/java/de/neitzel/fx/example/DeskLoadsTest.java` loads the real Desk FXML on JavaFX and checks initial values, all binding directions, derived/computed text, conversion failures and recovery, child messages, Table edits/removal, message severities and boolean/enum write-back. It also demonstrates that a direct bean setter leaves controls unchanged and that another simple View reuses the same Model's ViewModel.
 
 Run the reactor tests without installing artifacts with:

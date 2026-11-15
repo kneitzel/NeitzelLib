@@ -38,8 +38,9 @@ application actions. Moving keyboard focus to a global button preserves it.
 `activate(id)` selects the Dockable and requests focus within its content.
 The content instance remains owned by the application. A supplied
 `setFocusTarget` chooses a Node within the content; otherwise the manager tries
-the previously focused descendant. Future slices add splits, close consent
-and restoration.
+the previously focused descendant. See [split groups](docking-splits.md) for
+nested layouts and resizing and [close consent](docking-close.md) for asynchronous
+close checks. Restoration is supplied by a later slice.
 
 ## Move and check placement
 
