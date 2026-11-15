@@ -2,6 +2,10 @@
 
 This runnable application demonstrates [NeitzelLib FX](../fx/README.md) and [injection](../injection/README.md) together. It edits one Person with a home Address, nested Note, visit list, selected visit and tags. Use it as a reference for wiring a real screen; the [minimal quick start](../fx/docs/quick-start.md) is the smaller starting point for a new project.
 
+Separate Java/FXML launchers demonstrate [standalone bars](../fx/docs/bars.md)
+and [docking](../fx/docs/docking.md) without initializing MVVM or injection.
+Their guides describe the implemented behavior and launch options.
+
 ## Build and run
 
 From the NeitzelLib root with JDK 25:

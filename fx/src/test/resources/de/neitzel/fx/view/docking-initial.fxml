@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import de.neitzel.fx.docking.DockPane?>
+<?import de.neitzel.fx.docking.DockLayout?>
+<?import de.neitzel.fx.docking.DockGroupDefinition?>
+<DockPane xmlns:fx="http://javafx.com/fxml/1">
+    <initialLayout>
+        <DockLayout>
+            <center><DockGroupDefinition destinationId="editors"/></center>
+            <right><DockGroupDefinition destinationId="tools" tabSide="RIGHT" preferredWidth="200"/></right>
+        </DockLayout>
+    </initialLayout>
+</DockPane>
