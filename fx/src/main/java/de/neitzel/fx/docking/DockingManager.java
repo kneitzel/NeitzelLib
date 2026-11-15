@@ -22,6 +22,8 @@ public final class DockingManager {
     private final Stage stage;
     private final DockPane pane;
     private final PlacementRule placementRule;
+    private final DockTarget fallbackTarget;
+    private final java.util.function.Consumer<FloatingWindowConfiguration> floatingWindowCustomizer;
     private final DockDragController drag;
     private final DockCloseCoordinator closing;
     private boolean updating;
@@ -29,7 +31,13 @@ public final class DockingManager {
     private final Map<DockGroupId, Long> groupActivationOrder = new LinkedHashMap<>();
     private final DockLayoutTree tree = new DockLayoutTree(this::publish, id -> !groupClosing(group(id)));
     private final Map<DockAreaId, javafx.geometry.Side> edgeAreas = new LinkedHashMap<>();
+    private final java.util.Set<DockGroupId> allocatedGroupIds = new java.util.HashSet<>();
+    private final java.util.Set<DockAreaId> allocatedAreaIds = new java.util.HashSet<>();
     private long nextGroupId;
+    private long nextWindowId;
+    private final Map<DockWindowId, FloatingWindow> floatingWindows = new LinkedHashMap<>();
+    private final Map<DockGroupId, DockWindowId> groupWindows = new LinkedHashMap<>();
+    private final Map<DockableId, ReturnLocation> returnTargets = new LinkedHashMap<>();
     private final Map<DockableId, Dockable> dockables = new LinkedHashMap<>();
     private final Map<DockableId, Node> previousFocus = new LinkedHashMap<>();
     private final Map<DockableId, Long> activationOrder = new LinkedHashMap<>();
@@ -43,10 +51,15 @@ public final class DockingManager {
         this.pane = pane;
         closing = new DockCloseCoordinator(new DockCloseCoordinator.Host() {
             @Override public Optional<Dockable> find(DockableId id) { return findDockable(id); }
-            @Override public javafx.stage.Window owner(DockableId id) { return stage; }
+            @Override public javafx.stage.Window owner(DockableId id) { return DockingManager.this.owner(containing(id)); }
             @Override public void remove(DockableId id) { removeDockable(id); }
         });
         this.placementRule = Objects.requireNonNull(options.getPlacementRule(), "placementRule");
+        this.fallbackTarget = options.getFallbackTarget();
+        if (fallbackTarget != null && !(fallbackTarget instanceof DockTarget.Area) && !(fallbackTarget instanceof DockTarget.Group)) {
+            throw new IllegalArgumentException("The return fallback must identify an existing main-window area or group");
+        }
+        this.floatingWindowCustomizer = Objects.requireNonNull(options.getFloatingWindowCustomizer(), "floatingWindowCustomizer");
         DockLayout initial = Objects.requireNonNull(pane.getInitialLayout(), "initialLayout");
         validate(initial);
         addGroup(initial.getCenter(), pane.surface::setCenter);
@@ -54,7 +67,9 @@ public final class DockingManager {
         addEdgeGroup(initial.getRight(), javafx.geometry.Side.RIGHT);
         addEdgeGroup(initial.getTop(), javafx.geometry.Side.TOP);
         addEdgeGroup(initial.getBottom(), javafx.geometry.Side.BOTTOM);
+        tree.view().forEach(area -> allocatedAreaIds.add(area.id()));
         drag = new DockDragController(this, pane, () -> groups.values().stream()
+                .filter(group -> !groupWindows.containsKey(group.id))
                 .map(group -> new DockDragController.GroupSurface(group.id, group.tabs, pane.edgeOf(group.tabs))).toList());
         refreshEmptyGroups();
         publish();
@@ -88,7 +103,13 @@ public final class DockingManager {
         if (dockable.getContent().getParent() != null || dockable.getContent().getScene() != null) {
             return rejected(DockFailure.Code.CONTENT_ALREADY_ATTACHED, dockable.getId(), "Content already belongs to a scene graph");
         }
-        Group group = receiver(destination);
+        Group group;
+        try {
+            group = receiver(destination);
+        } catch (FloatingPreparationFailure failure) {
+            return new ActionResult.Rejected(new DockFailure(DockFailure.Code.WINDOW_CREATION_FAILED,
+                    dockable.getId(), "Floating window configuration failed", failure.getCause()));
+        }
         int insertionIndex = destination instanceof ResolvedDockTarget.Insertion insertion ? insertion.index() : 0;
         Tab tab = new Tab();
         tab.setClosable(true);
@@ -100,13 +121,14 @@ public final class DockingManager {
         tab.graphicProperty().bind(dockable.iconProperty());
         tab.setContent(dockable.getContent());
         tab.setUserData(dockable.getId());
-        drag.installTab(tab, dockable.getId());
+        dragFor(group).installTab(tab, dockable.getId());
         dockables.put(dockable.getId(), dockable);
         updating = true;
         try {
             group.tabs.getTabs().add(insertionIndex, tab);
             group.tabs.getSelectionModel().select(tab);
             refreshEmptyGroups();
+            revealGroup(group);
         } finally {
             updating = false;
         }
@@ -149,9 +171,14 @@ public final class DockingManager {
         requireFxThread();
         Dockable dockable = dockables.get(id);
         if (dockable == null) return rejected(DockFailure.Code.DOCKABLE_NOT_FOUND, id, "Dockable is not open");
+        if (((DockGroupPane) containing(id).tabs).isCollapsed() && !canChangeGroupGeometry(containing(id))) {
+            return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, id, "Opening this group would resize a group awaiting close consent");
+        }
+        boolean revealed = revealGroup(containing(id));
         Node target = focusTarget(dockable);
-        boolean changed = active.get() != dockable || stage.getScene().getFocusOwner() != target
-                || (stage.isShowing() && !stage.isFocused());
+        Stage window = owner(containing(id));
+        boolean changed = revealed || active.get() != dockable || window.getScene().getFocusOwner() != target
+                || (window.isShowing() && !window.isFocused());
         for (Group group : groups.values()) {
             for (Tab tab : group.tabs.getTabs()) {
                 if (id.equals(tab.getUserData())) {
@@ -166,7 +193,7 @@ public final class DockingManager {
             }
         }
         setActive(dockable);
-        if (stage.isShowing()) stage.toFront();
+        if (window.isShowing()) window.toFront();
         focus(dockable);
         if (changed) publish();
         return changed ? new ActionResult.Applied() : new ActionResult.NoChange();
@@ -191,7 +218,7 @@ public final class DockingManager {
         boolean wasActive = active.get() == dockables.get(id);
         updating = true;
         try {
-            drag.uninstallTab(tab);
+            dragFor(group).uninstallTab(tab);
             tab.textProperty().unbind();
             tab.graphicProperty().unbind();
             tab.setGraphic(null);
@@ -200,6 +227,7 @@ public final class DockingManager {
             dockables.remove(id);
             previousFocus.remove(id);
             activationOrder.remove(id);
+            returnTargets.remove(id);
             normalizeLayout(group.id);
         } finally {
             updating = false;
@@ -207,7 +235,8 @@ public final class DockingManager {
         if (wasActive) {
             Tab selected = group.tabs.getSelectionModel().getSelectedItem();
             if (selected == null) {
-                selected = groups.values().stream().map(candidate -> candidate.tabs.getSelectionModel().getSelectedItem())
+                selected = groups.values().stream().filter(this::isGroupVisible)
+                        .map(candidate -> candidate.tabs.getSelectionModel().getSelectedItem())
                         .filter(Objects::nonNull)
                         .max(java.util.Comparator.comparingLong(candidate ->
                                 activationOrder.getOrDefault((DockableId) candidate.getUserData(), 0L)))
@@ -238,10 +267,18 @@ public final class DockingManager {
             DockGroupId destination = switch (allowed.destination()) {
                 case ResolvedDockTarget.Insertion insertion -> insertion.groupId();
                 case ResolvedDockTarget.Split split -> split.groupId();
+                case ResolvedDockTarget.Detachment ignored -> null;
             };
-            if (tree.normalizationAffects(containing(id).id, destination, this::groupClosing)) {
+            if (treeFor(containing(id)).normalizationAffects(containing(id).id, destination, this::groupClosing)) {
                 return moveRejected(DockFailure.Code.CLOSE_IN_PROGRESS, id,
                         "Removing this tab would resize a group covered by a close request");
+            }
+            Group source = containing(id);
+            if (source.tabs.getTabs().size() == 1 && !source.id.equals(destination)
+                    && (source.definition.isReleaseSpaceWhenEmpty() || !source.definition.isPersistent())
+                    && !canChangeGroupGeometry(source)) {
+                return moveRejected(DockFailure.Code.CLOSE_IN_PROGRESS, id,
+                        "Emptying this group would resize a group awaiting close consent");
             }
         }
         return check;
@@ -254,17 +291,37 @@ public final class DockingManager {
         if (check instanceof MoveCheck.NoChange) return new ActionResult.NoChange();
         var destination = ((MoveCheck.Allowed) check).destination();
         Group source = containing(id);
-        Group receiver = receiver(destination);
+        Group receiver;
+        try {
+            receiver = receiver(destination);
+        } catch (FloatingPreparationFailure failure) {
+            return new ActionResult.Rejected(new DockFailure(DockFailure.Code.WINDOW_CREATION_FAILED,
+                    id, "Floating window configuration failed", failure.getCause()));
+        }
+        if (!groupWindows.containsKey(source.id) && groupWindows.containsKey(receiver.id)) {
+            int index = tabIndex(source, id);
+            TabPosition position = index + 1 < source.tabs.getTabs().size()
+                    ? TabPosition.before((DockableId) source.tabs.getTabs().get(index + 1).getUserData())
+                    : index > 0 ? TabPosition.after((DockableId) source.tabs.getTabs().get(index - 1).getUserData())
+                    : TabPosition.append();
+            returnTargets.put(id, new ReturnLocation(DockTarget.group(source.id, position),
+                    new DockAreaId(source.definition.getDestinationId())));
+        }
+        DockDragController sourceDrag = dragFor(source);
+        DockDragController receiverDrag = dragFor(receiver);
         int insertionIndex = destination instanceof ResolvedDockTarget.Insertion insertion ? insertion.index() : 0;
         Tab tab = source.tabs.getTabs().get(tabIndex(source, id));
         updating = true;
         try {
             tab.setContent(null);
+            if (sourceDrag != receiverDrag) sourceDrag.uninstallTab(tab);
             source.tabs.getTabs().remove(tab);
             receiver.tabs.getTabs().add(insertionIndex, tab);
+            if (sourceDrag != receiverDrag) receiverDrag.installTab(tab, id);
             tab.setContent(dockables.get(id).getContent());
             receiver.tabs.getSelectionModel().select(tab);
             normalizeLayout(source.id);
+            revealGroup(receiver);
         } finally {
             updating = false;
         }
@@ -277,11 +334,40 @@ public final class DockingManager {
     private MoveCheck resolve(Dockable dockable, DockTarget target) {
         DockableId id = dockable.getId();
         Objects.requireNonNull(target, "target");
+        if (target instanceof DockTarget.Floating floating) {
+            javafx.geometry.Rectangle2D bounds = floating.bounds() == null
+                    ? DockWindowBounds.defaults(stage)
+                    : floating.bounds();
+            if (!DockWindowBounds.valid(bounds)) return moveRejected(DockFailure.Code.INVALID_WINDOW_BOUNDS, id,
+                    "Floating bounds must be finite with positive dimensions");
+            return checkPlacement(dockable, new ResolvedDockTarget.Detachment(DockWindowBounds.fit(bounds)));
+        }
+        if (target instanceof DockTarget.ReturnToMain) {
+            Group source = containing(id);
+            if (source != null && !groupWindows.containsKey(source.id)) return new MoveCheck.NoChange();
+            ReturnLocation remembered = returnTargets.get(id);
+            if (remembered != null) {
+                MoveCheck result = resolveMainTarget(dockable, remembered.target());
+                if (!(result instanceof MoveCheck.Rejected)) return result;
+                if (((MoveCheck.Rejected) result).failure().code() == DockFailure.Code.TARGET_NOT_FOUND) {
+                    MoveCheck areaResult = resolveMainTarget(dockable, DockTarget.area(remembered.areaId()));
+                    if (!(areaResult instanceof MoveCheck.Rejected)) return areaResult;
+                }
+            }
+            if (fallbackTarget != null) return resolveMainTarget(dockable, fallbackTarget);
+            List<DockLayoutView.Area> mainAreas = tree.view();
+            return mainAreas.isEmpty() ? moveRejected(DockFailure.Code.TARGET_NOT_FOUND, id, "No main-window destination")
+                    : resolveMainTarget(dockable, DockTarget.area(mainAreas.getFirst().id()));
+        }
         if (target instanceof DockTarget.Split split) {
             Group receiver = group(split.id());
             if (receiver == null) return moveRejected(DockFailure.Code.TARGET_NOT_FOUND, id, "Destination does not exist");
             if (groupClosing(receiver)) return moveRejected(DockFailure.Code.CLOSE_IN_PROGRESS, id, "A close request covers this group");
             if (containing(id) == receiver && receiver.tabs.getTabs().size() == 1) return new MoveCheck.NoChange();
+            if (((DockGroupPane) receiver.tabs).isCollapsed() && !canChangeGroupGeometry(receiver)) {
+                return moveRejected(DockFailure.Code.CLOSE_IN_PROGRESS, id,
+                        "Opening this group would resize a group awaiting close consent");
+            }
             if (!receiver.definition.getSplitDirections().allows(split.side())) {
                 return moveRejected(DockFailure.Code.SPLIT_DISABLED, id, "Splitting is disabled in this direction");
             }
@@ -296,7 +382,9 @@ public final class DockingManager {
             return checkPlacement(dockable, new ResolvedDockTarget.Split(receiver.id, split.side()));
         }
         if (target instanceof DockTarget.Area area) {
-            List<Group> candidates = tree.groups(area.id()).stream().sorted(java.util.Comparator
+            List<Group> candidates = java.util.stream.Stream.concat(java.util.stream.Stream.of(tree),
+                    floatingWindows.values().stream().map(FloatingWindow::tree))
+                    .flatMap(candidate -> candidate.groups(area.id()).stream()).sorted(java.util.Comparator
                     .comparingLong((Group candidate) -> groupActivationOrder.getOrDefault(candidate.id, 0L)).reversed()).toList();
             MoveCheck rejected = moveRejected(DockFailure.Code.TARGET_NOT_FOUND, id, "Destination does not exist");
             for (Group candidate : candidates) {
@@ -328,12 +416,37 @@ public final class DockingManager {
             if (index > oldIndex) index--;
             if (index == oldIndex) return new MoveCheck.NoChange();
         }
+        if (((DockGroupPane) receiver.tabs).isCollapsed() && !canChangeGroupGeometry(receiver)) {
+            return moveRejected(DockFailure.Code.CLOSE_IN_PROGRESS, id,
+                    "Opening this group would resize a group awaiting close consent");
+        }
         var resolved = new ResolvedDockTarget.Insertion(receiver.id, index);
         return checkPlacement(dockable, resolved);
     }
 
+    private MoveCheck resolveMainTarget(Dockable dockable, DockTarget target) {
+        MoveCheck result = resolve(dockable, target);
+        if (result instanceof MoveCheck.NoChange && groupWindows.containsKey(containing(dockable.getId()).id)) {
+            return moveRejected(DockFailure.Code.TARGET_NOT_FOUND, dockable.getId(), "The return destination is not in the main window");
+        }
+        if (result instanceof MoveCheck.Allowed allowed
+                && allowed.destination() instanceof ResolvedDockTarget.Insertion insertion
+                && groupWindows.containsKey(insertion.groupId())) {
+            return moveRejected(DockFailure.Code.TARGET_NOT_FOUND, dockable.getId(), "The return destination is not in the main window");
+        }
+        return result;
+    }
+
     private MoveCheck checkPlacement(Dockable dockable, ResolvedDockTarget resolved) {
         DockableId id = dockable.getId();
+        boolean floating = switch (resolved) {
+            case ResolvedDockTarget.Detachment ignored -> true;
+            case ResolvedDockTarget.Insertion insertion -> groupWindows.containsKey(insertion.groupId());
+            case ResolvedDockTarget.Split split -> groupWindows.containsKey(split.groupId());
+        };
+        if (dockable.isMainWindowOnly() && floating) {
+            return moveRejected(DockFailure.Code.MAIN_WINDOW_ONLY, id, "This Dockable must remain in the main window");
+        }
         try {
             Optional<DockFailure> failure = Objects.requireNonNull(placementRule.check(dockable, resolved), "Placement rule result");
             if (failure.isPresent()) return new MoveCheck.Rejected(failure.get());
@@ -345,11 +458,134 @@ public final class DockingManager {
     }
 
     private void normalizeLayout(DockGroupId source) {
-        for (DockGroupId id : tree.normalize(source)) {
+        DockWindowId ownerId = groupWindows.get(source);
+        for (DockGroupId id : treeFor(group(source)).normalize(source)) {
             groups.remove(id);
+            groupWindows.remove(id);
             groupActivationOrder.remove(id);
         }
         refreshEmptyGroups();
+        if (ownerId != null && groups.values().stream().filter(group -> ownerId.equals(groupWindows.get(group.id)))
+                .allMatch(group -> group.tabs.getTabs().isEmpty())) {
+            FloatingWindow empty = floatingWindows.remove(ownerId);
+            empty.drag.dispose();
+            empty.geometry.dispose();
+            empty.stage.getScene().focusOwnerProperty().removeListener(focusListener);
+            empty.stage.hide();
+            empty.pane.manager = null;
+            empty.stage.getProperties().remove(ATTACHMENT_KEY);
+            var remaining = groups.keySet().stream().filter(id -> ownerId.equals(groupWindows.get(id))).toList();
+            remaining.forEach(id -> { groups.remove(id); groupWindows.remove(id); groupActivationOrder.remove(id); });
+        }
+    }
+
+    /** Applies explicitly supplied settings as one validated group change. */
+    public ActionResult updateGroup(DockGroupId id, DockGroupChanges changes) {
+        requireFxThread();
+        Objects.requireNonNull(changes, "changes");
+        Group group = group(Objects.requireNonNull(id, "id"));
+        if (group == null) return rejected(DockFailure.Code.TARGET_NOT_FOUND, null, "Group does not exist");
+        if (groupClosing(group)) return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, null, "A close request covers this group");
+        DockGroupChanges resolved = changes.resolved(group.definition);
+        DockGroupDefinition candidate = new DockGroupDefinition(group.definition.getDestinationId());
+        resolved.applyTo(candidate);
+        try {
+            validate(candidate, new java.util.HashSet<>());
+        } catch (IllegalArgumentException failure) {
+            return rejected(DockFailure.Code.INVALID_GROUP_CONFIGURATION, null, failure.getMessage());
+        }
+        DockEdgeRegion extentOwner = null;
+        for (Node ancestor = group.tabs.getParent(); ancestor != null; ancestor = ancestor.getParent()) {
+            if (ancestor instanceof DockEdgeRegion edge) {
+                extentOwner = edge;
+                break;
+            }
+        }
+        boolean changesExtent = extentOwner != null
+                && extentOwner.changesPreferredExtent(changes.getPreferredWidth(), changes.getPreferredHeight());
+        if (!changesExtent && resolved.equals(DockGroupChanges.builder().build().resolved(group.definition))) {
+            return new ActionResult.NoChange();
+        }
+        DockGroupDefinition existing = group.definition;
+        boolean changesGeometry = changesExtent || existing.getTabSide() != candidate.getTabSide()
+                || existing.getPreferredWidth() != candidate.getPreferredWidth()
+                || existing.getPreferredHeight() != candidate.getPreferredHeight()
+                || existing.getMinimumWidth() != candidate.getMinimumWidth()
+                || existing.getMinimumHeight() != candidate.getMinimumHeight()
+                || (group.tabs.getTabs().isEmpty() && (existing.isVisibleWhenEmpty() != candidate.isVisibleWhenEmpty()
+                    || existing.isReleaseSpaceWhenEmpty() != candidate.isReleaseSpaceWhenEmpty()))
+                || (((DockGroupPane) group.tabs).isCollapsed() && !candidate.isCollapsible());
+        if (changesGeometry && !canChangeGroupGeometry(group, true)) {
+            return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, null, "The group change would resize content covered by a close request");
+        }
+        boolean wasUpdating = updating;
+        updating = true;
+        try {
+            resolved.applyTo(group.definition);
+            group.tabs.setSide(candidate.getTabSide());
+            group.tabs.requestLayout();
+            if (extentOwner != null) {
+                extentOwner.updatePreferredExtent(changes.getPreferredWidth(), changes.getPreferredHeight());
+            }
+            if (!candidate.isCollapsible() && revealGroup(group)) {
+                Tab selected = group.tabs.getSelectionModel().getSelectedItem();
+                if (selected != null) {
+                    setActive(dockables.get((DockableId) selected.getUserData()));
+                    focus(active.get());
+                }
+            }
+            refreshEmptyGroups();
+        } finally {
+            updating = wasUpdating;
+        }
+        publish();
+        return new ActionResult.Applied();
+    }
+
+    public ActionResult setGroupCollapsed(DockGroupId id, boolean collapsed) {
+        requireFxThread();
+        Group group = group(Objects.requireNonNull(id, "id"));
+        if (group == null) return rejected(DockFailure.Code.TARGET_NOT_FOUND, null, "Group does not exist");
+        if (groupClosing(group)) return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, null, "A close request covers this group");
+        if (collapsed && !group.definition.isCollapsible()) {
+            return rejected(DockFailure.Code.COLLAPSE_DISABLED, null, "This group cannot be collapsed");
+        }
+        DockGroupPane tabs = (DockGroupPane) group.tabs;
+        if (tabs.isCollapsed() == collapsed) return new ActionResult.NoChange();
+        if (!canChangeGroupGeometry(group)) {
+            return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, null, "The group change would resize content covered by a close request");
+        }
+        tabs.setCollapsed(collapsed);
+        if (collapsed) {
+            if (active.get() != null && containing(active.get().getId()) == group) setActive(selectedVisibleFallback());
+            tabs.focusSelectedHeader();
+        } else {
+            Tab selected = tabs.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                setActive(dockables.get((DockableId) selected.getUserData()));
+                focus(active.get());
+            }
+        }
+        publish();
+        return new ActionResult.Applied();
+    }
+
+    private boolean revealGroup(Group group) {
+        DockGroupPane tabs = (DockGroupPane) group.tabs;
+        if (!tabs.isCollapsed()) return false;
+        tabs.setCollapsed(false);
+        return true;
+    }
+
+    private boolean isGroupVisible(Group group) {
+        return group.tabs.isVisible() && !((DockGroupPane) group.tabs).isCollapsed();
+    }
+
+    private Dockable selectedVisibleFallback() {
+        return groups.values().stream().filter(this::isGroupVisible)
+                .map(candidate -> candidate.tabs.getSelectionModel().getSelectedItem()).filter(Objects::nonNull)
+                .max(java.util.Comparator.comparingLong(tab -> activationOrder.getOrDefault((DockableId) tab.getUserData(), 0L)))
+                .map(tab -> dockables.get((DockableId) tab.getUserData())).orElse(null);
     }
 
     private void refreshEmptyGroups() {
@@ -389,7 +625,35 @@ public final class DockingManager {
         edgeAreas.put(new DockAreaId(definition.getDestinationId()), side);
         DockAreaId areaId = new DockAreaId(definition.getDestinationId());
         addGroup(definition, node -> pane.setArea(side, node,
-                () -> tree.groups(areaId).stream().noneMatch(this::groupClosing), this::publish));
+                () -> canResizeEdge(areaId, side), this::publish));
+    }
+
+    private boolean canResizeEdge(DockAreaId areaId, javafx.geometry.Side side) {
+        if (tree.groups(areaId).stream().anyMatch(this::groupClosing)) return false;
+        for (Group candidate : groups.values()) {
+            if (groupWindows.containsKey(candidate.id) || !groupClosing(candidate)) continue;
+            if (contains(pane.surface.getCenter(), candidate.tabs)) return false;
+            javafx.geometry.Side otherSide = pane.edgeOf(candidate.tabs);
+            if (side.isHorizontal() && otherSide != null && otherSide.isVertical()) return false;
+        }
+        return true;
+    }
+
+    private boolean canChangeGroupGeometry(Group group) {
+        return canChangeGroupGeometry(group, false);
+    }
+
+    private boolean canChangeGroupGeometry(Group group, boolean changingOuterExtent) {
+        if (treeFor(group).geometryAffects(group.id, this::groupClosing)) return false;
+        if (groupWindows.containsKey(group.id)) return true;
+        for (var entry : edgeAreas.entrySet()) {
+            List<Group> areaGroups = tree.groups(entry.getKey());
+            if (!areaGroups.contains(group)) continue;
+            boolean onlyExpandedGroup = areaGroups.stream().filter(candidate -> candidate != group)
+                    .allMatch(candidate -> !candidate.tabs.isManaged() || ((DockGroupPane) candidate.tabs).isCollapsed());
+            if (changingOuterExtent || onlyExpandedGroup) return canResizeEdge(entry.getKey(), entry.getValue());
+        }
+        return true;
     }
 
     private void addGroup(DockLayoutNode definition, java.util.function.Consumer<javafx.scene.Node> place) {
@@ -407,16 +671,18 @@ public final class DockingManager {
         captured.setMinimumHeight(definition.getMinimumHeight());
         captured.setSplitDirections(definition.getSplitDirections());
         captured.setPersistent(definition.isPersistent());
+        captured.setCollapsible(definition.isCollapsible());
         captured.setVisibleWhenEmpty(definition.isVisibleWhenEmpty());
         captured.setReleaseSpaceWhenEmpty(definition.isReleaseSpaceWhenEmpty());
-        TabPane tabs = new TabPane();
+        TabPane tabs = new DockGroupPane(captured);
         tabs.setSide(captured.getTabSide());
-        tabs.setPrefSize(captured.getPreferredWidth(), captured.getPreferredHeight());
-        tabs.setMinSize(captured.getMinimumWidth(), captured.getMinimumHeight());
         Group group = new Group(id, tabs, captured);
+        allocatedGroupIds.add(id);
         groups.put(id, group);
+        ((DockGroupPane) tabs).installHeaderActions(tab -> activate((DockableId) tab.getUserData()),
+                () -> setGroupCollapsed(id, true));
         tabs.getSelectionModel().selectedItemProperty().addListener((observable, old, selected) -> {
-            if (!updating && selected != null) {
+            if (!updating && selected != null && isGroupVisible(group)) {
                 setActive(dockables.get((DockableId) selected.getUserData()));
                 focus(active.get());
                 publish();
@@ -427,12 +693,15 @@ public final class DockingManager {
 
     private Group receiver(ResolvedDockTarget destination) {
         if (destination instanceof ResolvedDockTarget.Insertion insertion) return group(insertion.groupId());
+        if (destination instanceof ResolvedDockTarget.Detachment detachment) return createFloatingGroup(detachment.bounds());
         ResolvedDockTarget.Split split = (ResolvedDockTarget.Split) destination;
         Group target = group(split.groupId());
         DockGroupId id;
-        do { id = new DockGroupId("group-" + ++nextGroupId); } while (groups.containsKey(id));
+        do { id = new DockGroupId("group-" + ++nextGroupId); } while (allocatedGroupIds.contains(id));
         Group added = createGroup(id, target.definition);
-        tree.split(target, added, split.side());
+        DockWindowId window = groupWindows.get(target.id);
+        if (window != null) groupWindows.put(added.id, window);
+        treeFor(target).split(target, added, split.side());
         return added;
     }
 
@@ -449,7 +718,7 @@ public final class DockingManager {
     private void rememberFocus(Node current) {
         if (current == null) return;
         for (Dockable dockable : dockables.values()) {
-            if (contains(dockable.getContent(), current)) {
+            if (contains(dockable.getContent(), current) && isGroupVisible(containing(dockable.getId()))) {
                 previousFocus.put(dockable.getId(), current);
                 setActive(dockable);
                 return;
@@ -472,7 +741,14 @@ public final class DockingManager {
 
     private void focus(Dockable dockable) {
         if (dockable == null) return;
-        pane.applyCss();
+        Stage window = owner(containing(dockable.getId()));
+        window.getScene().getRoot().applyCss();
+        window.getScene().getRoot().layout();
+        if (window != stage && !window.isShowing()) window.show();
+        if (window.isShowing()) {
+            window.toFront();
+            window.requestFocus();
+        }
         Node target = focusTarget(dockable);
         target.requestFocus();
     }
@@ -524,6 +800,12 @@ public final class DockingManager {
             stage.getScene().getRoot().applyCss();
             stage.getScene().getRoot().layout();
             tree.captureGeometry();
+            for (FloatingWindow window : floatingWindows.values()) {
+                window.pane.applyCss();
+                window.pane.layout();
+                window.geometry.captureIfReady();
+                if (!window.geometry.hasPendingChanges()) window.tree.captureGeometry();
+            }
         } finally {
             updating = wasUpdating;
         }
@@ -534,8 +816,77 @@ public final class DockingManager {
             return new DockLayoutView.Area(area.id(), area.groups(), area.root(),
                     side.isVertical() ? extent : -1, side.isHorizontal() ? extent : -1);
         }).toList();
-        layout.set(new DockLayoutView(List.of(new DockLayoutView.Window(new DockWindowId("main"), true, areas))));
+        var windows = new java.util.ArrayList<DockLayoutView.Window>();
+        windows.add(new DockLayoutView.Window(new DockWindowId("main"), true, areas));
+        floatingWindows.values().forEach(window -> windows.add(new DockLayoutView.Window(
+                window.id, false, window.tree.view(), window.geometry.bounds())));
+        layout.set(new DockLayoutView(windows));
     }
+
+    private Stage owner(Group group) {
+        DockWindowId id = group == null ? null : groupWindows.get(group.id);
+        return id == null ? stage : floatingWindows.get(id).stage;
+    }
+
+    private DockLayoutTree treeFor(Group group) {
+        DockWindowId id = groupWindows.get(group.id);
+        return id == null ? tree : floatingWindows.get(id).tree;
+    }
+
+    private DockDragController dragFor(Group group) {
+        DockWindowId id = groupWindows.get(group.id);
+        return id == null ? drag : floatingWindows.get(id).drag;
+    }
+
+    private Group createFloatingGroup(javafx.geometry.Rectangle2D bounds) {
+        FloatingWindowConfiguration configuration = new FloatingWindowConfiguration();
+        try {
+            floatingWindowCustomizer.accept(configuration);
+            configuration.getIcons().forEach(Objects::requireNonNull);
+            configuration.getStylesheets().forEach(Objects::requireNonNull);
+        } catch (RuntimeException failure) {
+            throw new FloatingPreparationFailure(failure);
+        }
+        DockWindowId candidateId;
+        do { candidateId = new DockWindowId("floating-" + ++nextWindowId); }
+        while (!allocatedAreaIds.add(new DockAreaId(candidateId.value())));
+        DockWindowId windowId = candidateId;
+        DockPane floatingPane = new DockPane();
+        Stage floatingStage = new Stage();
+        floatingStage.setScene(new javafx.scene.Scene(floatingPane));
+        floatingStage.setTitle(configuration.getTitle());
+        floatingStage.getIcons().setAll(configuration.getIcons());
+        floatingStage.getScene().getStylesheets().setAll(configuration.getStylesheets());
+        floatingStage.setX(bounds.getMinX());
+        floatingStage.setY(bounds.getMinY());
+        floatingStage.setWidth(bounds.getWidth());
+        floatingStage.setHeight(bounds.getHeight());
+        DockLayoutTree floatingTree = new DockLayoutTree(this::publish, id -> !groupClosing(group(id)));
+        DockGroupId groupId;
+        do { groupId = new DockGroupId("group-" + ++nextGroupId); } while (allocatedGroupIds.contains(groupId));
+        DockGroupDefinition definition = new DockGroupDefinition(windowId.value());
+        definition.setPersistent(false);
+        Group group = createGroup(groupId, definition);
+        groupWindows.put(group.id, windowId);
+        floatingTree.addArea(definition, floatingPane.surface::setCenter, ignored -> group);
+        DockDragController floatingDrag = new DockDragController(this, floatingPane, () -> groups.values().stream()
+                .filter(candidate -> windowId.equals(groupWindows.get(candidate.id)))
+                .map(candidate -> new DockDragController.GroupSurface(candidate.id, candidate.tabs)).toList());
+        DockWindowGeometry geometry = new DockWindowGeometry(floatingStage, this::publish);
+        floatingWindows.put(windowId, new FloatingWindow(windowId, floatingStage, floatingPane, floatingTree, floatingDrag, geometry));
+        floatingPane.manager = this;
+        floatingStage.getProperties().put(ATTACHMENT_KEY, this);
+        floatingStage.getScene().focusOwnerProperty().addListener(focusListener);
+        return group;
+    }
+
+    private static final class FloatingPreparationFailure extends RuntimeException {
+        FloatingPreparationFailure(RuntimeException cause) { super(cause); }
+    }
+
+    private record FloatingWindow(DockWindowId id, Stage stage, DockPane pane, DockLayoutTree tree,
+                                  DockDragController drag, DockWindowGeometry geometry) { }
+    private record ReturnLocation(DockTarget target, DockAreaId areaId) { }
 
     private static ActionResult rejected(DockFailure.Code code, DockableId id, String message) {
         return new ActionResult.Rejected(new DockFailure(code, id, message, null));

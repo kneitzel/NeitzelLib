@@ -30,7 +30,8 @@ final class DockLayoutTree {
             Tab selected = group.tabs().getSelectionModel().getSelectedItem();
             return new DockLayoutView.Group(group.id(), group.tabs().getSide(),
                     group.tabs().getTabs().stream().map(tab -> (DockableId) tab.getUserData()).toList(),
-                    selected == null ? null : (DockableId) selected.getUserData());
+                    selected == null ? null : (DockableId) selected.getUserData(),
+                    group.tabs() instanceof DockGroupPane pane && pane.isCollapsed());
         }
     }
 
@@ -40,6 +41,7 @@ final class DockLayoutTree {
         private final SplitPane pane = new SplitPane();
         private double position = .5;
         private boolean dragging;
+        private boolean collapsedAllocation;
         Split(Branch first, Branch second, Orientation orientation) {
             this.first = first;
             this.second = second;
@@ -127,6 +129,10 @@ final class DockLayoutTree {
             }
             boolean geometryEvent = event.getEventType() == MouseEvent.MOUSE_PRESSED
                     || event.getEventType() == MouseEvent.MOUSE_DRAGGED || event.getEventType() == MouseEvent.MOUSE_RELEASED;
+            if (geometryEvent && split.collapsedAllocation) {
+                event.consume();
+                return;
+            }
             if (geometryEvent && split.groups().stream().anyMatch(group -> !canResize.test(group.id()))) {
                 if (split.dragging) split.pane.setDividerPositions(split.position);
                 split.dragging = false;
@@ -154,6 +160,24 @@ final class DockLayoutTree {
             if (current.getStyleClass().contains("split-pane-divider")) divider = current;
         }
         return null;
+    }
+
+    boolean geometryAffects(DockGroupId id, java.util.function.Predicate<DockingManager.Group> protectedGroup) {
+        for (Root root : roots) {
+            Branch affected = geometryBranch(root.branch, null, id);
+            if (affected != null) return affected.groups().stream().anyMatch(protectedGroup);
+        }
+        return false;
+    }
+
+    private static Branch geometryBranch(Branch branch, Branch parent, DockGroupId id) {
+        if (branch instanceof Leaf leaf) {
+            if (!leaf.group.id().equals(id)) return null;
+            return parent == null ? leaf : parent;
+        }
+        Split split = (Split) branch;
+        Branch found = geometryBranch(split.first, split, id);
+        return found == null ? geometryBranch(split.second, split, id) : found;
     }
 
     boolean normalizationAffects(DockGroupId source, DockGroupId destination,
@@ -221,12 +245,44 @@ final class DockLayoutTree {
     }
 
     void captureGeometry() {
+        for (Root root : roots) allocateCollapsed(root.branch);
         for (Root root : roots) captureGeometry(root.branch);
+    }
+
+    private static void allocateCollapsed(Branch branch) {
+        if (!(branch instanceof Split split)) return;
+        boolean firstCollapsed = DockGroupPane.allCollapsed(split.first.node());
+        boolean secondCollapsed = DockGroupPane.allCollapsed(split.second.node());
+        boolean allocate = firstCollapsed || secondCollapsed;
+        SplitPane.setResizableWithParent(split.first.node(), !firstCollapsed);
+        SplitPane.setResizableWithParent(split.second.node(), !secondCollapsed);
+        if (allocate) {
+            split.collapsedAllocation = true;
+            split.dragging = false;
+            boolean horizontal = split.pane.getOrientation() == Orientation.HORIZONTAL;
+            double span = horizontal ? split.pane.getWidth() : split.pane.getHeight();
+            double firstExtent = horizontal ? split.first.node().minWidth(-1) : split.first.node().minHeight(-1);
+            double secondExtent = horizontal ? split.second.node().minWidth(-1) : split.second.node().minHeight(-1);
+            if (span > 0) {
+                double position = firstCollapsed && secondCollapsed ? firstExtent / (firstExtent + secondExtent)
+                        : firstCollapsed ? (firstExtent + 4) / span : 1 - (secondExtent + 4) / span;
+                split.pane.setDividerPositions(Math.max(0, Math.min(1, position)));
+            }
+        } else if (split.collapsedAllocation) {
+            split.collapsedAllocation = false;
+            split.pane.setDividerPositions(split.position);
+        }
+        split.pane.layout();
+        for (Node node : split.pane.lookupAll(".split-pane-divider")) {
+            if (divider(node, split.pane) == node) node.setVisible(!allocate);
+        }
+        allocateCollapsed(split.first);
+        allocateCollapsed(split.second);
     }
 
     private static void captureGeometry(Branch branch) {
         if (branch instanceof Split split) {
-            if (!split.dragging && split.pane.getWidth() > 0 && split.pane.getHeight() > 0
+            if (!split.dragging && !split.collapsedAllocation && split.pane.getWidth() > 0 && split.pane.getHeight() > 0
                     && !split.pane.getDividers().isEmpty()) {
                 split.position = split.pane.getDividers().getFirst().getPosition();
             }

@@ -13,6 +13,7 @@ import java.util.Objects;
 
 /** Existing live content with stable identity and bindable tab presentation. */
 public final class Dockable {
+    @Getter @Setter private boolean mainWindowOnly;
     @Getter private final DockableId id;
     @Getter private final Node content;
     @Getter @Setter private Supplier<? extends Node> focusTarget;

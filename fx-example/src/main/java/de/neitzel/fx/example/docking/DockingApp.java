@@ -1,6 +1,8 @@
 package de.neitzel.fx.example.docking;
 
 import de.neitzel.fx.docking.DockGroupDefinition;
+import de.neitzel.fx.docking.DockGroupChanges;
+import de.neitzel.fx.docking.DockLayoutView;
 import de.neitzel.fx.docking.DockSplitDefinition;
 import de.neitzel.fx.docking.SplitDirections;
 import javafx.geometry.Orientation;
@@ -35,9 +37,11 @@ public final class DockingApp extends Application {
         Button toTools = new Button("Move Notes to tools");
         Button toEditors = new Button("Move Notes to editors");
         Button splitNotes = new Button("Split Notes right");
+        Button toggleTools = new Button("Toggle tools");
+        Button widenTools = new Button("Tools width 260");
         Label status = new Label("Drag a tab to an edge to split; drag dividers to resize.");
         BorderPane shell = new BorderPane(pane);
-        shell.setTop(new ToolBar(activate, toTools, toEditors, splitNotes));
+        shell.setTop(new ToolBar(activate, toTools, toEditors, splitNotes, toggleTools, widenTools));
         shell.setBottom(status);
         stage.setScene(new Scene(shell, 900, 600));
         DockingManager manager = DockingManager.attach(stage, pane, new DockingOptions());
@@ -54,6 +58,10 @@ public final class DockingApp extends Application {
             output.setTitle("Output");
             manager.open(output, DockTarget.area("output"));
         }
+        Dockable changes = new Dockable(new DockableId("changes"), new TextArea("Changed files"));
+        changes.setTitle("Changed files");
+        changes.setIcon(new Label("Δ"));
+        manager.open(changes, DockTarget.area("tools"));
         Dockable project = new Dockable(new DockableId("project"), new Label("Project files"));
         project.setTitle("Project");
         project.setIcon(new Label("▦"));
@@ -65,6 +73,10 @@ public final class DockingApp extends Application {
                 .flatMap(window -> window.areas().stream()).flatMap(area -> area.groups().stream())
                 .filter(group -> group.dockableIds().contains(notesId)).findFirst()
                 .ifPresent(group -> report(status, manager.move(notesId, DockTarget.split(group.id(), Side.RIGHT)))));
+        toggleTools.setOnAction(event -> toolsGroup(manager).ifPresent(group ->
+                report(status, manager.setGroupCollapsed(group.id(), !group.collapsed()))));
+        widenTools.setOnAction(event -> toolsGroup(manager).ifPresent(group ->
+                report(status, manager.updateGroup(group.id(), DockGroupChanges.builder().preferredWidth(260).build()))));
         stage.setTitle("NeitzelLib docking — Java or ordinary FXML");
         stage.show();
         manager.activate(notesId);
@@ -72,10 +84,16 @@ public final class DockingApp extends Application {
 
     private static void report(Label status, ActionResult result) {
         status.setText(switch (result) {
-            case ActionResult.Applied ignored -> "Notes moved.";
-            case ActionResult.NoChange ignored -> "Notes is already at that position.";
+            case ActionResult.Applied ignored -> "Layout updated.";
+            case ActionResult.NoChange ignored -> "The layout already has that state.";
             case ActionResult.Rejected rejected -> rejected.failure().message();
         });
+    }
+
+    private static java.util.Optional<DockLayoutView.Group> toolsGroup(DockingManager manager) {
+        return manager.layout().windows().stream().flatMap(window -> window.areas().stream())
+                .filter(area -> area.id().value().equals("tools"))
+                .flatMap(area -> area.groups().stream()).findFirst();
     }
 
     private static DockPane initialPane(boolean splits) {
@@ -96,6 +114,7 @@ public final class DockingApp extends Application {
         }
         DockGroupDefinition tools = new DockGroupDefinition("tools");
         tools.setTabSide(Side.RIGHT);
+        tools.setCollapsible(true);
         tools.setPreferredWidth(200);
         tools.setSplitDirections(SplitDirections.VERTICAL);
         tools.setVisibleWhenEmpty(false);

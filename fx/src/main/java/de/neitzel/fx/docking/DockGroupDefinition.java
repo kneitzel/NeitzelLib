@@ -14,6 +14,7 @@ public final class DockGroupDefinition implements DockLayoutNode {
     private double minimumWidth = 80;
     private double minimumHeight = 80;
     private boolean persistent = true;
+    private boolean collapsible;
     private boolean visibleWhenEmpty = true;
     private boolean releaseSpaceWhenEmpty;
     private SplitDirections splitDirections = SplitDirections.ALL;

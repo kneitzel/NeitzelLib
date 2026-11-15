@@ -60,10 +60,13 @@ final class DockDragController {
         Menu splits = new Menu("Split");
         MenuItem close = new MenuItem("Close");
         close.setOnAction(event -> manager.requestTabClose(id));
-        ContextMenu menu = new ContextMenu(destinations, splits, close);
+        ContextMenu menu = new ContextMenu(destinations, splits, close,
+                new MenuItem("Float"), new MenuItem("Return to main"));
         menu.setOnShowing(event -> {
             populateDestinations(destinations, id);
             populateSplits(splits, id);
+            menu.getItems().set(3, moveItem("Float", id, DockTarget.floating()));
+            menu.getItems().set(4, moveItem("Return to main", id, DockTarget.returnToMain()));
         });
         tab.setContextMenu(menu);
     }

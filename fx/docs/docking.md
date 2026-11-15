@@ -39,8 +39,9 @@ application actions. Moving keyboard focus to a global button preserves it.
 The content instance remains owned by the application. A supplied
 `setFocusTarget` chooses a Node within the content; otherwise the manager tries
 the previously focused descendant. See [split groups](docking-splits.md) for
-nested layouts and resizing and [close consent](docking-close.md) for asynchronous
-close checks. Restoration is supplied by a later slice.
+nested layouts and resizing, [group presentation](docking-groups.md) for
+collapse and atomic configuration, and [close consent](docking-close.md) for
+asynchronous close checks. Restoration is supplied by a later slice.
 
 ## Move and check placement
 

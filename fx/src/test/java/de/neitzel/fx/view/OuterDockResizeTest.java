@@ -118,6 +118,19 @@ class OuterDockResizeTest {
                 assertSame(protectedLayout, manager.layout());
                 consent.complete(de.neitzel.fx.docking.CloseConsent.VETO);
                 assertTrue(closing.toCompletableFuture().isDone());
+                var centerConsent = new java.util.concurrent.CompletableFuture<de.neitzel.fx.docking.CloseConsent>();
+                var centerDockable = manager.findDockable(new DockableId("notes")).orElseThrow();
+                centerDockable.setCloseCheck(request -> centerConsent);
+                manager.requestTabClose(centerDockable.getId());
+                mouse(divider, MouseEvent.MOUSE_PRESSED, protectedBoundary.getCenterX(), protectedBoundary.getCenterY(), true);
+                mouse(divider, MouseEvent.MOUSE_DRAGGED, protectedBoundary.getCenterX() + dx,
+                        protectedBoundary.getCenterY() + dy, true);
+                pane.layout();
+                mouse(divider, MouseEvent.MOUSE_RELEASED, protectedBoundary.getCenterX() + dx,
+                        protectedBoundary.getCenterY() + dy, false);
+                assertEquals(protectedSize, side.isVertical() ? project.getWidth() : project.getHeight(), .1,
+                        "A side resize must protect the dependent center area too");
+                centerConsent.complete(de.neitzel.fx.docking.CloseConsent.VETO);
                 for (int direction : new int[]{1, -1}) {
                     var boundary = divider.localToScreen(divider.getBoundsInLocal());
                     mouse(divider, MouseEvent.MOUSE_PRESSED, boundary.getCenterX(), boundary.getCenterY(), true);

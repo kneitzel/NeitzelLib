@@ -8,4 +8,6 @@ import java.util.Optional;
 @Getter @Setter
 public final class DockingOptions {
     private PlacementRule placementRule = (dockable, target) -> Optional.empty();
+    private DockTarget fallbackTarget;
+    private java.util.function.Consumer<FloatingWindowConfiguration> floatingWindowCustomizer = configuration -> { };
 }

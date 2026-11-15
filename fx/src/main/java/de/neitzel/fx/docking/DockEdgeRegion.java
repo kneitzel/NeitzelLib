@@ -34,7 +34,7 @@ final class DockEdgeRegion extends Region {
         divider.setCursor(side.isVertical() ? Cursor.H_RESIZE : Cursor.V_RESIZE);
         divider.setOnMousePressed(event -> {
             if (event.getButton() != MouseButton.PRIMARY) return;
-            if (!canResize.getAsBoolean()) {
+            if (DockGroupPane.allCollapsed(content) || !canResize.getAsBoolean()) {
                 event.consume();
                 return;
             }
@@ -100,37 +100,59 @@ final class DockEdgeRegion extends Region {
         requestLayout();
     }
 
+    boolean changesPreferredExtent(Double width, Double height) {
+        Double requested = side.isVertical() ? width : height;
+        return requested != null && Double.compare(requested, committedExtent) != 0;
+    }
+
+    void updatePreferredExtent(Double width, Double height) {
+        Double requested = side.isVertical() ? width : height;
+        if (requested == null) return;
+        extent = requested;
+        committedExtent = requested;
+        requestLayout();
+    }
+
     double committedExtent() { return committedExtent; }
     Side side() { return side; }
 
     @Override protected double computePrefWidth(double height) {
-        return side.isVertical() ? extent + DIVIDER_SIZE : content == null ? 0 : content.prefWidth(height);
+        return side.isVertical() ? displayedExtent() + dividerSize() : content == null ? 0 : content.prefWidth(height);
     }
 
     @Override protected double computePrefHeight(double width) {
-        return side.isHorizontal() ? extent + DIVIDER_SIZE : content == null ? 0 : content.prefHeight(width);
+        return side.isHorizontal() ? displayedExtent() + dividerSize() : content == null ? 0 : content.prefHeight(width);
     }
 
     @Override protected double computeMinWidth(double height) {
-        return content == null ? 0 : content.minWidth(height) + (side.isVertical() ? DIVIDER_SIZE : 0);
+        return content == null ? 0 : content.minWidth(height) + (side.isVertical() ? dividerSize() : 0);
     }
 
     @Override protected double computeMinHeight(double width) {
-        return content == null ? 0 : content.minHeight(width) + (side.isHorizontal() ? DIVIDER_SIZE : 0);
+        return content == null ? 0 : content.minHeight(width) + (side.isHorizontal() ? dividerSize() : 0);
+    }
+
+    private double dividerSize() { return DockGroupPane.allCollapsed(content) ? 0 : DIVIDER_SIZE; }
+
+    private double displayedExtent() {
+        return DockGroupPane.allCollapsed(content)
+                ? side.isVertical() ? content.prefWidth(-1) : content.prefHeight(-1) : extent;
     }
 
     @Override protected void layoutChildren() {
         if (content == null) return;
+        double dividerSize = dividerSize();
+        divider.setVisible(dividerSize > 0);
         double width = getWidth();
         double height = getHeight();
         if (side.isVertical()) {
-            content.resizeRelocate(side == Side.RIGHT ? DIVIDER_SIZE : 0, 0,
-                    Math.max(0, width - DIVIDER_SIZE), height);
-            divider.resizeRelocate(side == Side.RIGHT ? 0 : width - DIVIDER_SIZE, 0, DIVIDER_SIZE, height);
+            content.resizeRelocate(side == Side.RIGHT ? dividerSize : 0, 0,
+                    Math.max(0, width - dividerSize), height);
+            divider.resizeRelocate(side == Side.RIGHT ? 0 : width - dividerSize, 0, dividerSize, height);
         } else {
-            content.resizeRelocate(0, side == Side.BOTTOM ? DIVIDER_SIZE : 0,
-                    width, Math.max(0, height - DIVIDER_SIZE));
-            divider.resizeRelocate(0, side == Side.BOTTOM ? 0 : height - DIVIDER_SIZE, width, DIVIDER_SIZE);
+            content.resizeRelocate(0, side == Side.BOTTOM ? dividerSize : 0,
+                    width, Math.max(0, height - dividerSize));
+            divider.resizeRelocate(0, side == Side.BOTTOM ? 0 : height - dividerSize, width, dividerSize);
         }
     }
 }

@@ -6,7 +6,7 @@
     <initialLayout>
         <DockLayout>
             <center><DockGroupDefinition destinationId="editors"/></center>
-            <right><DockGroupDefinition destinationId="tools" tabSide="RIGHT" preferredWidth="200" splitDirections="VERTICAL"
+            <right><DockGroupDefinition destinationId="tools" tabSide="RIGHT" collapsible="true" preferredWidth="200" splitDirections="VERTICAL"
                 visibleWhenEmpty="false" releaseSpaceWhenEmpty="true"/></right>
         </DockLayout>
     </initialLayout>
