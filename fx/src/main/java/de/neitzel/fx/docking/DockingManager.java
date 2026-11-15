@@ -19,6 +19,8 @@ public final class DockingManager {
     private static final Object ATTACHMENT_KEY = new Object();
     private final Stage stage;
     private final DockPane pane;
+    private final PlacementRule placementRule;
+    private final DockDragController drag;
     private boolean updating;
     private final Map<DockAreaId, Group> groups = new LinkedHashMap<>();
     private final Map<DockableId, Dockable> dockables = new LinkedHashMap<>();
@@ -27,9 +29,10 @@ public final class DockingManager {
     private final ReadOnlyObjectWrapper<Dockable> active = new ReadOnlyObjectWrapper<>(this, "activeDockable");
     private final ReadOnlyObjectWrapper<DockLayoutView> layout = new ReadOnlyObjectWrapper<>(this, "layout");
 
-    private DockingManager(Stage stage, DockPane pane) {
+    private DockingManager(Stage stage, DockPane pane, DockingOptions options) {
         this.stage = stage;
         this.pane = pane;
+        this.placementRule = Objects.requireNonNull(options.getPlacementRule(), "placementRule");
         DockLayout initial = Objects.requireNonNull(pane.getInitialLayout(), "initialLayout");
         validate(initial);
         addGroup(initial.getCenter(), pane.surface::setCenter);
@@ -37,6 +40,8 @@ public final class DockingManager {
         addGroup(initial.getRight(), pane.surface::setRight);
         addGroup(initial.getTop(), pane.surface::setTop);
         addGroup(initial.getBottom(), pane.surface::setBottom);
+        drag = new DockDragController(this, pane, () -> groups.values().stream()
+                .map(group -> new DockDragController.GroupSurface(group.id, group.tabs)).toList());
         publish();
         stage.getScene().focusOwnerProperty().addListener(focusListener);
     }
@@ -52,7 +57,7 @@ public final class DockingManager {
         if (pane.manager != null || stage.getProperties().containsKey(ATTACHMENT_KEY)) {
             throw new IllegalStateException("DockPane or main Stage already has a docking manager");
         }
-        DockingManager manager = new DockingManager(stage, pane);
+        DockingManager manager = new DockingManager(stage, pane, options);
         pane.manager = manager;
         stage.getProperties().put(ATTACHMENT_KEY, manager);
         return manager;
@@ -62,9 +67,10 @@ public final class DockingManager {
         requireFxThread();
         Objects.requireNonNull(dockable, "dockable");
         if (dockables.containsKey(dockable.getId())) return activate(dockable.getId());
-        Objects.requireNonNull(target, "target");
-        Group group = groups.get(((DockTarget.Area) target).id());
-        if (group == null) return rejected(DockFailure.Code.TARGET_NOT_FOUND, dockable.getId(), "Destination does not exist");
+        MoveCheck check = resolve(dockable, target);
+        if (check instanceof MoveCheck.Rejected rejected) return new ActionResult.Rejected(rejected.failure());
+        var destination = (ResolvedDockTarget.Insertion) ((MoveCheck.Allowed) check).destination();
+        Group group = group(destination.groupId());
         if (dockable.getContent().getParent() != null || dockable.getContent().getScene() != null) {
             return rejected(DockFailure.Code.CONTENT_ALREADY_ATTACHED, dockable.getId(), "Content already belongs to a scene graph");
         }
@@ -74,10 +80,11 @@ public final class DockingManager {
         tab.graphicProperty().bind(dockable.iconProperty());
         tab.setContent(dockable.getContent());
         tab.setUserData(dockable.getId());
+        drag.installTab(tab, dockable.getId());
         dockables.put(dockable.getId(), dockable);
         updating = true;
         try {
-            group.tabs.getTabs().add(tab);
+            group.tabs.getTabs().add(destination.index(), tab);
             group.tabs.getSelectionModel().select(tab);
         } finally {
             updating = false;
@@ -86,6 +93,35 @@ public final class DockingManager {
         focus(dockable);
         publish();
         return new ActionResult.Applied();
+    }
+
+    /** Creates content only for a new identity; rejected prepared content is discarded. */
+    public ActionResult open(DockableId id, java.util.function.Supplier<? extends Dockable> factory, DockTarget target) {
+        requireFxThread();
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(factory, "factory");
+        if (dockables.containsKey(id)) return activate(id);
+        Dockable prepared;
+        try {
+            prepared = Objects.requireNonNull(factory.get(), "Factory returned no Dockable");
+        } catch (RuntimeException failure) {
+            return new ActionResult.Rejected(new DockFailure(DockFailure.Code.FACTORY_FAILED,
+                    id, "Dockable creation failed", failure));
+        }
+        ActionResult result = id.equals(prepared.getId()) ? open(prepared, target)
+                : rejected(DockFailure.Code.ID_MISMATCH, id, "Factory returned a different Dockable ID");
+        if (result instanceof ActionResult.Rejected rejected && !dockables.containsValue(prepared)
+                && prepared.getOnDiscarded() != null) {
+            try {
+                prepared.getOnDiscarded().run();
+            } catch (RuntimeException cleanup) {
+                DockFailure failure = rejected.failure();
+                var cause = new IllegalStateException("Cleanup failed after rejected open", failure.cause());
+                cause.addSuppressed(cleanup);
+                return new ActionResult.Rejected(new DockFailure(failure.code(), failure.dockableId(), failure.message(), cause));
+            }
+        }
+        return result;
     }
 
     public ActionResult activate(DockableId id) {
@@ -116,6 +152,99 @@ public final class DockingManager {
     }
 
     public Optional<Dockable> findDockable(DockableId id) { return Optional.ofNullable(dockables.get(id)); }
+
+    /** Resolves a move without mutating content, layout or identity allocation. */
+    public MoveCheck checkMove(DockableId id, DockTarget target) {
+        requireFxThread();
+        if (!dockables.containsKey(id)) return moveRejected(DockFailure.Code.DOCKABLE_NOT_FOUND, id, "Dockable is not open");
+        return resolve(dockables.get(id), target);
+    }
+
+    /** Moves the live content, selecting it only after the complete transfer. */
+    public ActionResult move(DockableId id, DockTarget target) {
+        MoveCheck check = checkMove(id, target);
+        if (check instanceof MoveCheck.Rejected rejected) return new ActionResult.Rejected(rejected.failure());
+        if (check instanceof MoveCheck.NoChange) return new ActionResult.NoChange();
+        var destination = (ResolvedDockTarget.Insertion) ((MoveCheck.Allowed) check).destination();
+        Group source = containing(id);
+        Group receiver = group(destination.groupId());
+        Tab tab = source.tabs.getTabs().get(tabIndex(source, id));
+        updating = true;
+        try {
+            tab.setContent(null);
+            source.tabs.getTabs().remove(tab);
+            receiver.tabs.getTabs().add(destination.index(), tab);
+            tab.setContent(dockables.get(id).getContent());
+            receiver.tabs.getSelectionModel().select(tab);
+        } finally {
+            updating = false;
+        }
+        active.set(dockables.get(id));
+        focus(active.get());
+        publish();
+        return new ActionResult.Applied();
+    }
+
+    private MoveCheck resolve(Dockable dockable, DockTarget target) {
+        DockableId id = dockable.getId();
+        Objects.requireNonNull(target, "target");
+        Group receiver;
+        TabPosition position;
+        if (target instanceof DockTarget.Area area) {
+            receiver = groups.get(area.id());
+            position = TabPosition.append();
+        } else {
+            DockTarget.Group concrete = (DockTarget.Group) target;
+            receiver = group(concrete.id());
+            position = concrete.position();
+        }
+        if (receiver == null) return moveRejected(DockFailure.Code.TARGET_NOT_FOUND, id, "Destination does not exist");
+        int index = receiver.tabs.getTabs().size();
+        DockableId reference = switch (position) {
+            case TabPosition.Before before -> before.id();
+            case TabPosition.After after -> after.id();
+            case TabPosition.Append ignored -> null;
+        };
+        if (reference != null) {
+            index = tabIndex(receiver, reference);
+            if (index < 0) return moveRejected(DockFailure.Code.REFERENCE_TAB_NOT_FOUND, id, "Reference tab is not in the destination");
+            if (position instanceof TabPosition.After) index++;
+        }
+        Group source = containing(id);
+        if (source == receiver) {
+            int oldIndex = tabIndex(source, id);
+            if (index > oldIndex) index--;
+            if (index == oldIndex) return new MoveCheck.NoChange();
+        }
+        var resolved = new ResolvedDockTarget.Insertion(receiver.id, index);
+        try {
+            Optional<DockFailure> failure = Objects.requireNonNull(placementRule.check(dockable, resolved), "Placement rule result");
+            if (failure.isPresent()) return new MoveCheck.Rejected(failure.get());
+        } catch (RuntimeException failure) {
+            return new MoveCheck.Rejected(new DockFailure(DockFailure.Code.PLACEMENT_CHECK_FAILED,
+                    id, "Placement check failed", failure));
+        }
+        return new MoveCheck.Allowed(resolved);
+    }
+
+    private Group group(DockGroupId id) {
+        return groups.values().stream().filter(group -> group.id.equals(id)).findFirst().orElse(null);
+    }
+
+    private Group containing(DockableId id) {
+        return groups.values().stream().filter(group -> tabIndex(group, id) >= 0).findFirst().orElse(null);
+    }
+
+    private static int tabIndex(Group group, DockableId id) {
+        for (int i = 0; i < group.tabs.getTabs().size(); i++) {
+            if (id.equals(group.tabs.getTabs().get(i).getUserData())) return i;
+        }
+        return -1;
+    }
+
+    private static MoveCheck moveRejected(DockFailure.Code code, DockableId id, String message) {
+        return new MoveCheck.Rejected(new DockFailure(code, id, message, null));
+    }
     public Dockable activeDockable() { return active.get(); }
     public ReadOnlyObjectProperty<Dockable> activeDockableProperty() { return active.getReadOnlyProperty(); }
     public DockLayoutView layout() { return layout.get(); }

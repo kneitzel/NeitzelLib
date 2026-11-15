@@ -9,10 +9,14 @@ import de.neitzel.fx.docking.Dockable;
 import de.neitzel.fx.docking.DockableId;
 import de.neitzel.fx.docking.DockingManager;
 import de.neitzel.fx.docking.DockingOptions;
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
+import javafx.geometry.Bounds;
 import javafx.scene.Scene;
 import javafx.scene.control.TextArea;
+import javafx.scene.input.MouseButton;
+import javafx.scene.robot.Robot;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -78,16 +82,42 @@ class ActivateDockingWindowTest {
         ChangeListener<Boolean> listener = (observable, old, current) -> {
             if (current) focused.countDown();
         };
+        AnimationTimer clickAfterDisplay = new AnimationTimer() {
+            private int pulses;
+
+            @Override
+            public void handle(long now) {
+                if (++pulses < 2) return;
+                stop();
+                Bounds bounds = stage.getScene().getRoot().localToScreen(
+                        stage.getScene().getRoot().getBoundsInLocal());
+                Robot robot = new Robot();
+                robot.mouseMove(bounds.getCenterX(), bounds.getCenterY());
+                robot.mouseClick(MouseButton.PRIMARY);
+                if (stage.isFocused()) focused.countDown();
+            }
+        };
         FxThread.onFx(() -> {
             stage.focusedProperty().addListener(listener);
+            stage.setAlwaysOnTop(true);
             stage.toFront();
             stage.requestFocus();
-            if (stage.isFocused()) focused.countDown();
+            stage.getScene().getRoot().applyCss();
+            stage.getScene().getRoot().layout();
+            clickAfterDisplay.start();
         });
         try {
+            // A native click activates the application even if the previous test or
+            // another application owned desktop focus. RequestFocus alone cannot
+            // establish that precondition reliably on macOS. Two pulses allow the
+            // newly shown native window to display before the Robot sends input.
             assertTrue(focused.await(5, TimeUnit.SECONDS), "Desktop did not focus the requested window");
         } finally {
-            FxThread.onFx(() -> stage.focusedProperty().removeListener(listener));
+            FxThread.onFx(() -> {
+                clickAfterDisplay.stop();
+                stage.focusedProperty().removeListener(listener);
+                stage.setAlwaysOnTop(false);
+            });
         }
     }
 

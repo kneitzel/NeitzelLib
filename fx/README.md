@@ -9,7 +9,7 @@
 - [Generated ViewModel classes and registries](docs/generated-viewmodels.md).
 - [Bounded integer spinners](docs/integer-spinners.md) and [system tray support](docs/tray-support.md).
 - [Standalone toolbar and status bar](docs/bars.md), usable without MVVM.
-- [Docking: opening and activating live contents](docs/docking.md), with ordinary Java/FXML startup examples.
+- [Docking: opening, moving and activating live contents](docs/docking.md), with ordinary Java/FXML startup examples.
 - [Dependency injection](../injection/README.md).
 
 ## Introduction
