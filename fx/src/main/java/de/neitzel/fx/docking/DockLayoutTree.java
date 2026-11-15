@@ -38,7 +38,7 @@ final class DockLayoutTree {
     private static final class Split implements Branch {
         private Branch first;
         private Branch second;
-        private final SplitPane pane = new SplitPane();
+        private final SplitPane pane = new DockSplitPane();
         private double position = .5;
         private boolean dragging;
         private boolean collapsedAllocation;

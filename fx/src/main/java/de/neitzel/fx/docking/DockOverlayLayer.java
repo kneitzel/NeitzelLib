@@ -30,6 +30,13 @@ final class DockOverlayLayer extends Region {
         });
     }
 
+    void resume() {
+        disposed = false;
+        if (registeredScene != null) registeredScene.removeEventFilter(MouseEvent.MOUSE_PRESSED, outsidePress);
+        registeredScene = getScene();
+        if (registeredScene != null) registeredScene.addEventFilter(MouseEvent.MOUSE_PRESSED, outsidePress);
+    }
+
     void dispose() {
         disposed = true;
         if (registeredScene != null) registeredScene.removeEventFilter(MouseEvent.MOUSE_PRESSED, outsidePress);

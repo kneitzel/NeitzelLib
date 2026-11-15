@@ -72,11 +72,22 @@ final class DockDragController {
         Menu destinations = new Menu(manager.message("dock.action.move"));
         Menu splits = new Menu(manager.message("dock.action.split"));
         MenuItem close = new MenuItem(manager.message("dock.action.close"));
-        close.setOnAction(event -> manager.requestTabClose(id));
+        close.setOnAction(event -> {
+            hideMenu(close);
+            manager.requestTabClose(id).thenAccept(result -> {
+                if (!(result instanceof CloseResult.Closed) && manager.activeDockable() != null
+                        && manager.activeDockable().getId().equals(id)) manager.restoreDragFocus(id);
+            });
+        });
         javafx.scene.control.CheckMenuItem pin = new javafx.scene.control.CheckMenuItem(manager.message("dock.action.pin"));
-        pin.setOnAction(event -> currentGroup(id).ifPresent(group -> manager.updateGroup(group.id(),
-                DockGroupChanges.builder().mode(group.mode() == DockGroupMode.DOCKED
-                        ? DockGroupMode.OVERLAY : DockGroupMode.DOCKED).build())));
+        pin.setOnAction(event -> {
+            hideMenu(pin);
+            currentGroup(id).ifPresent(group -> {
+                manager.updateGroup(group.id(), DockGroupChanges.builder().mode(group.mode() == DockGroupMode.DOCKED
+                        ? DockGroupMode.OVERLAY : DockGroupMode.DOCKED).build());
+                manager.restoreDragFocus(id);
+            });
+        });
         ContextMenu menu = new ContextMenu(destinations, splits, close,
                 new MenuItem(manager.message("dock.action.float")), new MenuItem(manager.message("dock.action.return")), pin);
         menu.setOnShowing(event -> {
@@ -144,8 +155,18 @@ final class DockDragController {
         else if (check instanceof MoveCheck.NoChange) label = manager.message("dock.action.noChange", label);
         MenuItem item = new MenuItem(label);
         item.setDisable(!(check instanceof MoveCheck.Allowed));
-        item.setOnAction(event -> manager.move(id, target));
+        item.setOnAction(event -> {
+            hideMenu(item);
+            manager.move(id, target);
+        });
         return item;
+    }
+
+    private static void hideMenu(MenuItem item) {
+        MenuItem root = item;
+        while (root.getParentMenu() != null) root = root.getParentMenu();
+        // Close the popup before a workflow transfers focus or retires its owner window.
+        if (root.getParentPopup() != null) root.getParentPopup().hide();
     }
 
     void dispose() {
@@ -415,7 +436,30 @@ final class DockDragController {
             cancel();
             manager.restoreDragFocus(id);
             event.consume();
+        } else if (pressed == null && !event.isControlDown() && !event.isAltDown() && !event.isMetaDown()
+                && (event.getCode() == KeyCode.CONTEXT_MENU
+                || event.getCode() == KeyCode.F10 && event.isShiftDown())) {
+            if (showKeyboardMenu()) event.consume();
         }
+    }
+
+    private boolean showKeyboardMenu() {
+        Node focused = scene.getFocusOwner();
+        for (GroupSurface surface : surfaces.get()) {
+            TabPane tabs = surface.tabs();
+            Node strip = headerStrip(tabs);
+            boolean ownsFocus = focused == tabs;
+            for (Node current = focused; !ownsFocus && current != null; current = current.getParent()) {
+                ownsFocus = current == strip;
+            }
+            if (!ownsFocus) continue;
+            Tab selected = tabs.getSelectionModel().getSelectedItem();
+            Node header = selected == null || strip == null ? null : strip.lookup("#" + selected.getId());
+            if (header == null || selected.getContextMenu() == null) return false;
+            if (!selected.getContextMenu().isShowing()) selected.getContextMenu().show(header, Side.BOTTOM, 0, 0);
+            return true;
+        }
+        return false;
     }
 
     private void cancel() {

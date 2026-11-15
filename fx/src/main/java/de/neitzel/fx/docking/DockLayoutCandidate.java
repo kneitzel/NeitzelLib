@@ -58,6 +58,11 @@ final class DockLayoutCandidate {
     List<DockableId> tabs(DockGroupId group) { return List.copyOf(orders.get(group)); }
     DockableId selected(DockGroupId group) { return selections.get(group); }
     void select(DockGroupId group, DockableId selected) { selections.put(group, selected); }
+    void remove(DockableId id) {
+        orders.values().forEach(order -> order.remove(id));
+        selections.replaceAll((group, selected) -> id.equals(selected) ? null : selected);
+    }
+
     void place(DockableId id, DockGroupId group, int index) {
         orders.values().forEach(order -> order.remove(id));
         List<DockableId> order = orders.get(group);

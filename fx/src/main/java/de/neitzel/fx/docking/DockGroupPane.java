@@ -125,6 +125,10 @@ final class DockGroupPane extends TabPane {
 
     @Override protected void layoutChildren() {
         super.layoutChildren();
+        Node strip = ownedSkinChild("tab-header-area");
+        if (strip != null) {
+            for (Tab tab : getTabs()) DockTabPresentation.updateHeader(tab, strip.lookup("#" + tab.getId()));
+        }
         Tab selected = getSelectionModel().getSelectedItem();
         Node selectedContent = selected == null ? null : selected.getContent();
         for (Node wrapper : getChildrenUnmodifiable()) {

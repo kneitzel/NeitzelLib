@@ -41,8 +41,11 @@ The content instance remains owned by the application. A supplied
 the previously focused descendant. See [split groups](docking-splits.md) for
 nested layouts and resizing, [group presentation](docking-groups.md) for collapse
 and atomic configuration, [overlay groups](docking-overlays.md) for pinning,
-and [close consent](docking-close.md) for
-asynchronous close checks. Restoration is supplied by a later slice.
+and [close consent](docking-close.md) for asynchronous close checks.
+[Snapshot restoration](docking-snapshots.md) prepares fresh contents for an empty
+manager; [live reset](../../fx-example/docs/docking-reset.md) retains existing
+editors. [Shutdown and replacement](docking-shutdown.md) cover saving before
+Quit and attaching a new manager to the same host.
 
 ## Move and check placement
 

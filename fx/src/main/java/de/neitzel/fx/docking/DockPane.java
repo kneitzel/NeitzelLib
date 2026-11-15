@@ -20,6 +20,7 @@ public final class DockPane extends Region {
     DockingManager manager;
 
     public DockPane() {
+        sceneProperty().addListener((observable, previous, current) -> DockStyles.install(current));
         getStyleClass().add("dock-pane");
         getChildren().addAll(surface, overlays);
         dropIndicator.getStyleClass().add("dock-drop-indicator");

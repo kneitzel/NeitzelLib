@@ -19,7 +19,7 @@
             </center>
             <right>
                 <DockGroupDefinition destinationId="tools" tabSide="RIGHT" collapsible="true"
-                    mode="OVERLAY" preferredWidth="240"/>
+                    mode="OVERLAY" preferredWidth="240" visibleWhenEmpty="false" releaseSpaceWhenEmpty="true"/>
             </right>
         </DockLayout>
     </initialLayout>

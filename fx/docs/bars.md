@@ -95,5 +95,6 @@ Append `fxml` to the launch command for the FXML screen. The classpath separator
 shown is for macOS/Linux; use `;` on Windows. A graphical desktop session is
 required. The launch class is ordinary Java and delegates to the Application.
 
-Dockable-owned bars and optional MVVM bindings are a later integration step;
-the standalone controls already support ordinary JavaFX property bindings.
+The [MVVM docking editor](../../fx-example/docs/docking-mvvm.md) demonstrates
+Dockable-owned bars and optional MVVM bindings alongside a plain JavaFX editor.
+The standalone controls also support ordinary JavaFX property bindings.

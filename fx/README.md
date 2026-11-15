@@ -15,6 +15,7 @@
 - [Layout snapshots and empty-workspace restore](docs/docking-snapshots.md), with application-owned storage and loading.
 - [Live reset](../fx-example/docs/docking-reset.md), retaining existing contents and unsaved edits.
 - [Asynchronous tab close](docs/docking-close.md), including consent and resource release.
+- [Quit, save and replace a workspace](docs/docking-shutdown.md), with global consent, retry and main-window ownership.
 - [Dependency injection](../injection/README.md).
 
 ## Introduction

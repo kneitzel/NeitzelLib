@@ -50,10 +50,27 @@ adopts it. Contents belonging to this or another live manager receive neither
 `onDiscarded` nor `onClosed` on that rejection. Fresh, unused prepared contents
 remain subject to the discard contract.
 
-This milestone restores snapshots containing the main window. Floating-window
-data is captured, but restoring floating hosts currently returns
-`UNSUPPORTED_SNAPSHOT_FEATURE` before invoking the resolver; ticket 14 adds that
-capability. Partial restoration for missing IDs is supplied by ticket 13.
+Restore includes the main window and floating hosts with their saved return
+destinations. The same window customizer configures new and restored hosts.
+Prepared floating windows remain hidden until the main Stage is shown; failed
+preparation never shows them. Customizers and placement checks finish before the
+layout is installed.
+Floating bounds outside the available displays are fitted to a current screen,
+preserving the saved size as far as it fits. Return uses the saved main-window
+destination, including persistent groups hidden while empty.
+
+`DockableResolution.Missing` skips that identity and reports it in
+`RestoreResult.Applied.missingIds()`. Empty split branches dissolve while stable
+area aliases remain available; configured persistent empty side groups survive.
+Available contents are checked against the application's current placement rule.
+If a saved destination is rejected, restore tries the explicitly configured
+`DockingOptions.fallbackTarget`, such as `DockTarget.area("primary")`. It does not
+silently choose an arbitrary group. If any available content has no eligible
+destination, the entire restore is rejected with that ID and all freshly prepared
+contents are discarded; the live fallback layout remains unchanged.
+An available Dockable that has become `mainWindowOnly` uses an explicitly
+configured main-window fallback. Floating hosts emptied by Missing or fallback
+are omitted entirely, including their customizer calls.
 Use [live reset](../../fx-example/docs/docking-reset.md) to rearrange already open
 contents without replacing their Nodes or losing their unsaved state.
 
@@ -82,6 +99,37 @@ java --enable-native-access=ALL-UNNAMED \
    prepared and discarded content counts, and separate cleanup diagnostics.
 5. Enable **Simulate cleanup failure** and repeat the failed load to see cleanup
    diagnostics alongside the unchanged primary failure.
+6. Choose **Restore without Preview/Project**. The status names both missing IDs;
+   the nested Preview split dissolves and the persistent empty Project side target
+   remains. The original workspace and its unsaved text remain open.
+7. Choose **Restore with changed rule**. In the supplied starting arrangement,
+   Project is no longer permitted in the tools group and joins Notes in the
+   configured editor fallback, `primary`. The status names that fallback.
+8. Choose **Reject Project placement**. Project is rejected at both its saved
+   destination and the fallback. The new window retains its empty starting layout;
+   the status identifies Project and reports all four freshly prepared contents
+   discarded. The original workspace remains untouched.
+9. Choose **Prepare floating snapshot**. Preview and Project become two floating
+   windows; Project's persistent side target hides while empty. The captured
+   snapshot includes their return destinations.
+10. Choose **Restore saved layout**. A fresh main window and two floating hosts
+    appear. The status reports zero floating windows visible before main-window
+    display and two afterward. Source and restored hosts use the same custom title.
+11. Choose **Restore off-screen windows**. This changes only the saved floating
+    positions to simulate unavailable monitors. The new hosts fit the available
+    displays. In the new main window, **Return Project** brings the same content
+    back to its preserved target and removes its empty floating host.
+12. Choose **Restore partial floating**. Preview is missing; Project now requires
+    the main window and uses the configured editor fallback. Only the new main
+    window appears, with three contents. No empty floating hosts are created.
+13. Choose **Abort floating customizer**. The second floating-window customizer
+    throws. Neither prepared floating host appears, the new main window retains
+    its empty fallback, and all four prepared contents are discarded.
+
+The display and startup checks run against actual JavaFX windows on the current
+macOS desktop. Off-screen saved bounds simulate monitor changes; physically
+disconnecting monitors and Windows/Linux desktop startup have not been qualified
+by these example tests.
 
 The example's **Capture layout** command saves layout data only. Reloaded document
 text comes from its application source; document persistence is a separate concern.

@@ -25,8 +25,9 @@ The `CloseDockingMain` launcher in the example module shows a pending close
 without a nested event loop. Choose Close Notes, then Keep open and continue
 editing. Request close again and choose Allow close. Until that decision, Notes
 remains open; after approval its resource callback runs. The same demonstration
-works through the tab's close control. Main-window shutdown is added by the
-later lifecycle slices; this example demonstrates individual tab consent.
+works through the tab's close control. This example demonstrates individual tab
+consent; [main-window shutdown](docking-shutdown.md) adds complete-workspace
+consent, pre-close saving and manager replacement.
 
 ## Closing a floating window
 
@@ -48,8 +49,9 @@ layout is published once. Then every `onClosed` callback runs, even if an earlie
 cleanup fails. `Closed.cleanupFailures()` reports those failures. The scope stays
 observable until cleanup finishes. Unknown/already closed floating IDs return
 `NoChange`; the main-window ID is rejected by this floating-only entry point.
-Main-window and manager shutdown, including the shutdown snapshot callback,
-belong to the later shutdown slices.
+Main-window and manager shutdown use the same consent and cleanup guarantees;
+the [shutdown guide](docking-shutdown.md) describes their snapshot callback and
+ownership modes.
 
 The example launcher is
 `de.neitzel.fx.example.docking.FloatingCloseDockingMain`. It creates First and
@@ -68,4 +70,5 @@ are in-memory demonstration snapshots in the log, not filesystem writes.
    The floating window's native close control follows the same sequence.
 
 The demo's main Stage is only a control panel; closing it hides its demonstration
-windows. This is separate from the future application-wide shutdown protocol.
+windows. For an application-wide Quit command, use the
+[shutdown workflow](docking-shutdown.md).
