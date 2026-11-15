@@ -4,7 +4,9 @@ This runnable application demonstrates [NeitzelLib FX](../fx/README.md) and [inj
 
 Separate Java/FXML launchers demonstrate [standalone bars](../fx/docs/bars.md)
 and [docking](../fx/docs/docking.md) without initializing MVVM or injection.
-Their guides describe the implemented behavior and launch options.
+Their guides describe the implemented behavior and launch options. The
+[MVVM docking editor](docs/docking-mvvm.md) shows how an already loaded View and
+its local bars move between windows while global commands follow the active editor.
 
 ## Build and run
 

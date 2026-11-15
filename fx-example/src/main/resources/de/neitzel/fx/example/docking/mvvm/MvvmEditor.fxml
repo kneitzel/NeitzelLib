@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?neitzel-model de.neitzel.fx.example.model.Note?>
+<?import de.neitzel.fx.control.StatusBar?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.BorderPane?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1">
+    <fx:define>
+        <BindingList><DirectBinding control="text" property="text" path="text" direction="both"/></BindingList>
+    </fx:define>
+    <top><ToolBar fx:id="localTools"><items><Button fx:id="clear" text="Clear note"/></items></ToolBar></top>
+    <center><TextArea fx:id="text" wrapText="true"/></center>
+    <bottom><StatusBar fx:id="localStatus">
+        <leftItems><Label fx:id="localMessage"/></leftItems>
+        <rightItems><Label text="This bar travels with Notes"/></rightItems>
+    </StatusBar></bottom>
+</BorderPane>

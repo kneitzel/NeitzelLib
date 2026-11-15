@@ -10,6 +10,7 @@
 - [Bounded integer spinners](docs/integer-spinners.md) and [system tray support](docs/tray-support.md).
 - [Standalone toolbar and status bar](docs/bars.md), usable without MVVM.
 - [Docking: opening, moving and activating live contents](docs/docking.md), with ordinary Java/FXML startup examples.
+- [Optional MVVM docking integration](../fx-example/docs/docking-mvvm.md), with local and global bars.
 - [Asynchronous tab close](docs/docking-close.md), including consent and resource release.
 - [Dependency injection](../injection/README.md).
 
