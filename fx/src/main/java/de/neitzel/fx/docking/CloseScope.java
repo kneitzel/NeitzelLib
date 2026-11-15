@@ -11,5 +11,5 @@ public record CloseScope(Kind kind, List<DockableId> dockableIds) {
     }
 
     /** The entry point that requested consent. */
-    public enum Kind { TAB }
+    public enum Kind { TAB, FLOATING_WINDOW }
 }

@@ -14,13 +14,14 @@ import lombok.Setter;
 public final class DockPane extends Region {
     @Getter @Setter private DockLayout initialLayout = new DockLayout();
     final BorderPane surface = new BorderPane();
+    final DockOverlayLayer overlays = new DockOverlayLayer(this);
     private final Rectangle dropIndicator = new Rectangle();
     private final java.util.Map<Side, DockEdgeRegion> edgeAreas = new java.util.EnumMap<>(Side.class);
     DockingManager manager;
 
     public DockPane() {
         getStyleClass().add("dock-pane");
-        getChildren().add(surface);
+        getChildren().addAll(surface, overlays);
         dropIndicator.getStyleClass().add("dock-drop-indicator");
         dropIndicator.setManaged(false);
         dropIndicator.setMouseTransparent(true);
@@ -63,7 +64,7 @@ public final class DockPane extends Region {
     }
 
     Side edgeOf(Node node) {
-        for (Node current = node; current != null; current = current.getParent()) {
+        for (Node current = node instanceof DockGroupPane group ? group.surface() : node; current != null; current = current.getParent()) {
             if (current instanceof DockEdgeRegion edge) return edge.side();
         }
         return null;
@@ -89,7 +90,13 @@ public final class DockPane extends Region {
         return available - remainingMinimum;
     }
 
-    @Override protected void layoutChildren() { surface.resizeRelocate(0, 0, getWidth(), getHeight()); }
+    @Override protected void layoutChildren() {
+        surface.resizeRelocate(0, 0, getWidth(), getHeight());
+        surface.layout();
+        overlays.resizeRelocate(0, 0, getWidth(), getHeight());
+        overlays.requestLayout();
+        overlays.layout();
+    }
     @Override protected double computePrefWidth(double height) { return surface.prefWidth(height); }
     @Override protected double computePrefHeight(double width) { return surface.prefHeight(width); }
     @Override protected double computeMinWidth(double height) { return surface.minWidth(height); }

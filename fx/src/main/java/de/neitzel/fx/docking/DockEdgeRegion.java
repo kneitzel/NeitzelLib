@@ -90,10 +90,6 @@ final class DockEdgeRegion extends Region {
             setVisible(false);
             return;
         }
-        if (extent < 0) {
-            extent = side.isVertical() ? content.prefWidth(-1) : content.prefHeight(-1);
-            committedExtent = extent;
-        }
         getChildren().addAll(content, divider);
         managedProperty().bind(content.managedProperty());
         visibleProperty().bind(content.visibleProperty());
@@ -113,7 +109,30 @@ final class DockEdgeRegion extends Region {
         requestLayout();
     }
 
-    double committedExtent() { return committedExtent; }
+    double committedExtent() { initializeExtent(); return committedExtent; }
+
+    private void initializeExtent() {
+        if (extent >= 0 || content == null) return;
+        extent = expandedPreference(content, side.isVertical());
+        committedExtent = extent;
+    }
+
+    private static double expandedPreference(Node node, boolean width) {
+        if (node instanceof DockGroupSurface anchor) return width ? anchor.expandedWidth() : anchor.expandedHeight();
+        if (!(node instanceof javafx.scene.control.SplitPane split)) return width ? node.prefWidth(-1) : node.prefHeight(-1);
+        boolean parallel = (split.getOrientation() == javafx.geometry.Orientation.HORIZONTAL) == width;
+        var extents = split.getItems().stream().mapToDouble(child -> expandedPreference(child, width));
+        double extent = parallel ? extents.sum() : extents.max().orElse(0);
+        if (parallel) {
+            for (Node divider : split.lookupAll(".split-pane-divider")) {
+                Node owner = divider.getParent();
+                while (owner != null && !(owner instanceof javafx.scene.control.SplitPane)) owner = owner.getParent();
+                if (owner == split) extent += width ? divider.prefWidth(-1) : divider.prefHeight(-1);
+            }
+        }
+        return extent + (width ? split.getInsets().getLeft() + split.getInsets().getRight()
+                : split.getInsets().getTop() + split.getInsets().getBottom());
+    }
     Side side() { return side; }
 
     @Override protected double computePrefWidth(double height) {
@@ -135,6 +154,7 @@ final class DockEdgeRegion extends Region {
     private double dividerSize() { return DockGroupPane.allCollapsed(content) ? 0 : DIVIDER_SIZE; }
 
     private double displayedExtent() {
+        initializeExtent();
         return DockGroupPane.allCollapsed(content)
                 ? side.isVertical() ? content.prefWidth(-1) : content.prefHeight(-1) : extent;
     }

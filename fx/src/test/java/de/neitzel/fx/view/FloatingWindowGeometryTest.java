@@ -72,13 +72,14 @@ class FloatingWindowGeometryTest {
             Thread.sleep(400);
             FxThread.onFx(fixture.committed::clear);
             for (boolean border : List.of(false, true)) {
+                String gesture = border ? "right-edge resize" : "titlebar drag";
                 AtomicReference<Rectangle2D> before = new AtomicReference<>();
                 AtomicReference<Point> start = new AtomicReference<>();
                 FxThread.onFx(() -> {
                     before.set(published(fixture.manager));
                     Rectangle2D frame = actual(fixture.floating);
                     double titleHeight = fixture.floating.getScene().getRoot().localToScreen(0, 0).getY() - frame.getMinY();
-                    start.set(border ? new Point((int) frame.getMaxX() - 1, (int) frame.getMaxY() - 1)
+                    start.set(border ? rightEdgeMidpoint(frame)
                             : new Point((int) (frame.getMinX() + frame.getWidth() / 2),
                                     (int) (frame.getMinY() + titleHeight / 2)));
                 });
@@ -87,15 +88,18 @@ class FloatingWindowGeometryTest {
                 robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
                 try {
                     for (int step = 1; step <= 8; step++) {
-                        robot.mouseMove(start.get().x + step * 8, start.get().y + step * 5);
+                        robot.mouseMove(start.get().x + step * 8, start.get().y + (border ? 0 : step * 5));
                         Thread.sleep(35);
                     }
                     Thread.sleep(600);
                     FxThread.onFx(() -> {
-                        assertFalse(before.get().equals(actual(fixture.floating)), "Native gesture must change the real frame");
-                        assertEquals(before.get(), published(fixture.manager), "A held pause is not gesture completion");
+                        assertFalse(before.get().equals(actual(fixture.floating)),
+                                "Native " + gesture + " must change the real frame; start=" + start.get()
+                                        + ", before=" + before.get() + ", actual=" + actual(fixture.floating)
+                                        + ", focused=" + fixture.floating.isFocused());
+                        assertEquals(before.get(), published(fixture.manager), "A held " + gesture + " pause is not gesture completion");
                     });
-                    robot.mouseMove(start.get().x + 88, start.get().y + 55);
+                    robot.mouseMove(start.get().x + 88, start.get().y + (border ? 0 : 55));
                     Thread.sleep(100);
                 } finally {
                     robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
@@ -109,6 +113,11 @@ class FloatingWindowGeometryTest {
             watchdog.shutdownNow();
             FxThread.onFx(fixture::close);
         }
+    }
+
+    private static Point rightEdgeMidpoint(Rectangle2D frame) {
+        // Avoid the rounded bottom corner, which can fall outside the native resize hit region.
+        return new Point((int) frame.getMaxX() - 1, (int) (frame.getMinY() + frame.getHeight() / 2));
     }
 
     private static void awaitPublishedFrame(Fixture fixture, Rectangle2D previous) throws Exception {
@@ -152,7 +161,7 @@ class FloatingWindowGeometryTest {
                 before.set(published(fixture.manager));
                 ratio.set(publishedSplit(fixture.manager).position());
                 Rectangle2D frame = actual(fixture.floating);
-                start.set(new Point((int) frame.getMaxX() - 1, (int) frame.getMaxY() - 1));
+                start.set(rightEdgeMidpoint(frame));
             });
             robot.mouseMove(start.get().x, start.get().y);
             Thread.sleep(100);

@@ -27,8 +27,12 @@ public record DockLayoutView(List<Window> windows) {
     public record Split(javafx.geometry.Orientation orientation, double position,
                         LayoutNode first, LayoutNode second) implements LayoutNode { }
     public record Group(DockGroupId id, Side tabSide, List<DockableId> dockableIds,
-                        DockableId selectedDockableId, boolean collapsed) implements LayoutNode {
+                        DockableId selectedDockableId, boolean collapsed, DockGroupMode mode) implements LayoutNode {
         public Group { dockableIds = List.copyOf(dockableIds); }
+        public Group(DockGroupId id, Side tabSide, List<DockableId> dockableIds,
+                     DockableId selectedDockableId, boolean collapsed) {
+            this(id, tabSide, dockableIds, selectedDockableId, collapsed, DockGroupMode.DOCKED);
+        }
         public Group(DockGroupId id, Side tabSide, List<DockableId> dockableIds, DockableId selectedDockableId) {
             this(id, tabSide, dockableIds, selectedDockableId, false);
         }

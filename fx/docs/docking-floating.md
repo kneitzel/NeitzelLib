@@ -43,8 +43,9 @@ module for a desktop demonstration:
 6. Open Project's tab menu to inspect the disabled Float command.
 
 The buttons and tab menus use the same manager operations. This example covers
-command-based transfers. Native drag-and-drop between windows and the full
-multi-tab window-close workflow are supplied by their subsequent tickets.
+command-based transfers. Native drag-and-drop between windows is supplied by its subsequent ticket.
+The [floating-window close guide](docking-close.md#closing-a-floating-window)
+describes shared consent for all tabs in a window.
 
 ## Native keyboard qualification
 

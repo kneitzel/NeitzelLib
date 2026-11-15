@@ -14,13 +14,20 @@ import javafx.scene.layout.Region;
 final class DockGroupPane extends TabPane {
     private final DockGroupDefinition definition;
     private boolean collapsed;
+    private final DockGroupSurface surface;
 
     DockGroupPane(DockGroupDefinition definition) {
         this.definition = definition;
+        surface = new DockGroupSurface(this, definition);
         getStyleClass().add("dock-group");
     }
 
+    DockGroupSurface surface() { return surface; }
+    double railWidth() { return getSide().isVertical() ? headerExtent() : headerLength(); }
+    double railHeight() { return getSide().isHorizontal() ? headerExtent() : headerLength(); }
+    boolean isOverlay() { return definition.getMode() == DockGroupMode.OVERLAY; }
     boolean isCollapsed() { return collapsed; }
+    boolean isHeader(Node node) { return headerTab(node) != null; }
 
     void setCollapsed(boolean collapsed) {
         this.collapsed = collapsed;
@@ -76,7 +83,8 @@ final class DockGroupPane extends TabPane {
     }
 
     static boolean allCollapsed(Node node) {
-        if (node instanceof DockGroupPane group) return group.isCollapsed();
+        if (node instanceof DockGroupSurface surface) return surface.unreserved();
+        if (node instanceof DockGroupPane group) return group.isCollapsed() || group.isOverlay();
         return node instanceof SplitPane split && !split.getItems().isEmpty()
                 && split.getItems().stream().allMatch(DockGroupPane::allCollapsed);
     }

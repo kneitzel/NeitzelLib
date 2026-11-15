@@ -75,7 +75,9 @@ class OuterDockResizeTest {
             try {
                 pane.applyCss();
                 pane.layout();
-                Node divider = tabPane(pane, project).getParent().lookup(".dock-area-divider");
+                Node edgeSurface = tabPane(pane, project);
+                while (edgeSurface != null && !edgeSurface.getStyleClass().contains("dock-edge-area")) edgeSurface = edgeSurface.getParent();
+                Node divider = edgeSurface == null ? null : edgeSurface.lookup(".dock-area-divider");
                 assertNotNull(divider, "A predefined side area needs a draggable boundary");
                 assertEquals(side.isVertical() ? Cursor.H_RESIZE : Cursor.V_RESIZE, divider.getCursor());
                 var origin = divider.localToScreen(divider.getBoundsInLocal());

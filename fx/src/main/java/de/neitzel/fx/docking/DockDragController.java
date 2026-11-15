@@ -60,15 +60,28 @@ final class DockDragController {
         Menu splits = new Menu("Split");
         MenuItem close = new MenuItem("Close");
         close.setOnAction(event -> manager.requestTabClose(id));
+        javafx.scene.control.CheckMenuItem pin = new javafx.scene.control.CheckMenuItem("Pin group");
+        pin.setOnAction(event -> currentGroup(id).ifPresent(group -> manager.updateGroup(group.id(),
+                DockGroupChanges.builder().mode(group.mode() == DockGroupMode.DOCKED
+                        ? DockGroupMode.OVERLAY : DockGroupMode.DOCKED).build())));
         ContextMenu menu = new ContextMenu(destinations, splits, close,
-                new MenuItem("Float"), new MenuItem("Return to main"));
+                new MenuItem("Float"), new MenuItem("Return to main"), pin);
         menu.setOnShowing(event -> {
+            currentGroup(id).ifPresent(group -> {
+                pin.setSelected(group.mode() == DockGroupMode.DOCKED);
+                pin.setDisable(!manager.canToggleGroupMode(group.id()));
+            });
             populateDestinations(destinations, id);
             populateSplits(splits, id);
             menu.getItems().set(3, moveItem("Float", id, DockTarget.floating()));
             menu.getItems().set(4, moveItem("Return to main", id, DockTarget.returnToMain()));
         });
         tab.setContextMenu(menu);
+    }
+
+    private java.util.Optional<DockLayoutView.Group> currentGroup(DockableId id) {
+        return manager.layout().windows().stream().flatMap(window -> window.areas().stream())
+                .flatMap(area -> area.groups().stream()).filter(group -> group.dockableIds().contains(id)).findFirst();
     }
 
     void uninstallTab(Tab tab) {

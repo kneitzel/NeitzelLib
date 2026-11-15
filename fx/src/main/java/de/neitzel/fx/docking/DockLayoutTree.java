@@ -24,14 +24,14 @@ final class DockLayoutTree {
     }
 
     private record Leaf(DockingManager.Group group) implements Branch {
-        @Override public Node node() { return group.tabs(); }
+        @Override public Node node() { return ((DockGroupPane) group.tabs()).surface(); }
         @Override public List<DockingManager.Group> groups() { return List.of(group); }
         @Override public DockLayoutView.LayoutNode view() {
             Tab selected = group.tabs().getSelectionModel().getSelectedItem();
             return new DockLayoutView.Group(group.id(), group.tabs().getSide(),
                     group.tabs().getTabs().stream().map(tab -> (DockableId) tab.getUserData()).toList(),
                     selected == null ? null : (DockableId) selected.getUserData(),
-                    group.tabs() instanceof DockGroupPane pane && pane.isCollapsed());
+                    group.tabs() instanceof DockGroupPane pane && pane.isCollapsed(), group.definition().getMode());
         }
     }
 
@@ -242,6 +242,41 @@ final class DockLayoutTree {
 
     private static boolean empty(Branch branch) {
         return branch.groups().stream().allMatch(group -> group.tabs().getTabs().isEmpty());
+    }
+
+    /** Reuses the live overlay dimensions when its group starts reserving space again. */
+    void restoreGroupSize(DockGroupId id, double width, double height) {
+        for (Root root : roots) {
+            restoreGroupSize(nearestSplit(root.branch, id, Orientation.HORIZONTAL), id, width);
+            restoreGroupSize(nearestSplit(root.branch, id, Orientation.VERTICAL), id, height);
+        }
+    }
+
+    private static Split nearestSplit(Branch branch, DockGroupId id, Orientation orientation) {
+        if (!(branch instanceof Split split) || find(branch, id) == null) return null;
+        Branch child = find(split.first, id) != null ? split.first : split.second;
+        Split nested = nearestSplit(child, id, orientation);
+        return nested != null ? nested : split.pane.getOrientation() == orientation ? split : null;
+    }
+
+    private static void restoreGroupSize(Split split, DockGroupId id, double extent) {
+        if (split == null || extent <= 0) return;
+        boolean horizontal = split.pane.getOrientation() == Orientation.HORIZONTAL;
+        double span = horizontal ? split.pane.getWidth() : split.pane.getHeight();
+        if (span <= 0) return;
+        Node divider = split.pane.lookupAll(".split-pane-divider").stream()
+                .filter(node -> divider(node, split.pane) == node).findFirst().orElse(null);
+        double dividerExtent = divider == null ? 6 : horizontal
+                ? divider.getLayoutBounds().getWidth() : divider.getLayoutBounds().getHeight();
+        boolean first = find(split.first, id) != null;
+        double inset = horizontal ? first ? split.pane.getInsets().getLeft() : split.pane.getInsets().getRight()
+                : first ? split.pane.getInsets().getTop() : split.pane.getInsets().getBottom();
+        double position = (extent + inset + dividerExtent / 2) / span;
+        if (!first) position = 1 - position;
+        position = Math.max(0, Math.min(1, position));
+        if (Math.abs(position - split.position) * span < 1) return;
+        split.position = position;
+        if (!split.collapsedAllocation) split.pane.setDividerPositions(position);
     }
 
     void captureGeometry() {

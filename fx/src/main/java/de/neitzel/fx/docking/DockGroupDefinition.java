@@ -9,6 +9,7 @@ import lombok.Setter;
 public final class DockGroupDefinition implements DockLayoutNode {
     private String destinationId;
     private Side tabSide = Side.TOP;
+    private DockGroupMode mode = DockGroupMode.DOCKED;
     private double preferredWidth = 200;
     private double preferredHeight = 150;
     private double minimumWidth = 80;

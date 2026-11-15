@@ -42,9 +42,10 @@ remain possible. The initial definition supplied at attachment remains
 independent of live updates.
 
 `DockGroupChanges` covers tab side, preferred/minimum width and height,
-persistence, empty visibility, empty-space release, collapsibility and split
-directions. Each new split receives its own copy of its target's settings.
-Overlay display is provided by the subsequent overlay slice.
+persistence, empty visibility, empty-space release, collapsibility, display mode
+and split directions. Each new split receives its own copy of its target's settings.
+See [overlay and pinned groups](docking-overlays.md) for shared dimensions,
+keyboard pinning and temporary display above the docked content.
 
 Run `DockingMain` (or `--fxml`) and select Project. Click it again to collapse,
 then click Changed files to reopen the same group. The toolbar also exposes

@@ -10,6 +10,7 @@ import java.util.Objects;
 @Value @Builder
 public class DockGroupChanges {
     Side tabSide;
+    DockGroupMode mode;
     Double preferredWidth;
     Double preferredHeight;
     Double minimumWidth;
@@ -22,6 +23,7 @@ public class DockGroupChanges {
 
     /** Builder accepts primitive dimensions/flags and requires non-null enum settings. */
     public static class DockGroupChangesBuilder {
+        public DockGroupChangesBuilder mode(DockGroupMode value) { mode = Objects.requireNonNull(value); return this; }
         public DockGroupChangesBuilder tabSide(Side value) { tabSide = Objects.requireNonNull(value); return this; }
         public DockGroupChangesBuilder preferredWidth(double value) { preferredWidth = value; return this; }
         public DockGroupChangesBuilder preferredHeight(double value) { preferredHeight = value; return this; }
@@ -36,6 +38,7 @@ public class DockGroupChanges {
 
     DockGroupChanges resolved(DockGroupDefinition current) {
         return builder()
+                .mode(mode == null ? current.getMode() : mode)
                 .tabSide(tabSide == null ? current.getTabSide() : tabSide)
                 .preferredWidth(preferredWidth == null ? current.getPreferredWidth() : preferredWidth)
                 .preferredHeight(preferredHeight == null ? current.getPreferredHeight() : preferredHeight)
@@ -50,6 +53,7 @@ public class DockGroupChanges {
     }
 
     void applyTo(DockGroupDefinition target) {
+        if (mode != null) target.setMode(mode);
         if (tabSide != null) target.setTabSide(tabSide);
         if (preferredWidth != null) target.setPreferredWidth(preferredWidth);
         if (preferredHeight != null) target.setPreferredHeight(preferredHeight);
