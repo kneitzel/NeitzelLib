@@ -22,23 +22,28 @@ public final class DockingManager {
     private final Stage stage;
     private final DockPane pane;
     private final PlacementRule placementRule;
+    private final DockMessages messages;
     private final DockTarget fallbackTarget;
     private final java.util.function.Consumer<FloatingWindowConfiguration> floatingWindowCustomizer;
     private final DockDragController drag;
     private final DockCloseCoordinator closing;
     private boolean updating;
+    private boolean layoutChanging;
     private final Map<DockGroupId, Group> groups = new LinkedHashMap<>();
     private final Map<DockGroupId, Long> groupActivationOrder = new LinkedHashMap<>();
     private final DockLayoutTree tree = new DockLayoutTree(this::publish, id -> !groupClosing(group(id)));
     private final Map<DockAreaId, javafx.geometry.Side> edgeAreas = new LinkedHashMap<>();
     private final java.util.Set<DockGroupId> allocatedGroupIds = new java.util.HashSet<>();
     private final java.util.Set<DockAreaId> allocatedAreaIds = new java.util.HashSet<>();
+    private final java.util.Set<DockAreaId> initialAreaIds = new java.util.HashSet<>();
+    private final LayoutSnapshot.Window initialWindow;
     private long nextGroupId;
     private long nextWindowId;
     private long nextWindowFocusOrder;
     private final Map<DockWindowId, FloatingWindow> floatingWindows = new LinkedHashMap<>();
     private final Map<DockGroupId, DockWindowId> groupWindows = new LinkedHashMap<>();
     private final Map<DockableId, ReturnLocation> returnTargets = new LinkedHashMap<>();
+    private final Map<DockableId, DockAreaId> initialIntents = new LinkedHashMap<>();
     private final Map<DockableId, Dockable> dockables = new LinkedHashMap<>();
     private final Map<DockableId, Node> previousFocus = new LinkedHashMap<>();
     private final Map<DockableId, Long> activationOrder = new LinkedHashMap<>();
@@ -46,10 +51,12 @@ public final class DockingManager {
     private final javafx.beans.value.ChangeListener<Node> focusListener = (observable, old, current) -> rememberFocus(current);
     private final ReadOnlyObjectWrapper<Dockable> active = new ReadOnlyObjectWrapper<>(this, "activeDockable");
     private final ReadOnlyObjectWrapper<DockLayoutView> layout = new ReadOnlyObjectWrapper<>(this, "layout");
+    private LayoutSnapshot publishedSnapshot;
 
     private DockingManager(Stage stage, DockPane pane, DockingOptions options) {
         this.stage = stage;
         this.pane = pane;
+        this.messages = new DockMessages(options.getResourceBundle());
         closing = new DockCloseCoordinator(new DockCloseCoordinator.Host() {
             @Override public Optional<Dockable> find(DockableId id) { return findDockable(id); }
             @Override public javafx.stage.Window owner(DockableId id) { return DockingManager.this.owner(containing(id)); }
@@ -77,11 +84,13 @@ public final class DockingManager {
         addEdgeGroup(initial.getTop(), javafx.geometry.Side.TOP);
         addEdgeGroup(initial.getBottom(), javafx.geometry.Side.BOTTOM);
         tree.view().forEach(area -> allocatedAreaIds.add(area.id()));
+        initialAreaIds.addAll(allocatedAreaIds);
         drag = new DockDragController(this, pane, () -> groups.values().stream()
                 .filter(group -> !groupWindows.containsKey(group.id))
                 .map(group -> new DockDragController.GroupSurface(group.id, group.tabs, pane.edgeOf(group.tabs))).toList());
         refreshEmptyGroups();
         publish();
+        initialWindow = snapshot().windows().getFirst();
         stage.getScene().focusOwnerProperty().addListener(focusListener);
     }
 
@@ -104,6 +113,7 @@ public final class DockingManager {
 
     public ActionResult open(Dockable dockable, DockTarget target) {
         requireFxThread();
+        if (layoutChanging) return new ActionResult.Rejected(layoutChangeFailure());
         Objects.requireNonNull(dockable, "dockable");
         if (dockables.containsKey(dockable.getId())) return activate(dockable.getId());
         MoveCheck check = resolve(dockable, target);
@@ -120,16 +130,7 @@ public final class DockingManager {
                     dockable.getId(), "Floating window configuration failed", failure.getCause()));
         }
         int insertionIndex = destination instanceof ResolvedDockTarget.Insertion insertion ? insertion.index() : 0;
-        Tab tab = new Tab();
-        tab.setClosable(true);
-        tab.setOnCloseRequest(event -> {
-            event.consume();
-            requestTabClose(dockable.getId());
-        });
-        tab.textProperty().bind(dockable.titleProperty());
-        tab.graphicProperty().bind(dockable.iconProperty());
-        tab.setContent(dockable.getContent());
-        tab.setUserData(dockable.getId());
+        Tab tab = prepareTab(dockable);
         dragFor(group).installTab(tab, dockable.getId());
         dockables.put(dockable.getId(), dockable);
         updating = true;
@@ -143,13 +144,31 @@ public final class DockingManager {
         }
         setActive(dockable);
         focus(dockable);
+        DockAreaId initialArea = target instanceof DockTarget.Area area && initialAreaIds.contains(area.id())
+                ? area.id() : new DockAreaId(group.definition.getDestinationId());
+        if (initialAreaIds.contains(initialArea)) initialIntents.put(dockable.getId(), initialArea);
         publish();
         return new ActionResult.Applied();
+    }
+
+    private Tab prepareTab(Dockable dockable) {
+        Tab tab = new Tab();
+        tab.setClosable(true);
+        tab.setOnCloseRequest(event -> {
+            event.consume();
+            requestTabClose(dockable.getId());
+        });
+        tab.textProperty().bind(dockable.titleProperty());
+        tab.graphicProperty().bind(dockable.iconProperty());
+        tab.setContent(dockable.getContent());
+        tab.setUserData(dockable.getId());
+        return tab;
     }
 
     /** Creates content only for a new identity; rejected prepared content is discarded. */
     public ActionResult open(DockableId id, java.util.function.Supplier<? extends Dockable> factory, DockTarget target) {
         requireFxThread();
+        if (layoutChanging) return new ActionResult.Rejected(layoutChangeFailure());
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(factory, "factory");
         if (dockables.containsKey(id)) return activate(id);
@@ -163,6 +182,7 @@ public final class DockingManager {
         ActionResult result = id.equals(prepared.getId()) ? open(prepared, target)
                 : rejected(DockFailure.Code.ID_MISMATCH, id, "Factory returned a different Dockable ID");
         if (result instanceof ActionResult.Rejected rejected && !dockables.containsValue(prepared)
+                && prepared.getContent().getParent() == null && prepared.getContent().getScene() == null
                 && prepared.getOnDiscarded() != null) {
             try {
                 prepared.getOnDiscarded().run();
@@ -170,14 +190,49 @@ public final class DockingManager {
                 DockFailure failure = rejected.failure();
                 var cause = new IllegalStateException("Cleanup failed after rejected open", failure.cause());
                 cause.addSuppressed(cleanup);
-                return new ActionResult.Rejected(new DockFailure(failure.code(), failure.dockableId(), failure.message(), cause));
+                return new ActionResult.Rejected(new DockFailure(failure.code(), failure.dockableId(), failure.message(), cause, failure.messageKey()));
             }
         }
         return result;
     }
 
+    /** Restores the captured starting arrangement while retaining every live Dockable. */
+    public ActionResult resetLayout() {
+        requireFxThread();
+        if (layoutChanging) return rejected(DockFailure.Code.LAYOUT_CHANGE_IN_PROGRESS, null,
+                "A layout replacement is already being prepared");
+        if (closing.scope() != null) return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, null,
+                "Cannot reset while close consent is pending");
+        layoutChanging = true;
+        try {
+            LayoutSnapshot.Window reset = LayoutSnapshot.remapGroups(initialWindow, original -> {
+                if (groups.containsKey(original)) return original;
+                DockGroupId fresh;
+                do { fresh = new DockGroupId("group-" + ++nextGroupId); } while (allocatedGroupIds.contains(fresh));
+                return fresh;
+            });
+            DockLayoutCandidate candidate = prepareLayoutCandidate(reset);
+            Map<DockableId, Dockable> retained = new LinkedHashMap<>(dockables);
+            DockFailure failure = DockResetPlan.prepare(candidate, List.copyOf(retained.values()),
+                    initialIntents, fallbackTarget, this::checkPlacement);
+            if (failure != null) return new ActionResult.Rejected(failure);
+            candidate.normalize();
+            DockableId activeId = active.get() == null ? null : active.get().getId();
+            if (activeId != null) {
+                candidate.groups().stream().filter(group -> candidate.tabs(group.id).contains(activeId))
+                        .findFirst().ifPresent(group -> candidate.select(group.id, activeId));
+            }
+            returnTargets.clear();
+            installLayoutCandidate(candidate, retained, activeId);
+            return new ActionResult.Applied();
+        } finally {
+            layoutChanging = false;
+        }
+    }
+
     public ActionResult activate(DockableId id) {
         requireFxThread();
+        if (layoutChanging) return new ActionResult.Rejected(layoutChangeFailure());
         Dockable dockable = dockables.get(id);
         if (dockable == null) return rejected(DockFailure.Code.DOCKABLE_NOT_FOUND, id, "Dockable is not open");
         if (((DockGroupPane) containing(id).tabs).isCollapsed() && !canChangeGroupGeometry(containing(id))) {
@@ -210,14 +265,23 @@ public final class DockingManager {
 
     public Optional<Dockable> findDockable(DockableId id) { return Optional.ofNullable(dockables.get(id)); }
 
+    /** Uses the same captured language settings and fallback as built-in menu rejection text. */
+    public String describeFailure(DockFailure failure) { return messages.failure(failure); }
+
+    String message(String key) { return messages.text(key); }
+    String message(String key, Object... values) { return messages.format(key, values); }
+
     /** Requests consent without closing or releasing content while the answer is pending. */
     public java.util.concurrent.CompletionStage<CloseResult> requestTabClose(DockableId id) {
+        requireFxThread();
+        if (layoutChanging) return java.util.concurrent.CompletableFuture.completedFuture(new CloseResult.Rejected(layoutChangeFailure()));
         return closing.requestTabClose(id);
     }
 
     /** Requests every contained Dockable's consent before closing a floating window. */
     public java.util.concurrent.CompletionStage<CloseResult> requestFloatingWindowClose(DockWindowId id) {
         requireFxThread();
+        if (layoutChanging) return java.util.concurrent.CompletableFuture.completedFuture(new CloseResult.Rejected(layoutChangeFailure()));
         Objects.requireNonNull(id, "id");
         if (layout.get().windows().getFirst().id().equals(id)) {
             return java.util.concurrent.CompletableFuture.completedFuture(new CloseResult.Rejected(
@@ -250,6 +314,7 @@ public final class DockingManager {
                 previousFocus.remove(id);
                 activationOrder.remove(id);
                 returnTargets.remove(id);
+                initialIntents.remove(id);
                 normalizeLayout(group.id);
             }
         } finally {
@@ -272,6 +337,7 @@ public final class DockingManager {
     }
 
     private boolean groupClosing(Group group) {
+        if (layoutChanging) return true;
         CloseScope scope = closing.scope();
         if (scope == null) return false;
         if (scope.kind() == CloseScope.Kind.FLOATING_WINDOW) {
@@ -286,6 +352,7 @@ public final class DockingManager {
     /** Resolves a move without mutating content, layout or identity allocation. */
     public MoveCheck checkMove(DockableId id, DockTarget target) {
         requireFxThread();
+        if (layoutChanging) return new MoveCheck.Rejected(layoutChangeFailure());
         if (!dockables.containsKey(id)) return moveRejected(DockFailure.Code.DOCKABLE_NOT_FOUND, id, "Dockable is not open");
         if (groupClosing(containing(id))) return moveRejected(DockFailure.Code.CLOSE_IN_PROGRESS, id, "A close request covers this group");
         MoveCheck check = resolve(dockables.get(id), target);
@@ -516,6 +583,7 @@ public final class DockingManager {
     /** Applies explicitly supplied settings as one validated group change. */
     public ActionResult updateGroup(DockGroupId id, DockGroupChanges changes) {
         requireFxThread();
+        if (layoutChanging) return new ActionResult.Rejected(layoutChangeFailure());
         Objects.requireNonNull(changes, "changes");
         Group group = group(Objects.requireNonNull(id, "id"));
         if (group == null) return rejected(DockFailure.Code.TARGET_NOT_FOUND, null, "Group does not exist");
@@ -607,6 +675,7 @@ public final class DockingManager {
 
     private ActionResult setGroupCollapsed(DockGroupId id, boolean collapsed, boolean focusHeader) {
         requireFxThread();
+        if (layoutChanging) return new ActionResult.Rejected(layoutChangeFailure());
         Group group = group(Objects.requireNonNull(id, "id"));
         if (group == null) return rejected(DockFailure.Code.TARGET_NOT_FOUND, null, "Group does not exist");
         if (groupClosing(group)) return rejected(DockFailure.Code.CLOSE_IN_PROGRESS, null, "A close request covers this group");
@@ -707,6 +776,122 @@ public final class DockingManager {
     public Dockable activeDockable() { return active.get(); }
     public ReadOnlyObjectProperty<Dockable> activeDockableProperty() { return active.getReadOnlyProperty(); }
     public DockLayoutView layout() { return layout.get(); }
+    /** Prepares fresh content for an empty manager, then installs the validated layout as one change. */
+    public RestoreResult restore(LayoutSnapshot snapshot, DockableResolver resolver) {
+        requireFxThread();
+        Objects.requireNonNull(snapshot, "snapshot");
+        Objects.requireNonNull(resolver, "resolver");
+        if (layoutChanging) return new RestoreResult.Rejected(layoutChangeFailure(), List.of());
+        if (closing.scope() != null) return new RestoreResult.Rejected(new DockFailure(
+                DockFailure.Code.CLOSE_IN_PROGRESS, null, "Cannot restore during close consent", null), List.of());
+        if (!dockables.isEmpty()) return new RestoreResult.Rejected(new DockFailure(
+                DockFailure.Code.RESTORE_REQUIRES_EMPTY_MANAGER, null, "Restore requires a manager without open Dockables", null), List.of());
+        DockFailure invalid = DockSnapshotValidation.validate(snapshot,
+                group -> validate(group.settings().definition(group.originArea()), new java.util.HashSet<>()));
+        if (invalid != null) return new RestoreResult.Rejected(invalid, List.of());
+        if (snapshot.windows().size() != 1) return new RestoreResult.Rejected(new DockFailure(
+                DockFailure.Code.UNSUPPORTED_SNAPSHOT_FEATURE, null, "Floating-window restoration is not available in this milestone", null), List.of());
+        layoutChanging = true;
+        try {
+            DockLayoutCandidate candidate = prepareLayoutCandidate(snapshot.windows().getFirst());
+            DockRestorePreparation prepared = DockRestorePreparation.resolve(candidate, resolver, this::checkPlacement);
+            if (prepared.rejection() != null) return prepared.rejection();
+            initialIntents.clear();
+            initialIntents.putAll(snapshot.initialIntents());
+            returnTargets.clear();
+            snapshot.returnPositions().forEach((id, position) -> returnTargets.put(id,
+                    new ReturnLocation(position.target(), position.areaId())));
+            installLayoutCandidate(candidate, prepared.contents(), snapshot.activeDockableId());
+            return new RestoreResult.Applied(List.of());
+        } finally {
+            layoutChanging = false;
+        }
+    }
+
+    private DockFailure layoutChangeFailure() {
+        return new DockFailure(DockFailure.Code.LAYOUT_CHANGE_IN_PROGRESS, null,
+                "A layout replacement is already being prepared", null);
+    }
+
+    private DockLayoutCandidate prepareLayoutCandidate(LayoutSnapshot.Window window) {
+        return new DockLayoutCandidate(window, state -> {
+            Group group = createDetachedGroup(state.id(), state.settings().definition(state.originArea()));
+            DockGroupPane tabs = (DockGroupPane) group.tabs;
+            tabs.setCollapsed(state.settings().mode() == DockGroupMode.OVERLAY || state.collapsed());
+            tabs.surface().updatePreferredSize(state.expandedWidth(), state.expandedHeight());
+            return group;
+        }, this::publish, id -> !groupClosing(group(id)));
+    }
+
+    private void installLayoutCandidate(DockLayoutCandidate candidate, Map<DockableId, Dockable> contents,
+                                        DockableId activeId) {
+        Map<DockableId, Dockable> installed = new LinkedHashMap<>(contents);
+        boolean wasUpdating = updating;
+        updating = true;
+        try {
+            for (Group old : groups.values()) {
+                for (Tab tab : List.copyOf(old.tabs.getTabs())) {
+                    dragFor(old).uninstallTab(tab);
+                    tab.textProperty().unbind();
+                    tab.graphicProperty().unbind();
+                    tab.setGraphic(null);
+                    tab.setContent(null);
+                }
+                old.tabs.getTabs().clear();
+            }
+            tree.clear();
+            pane.clearAreas();
+            floatingWindows.values().forEach(this::disposeFloatingWindow);
+            floatingWindows.clear();
+            groupWindows.clear();
+            groups.clear();
+            groupActivationOrder.clear();
+            edgeAreas.clear();
+            dockables.clear();
+            dockables.putAll(installed);
+            previousFocus.keySet().retainAll(installed.keySet());
+            activationOrder.keySet().retainAll(installed.keySet());
+            for (Group group : candidate.groups()) {
+                groups.put(group.id, group);
+                allocatedGroupIds.add(group.id);
+                for (DockableId id : candidate.tabs(group.id)) {
+                    Tab tab = prepareTab(installed.get(id));
+                    drag.installTab(tab, id);
+                    group.tabs.getTabs().add(tab);
+                }
+                DockableId selected = candidate.selected(group.id);
+                int index = selected == null ? -1 : tabIndex(group, selected);
+                if (index >= 0) group.tabs.getSelectionModel().select(index);
+                else if (!group.tabs.getTabs().isEmpty()) group.tabs.getSelectionModel().selectFirst();
+            }
+            List<java.util.function.Consumer<Node>> placements = new java.util.ArrayList<>();
+            for (LayoutSnapshot.Root root : candidate.roots()) {
+                if (root.placement() == LayoutSnapshot.Placement.CENTER) placements.add(pane.surface::setCenter);
+                else {
+                    javafx.geometry.Side side = javafx.geometry.Side.valueOf(root.placement().name());
+                    DockAreaId areaId = root.branch().aliases().getFirst();
+                    root.branch().aliases().forEach(alias -> edgeAreas.put(alias, side));
+                    placements.add(node -> {
+                        pane.setArea(side, node, () -> canResizeEdge(areaId, side), this::publish);
+                        pane.setAreaExtent(side, root.preferredWidth(), root.preferredHeight());
+                    });
+                }
+            }
+            tree.installFrom(candidate.tree, placements);
+            tree.view().forEach(area -> allocatedAreaIds.add(area.id()));
+            refreshEmptyGroups();
+            Dockable desired = activeId == null ? null : installed.get(activeId);
+            if (desired != null && !isGroupVisible(containing(activeId))) desired = null;
+            setActive(desired == null ? selectedVisibleFallback() : desired);
+            focus(active.get());
+        } finally {
+            updating = wasUpdating;
+        }
+        publish();
+    }
+
+    /** Returns the last completed layout geometry, including during live geometry gestures. */
+    public LayoutSnapshot snapshot() { return publishedSnapshot; }
     public ReadOnlyObjectProperty<DockLayoutView> layoutProperty() { return layout.getReadOnlyProperty(); }
 
     private void addEdgeGroup(DockLayoutNode definition, javafx.geometry.Side side) {
@@ -756,6 +941,13 @@ public final class DockingManager {
     }
 
     private Group createGroup(DockGroupId id, DockGroupDefinition definition) {
+        Group group = createDetachedGroup(id, definition);
+        allocatedGroupIds.add(id);
+        groups.put(id, group);
+        return group;
+    }
+
+    private Group createDetachedGroup(DockGroupId id, DockGroupDefinition definition) {
         DockGroupDefinition captured = new DockGroupDefinition(definition.getDestinationId());
         captured.setTabSide(definition.getTabSide());
         captured.setMode(definition.getMode());
@@ -772,12 +964,10 @@ public final class DockingManager {
         tabs.setSide(captured.getTabSide());
         ((DockGroupPane) tabs).setCollapsed(captured.getMode() == DockGroupMode.OVERLAY);
         Group group = new Group(id, tabs, captured);
-        allocatedGroupIds.add(id);
-        groups.put(id, group);
         ((DockGroupPane) tabs).installHeaderActions(tab -> activate((DockableId) tab.getUserData()),
                 () -> setGroupCollapsed(id, true));
         tabs.getSelectionModel().selectedItemProperty().addListener((observable, old, selected) -> {
-            if (!updating && selected != null && isGroupVisible(group)) {
+            if (!updating && groups.get(id) == group && selected != null && isGroupVisible(group)) {
                 setActive(dockables.get((DockableId) selected.getUserData()));
                 focus(active.get());
                 publish();
@@ -815,6 +1005,12 @@ public final class DockingManager {
         for (Dockable dockable : dockables.values()) {
             if (contains(dockable.getContent(), current) && isGroupVisible(containing(dockable.getId()))) {
                 previousFocus.put(dockable.getId(), current);
+                if (active.get() != dockable && !updating && !layoutChanging && publishedSnapshot != null
+                        && layout.get().windows().stream().flatMap(window -> window.areas().stream())
+                        .flatMap(area -> area.groups().stream()).anyMatch(group -> dockable.getId().equals(group.selectedDockableId()))) {
+                    publishedSnapshot = new LayoutSnapshot(publishedSnapshot.version(), publishedSnapshot.windows(),
+                            dockable.getId(), publishedSnapshot.returnPositions(), publishedSnapshot.initialIntents());
+                }
                 setActive(dockable);
                 return;
             }
@@ -918,6 +1114,23 @@ public final class DockingManager {
         windows.add(new DockLayoutView.Window(new DockWindowId("main"), true, areas));
         floatingWindows.values().forEach(window -> windows.add(new DockLayoutView.Window(
                 window.id, false, window.tree.view(), window.geometry.bounds())));
+        List<LayoutSnapshot.Root> mainRoots = tree.snapshotRoots(edgeAreas, tree.isResizing() || pane.isResizing()).stream().map(root -> {
+            if (root.placement() == LayoutSnapshot.Placement.CENTER) return root;
+            javafx.geometry.Side side = javafx.geometry.Side.valueOf(root.placement().name());
+            double extent = pane.committedExtent(side);
+            return new LayoutSnapshot.Root(root.placement(), side.isVertical() ? extent : -1,
+                    side.isHorizontal() ? extent : -1, root.branch());
+        }).toList();
+        var snapshotWindows = new java.util.ArrayList<LayoutSnapshot.Window>();
+        snapshotWindows.add(new LayoutSnapshot.Window(new DockWindowId("main"), true, null, mainRoots));
+        floatingWindows.values().forEach(window -> snapshotWindows.add(new LayoutSnapshot.Window(
+                window.id, false, window.geometry.bounds(), window.tree.snapshotRoots(Map.of(),
+                        window.geometry.hasPendingChanges() || window.tree.isResizing() || window.pane.isResizing()))));
+        Map<DockableId, LayoutSnapshot.ReturnPosition> positions = new LinkedHashMap<>();
+        returnTargets.forEach((id, position) -> positions.put(id,
+                new LayoutSnapshot.ReturnPosition(position.target, position.areaId)));
+        publishedSnapshot = new LayoutSnapshot(LayoutSnapshot.CURRENT_VERSION, snapshotWindows,
+                active.get() == null ? null : active.get().getId(), positions, initialIntents);
         layout.set(new DockLayoutView(windows));
     }
 

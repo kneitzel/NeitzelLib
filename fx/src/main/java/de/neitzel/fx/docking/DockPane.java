@@ -58,6 +58,22 @@ public final class DockPane extends Region {
         }
     }
 
+    void clearAreas() {
+        surface.setCenter(null);
+        surface.setLeft(null);
+        surface.setRight(null);
+        surface.setTop(null);
+        surface.setBottom(null);
+        edgeAreas.clear();
+    }
+
+    void setAreaExtent(Side side, double width, double height) {
+        DockEdgeRegion area = edgeAreas.get(side);
+        if (area != null) area.updatePreferredExtent(width > 0 ? width : null, height > 0 ? height : null);
+    }
+
+    boolean isResizing() { return edgeAreas.values().stream().anyMatch(DockEdgeRegion::isResizing); }
+
     double committedExtent(Side side) {
         DockEdgeRegion area = edgeAreas.get(side);
         return area == null ? -1 : area.committedExtent();

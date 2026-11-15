@@ -134,6 +134,7 @@ final class DockEdgeRegion extends Region {
                 : split.getInsets().getTop() + split.getInsets().getBottom());
     }
     Side side() { return side; }
+    boolean isResizing() { return dragging; }
 
     @Override protected double computePrefWidth(double height) {
         return side.isVertical() ? displayedExtent() + dividerSize() : content == null ? 0 : content.prefWidth(height);

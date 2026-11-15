@@ -7,6 +7,10 @@ and [docking](../fx/docs/docking.md) without initializing MVVM or injection.
 Their guides describe the implemented behavior and launch options. The
 [MVVM docking editor](docs/docking-mvvm.md) shows how an already loaded View and
 its local bars move between windows while global commands follow the active editor.
+The [live reset example](docs/docking-reset.md) restores the starting arrangement
+without replacing editors, and demonstrates an atomic rejection under changed placement rules.
+The [snapshot example](../fx/docs/docking-snapshots.md) restores a saved arrangement
+into a fresh workspace before it is shown, with load and cleanup diagnostics.
 
 ## Build and run
 

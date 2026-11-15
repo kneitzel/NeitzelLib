@@ -83,6 +83,44 @@ final class DockLayoutTree {
         place.accept(branch.node());
     }
 
+    void addSnapshot(LayoutSnapshot.Branch state, Consumer<Node> place,
+                     java.util.function.Function<LayoutSnapshot.Group, DockingManager.Group> factory) {
+        Branch branch = buildSnapshot(state, factory);
+        roots.add(new Root(branch, place));
+        render(branch);
+        place.accept(branch.node());
+    }
+
+    private Branch buildSnapshot(LayoutSnapshot.Branch state,
+                                 java.util.function.Function<LayoutSnapshot.Group, DockingManager.Group> factory) {
+        Branch branch;
+        if (state instanceof LayoutSnapshot.Group group) branch = new Leaf(factory.apply(group));
+        else {
+            LayoutSnapshot.Split stateSplit = (LayoutSnapshot.Split) state;
+            Split split = split(buildSnapshot(stateSplit.first(), factory), buildSnapshot(stateSplit.second(), factory),
+                    stateSplit.orientation());
+            split.position = stateSplit.position();
+            branch = split;
+        }
+        state.aliases().forEach(alias -> areas.put(alias, branch));
+        return branch;
+    }
+
+    void clear() {
+        detach();
+        roots.clear();
+        areas.clear();
+    }
+
+    void installFrom(DockLayoutTree candidate, List<Consumer<Node>> placements) {
+        clear();
+        areas.putAll(candidate.areas);
+        for (int i = 0; i < candidate.roots.size(); i++) {
+            roots.add(new Root(candidate.roots.get(i).branch, placements.get(i)));
+        }
+        render();
+    }
+
     private Branch build(DockLayoutNode definition,
                          java.util.function.Function<DockGroupDefinition, DockingManager.Group> groupFactory) {
         DockAreaId id = new DockAreaId(definition.getDestinationId());
@@ -201,15 +239,19 @@ final class DockLayoutTree {
     }
 
     List<DockGroupId> normalize(DockGroupId source) {
+        return normalize(source, group -> group.tabs().getTabs().isEmpty());
+    }
+
+    List<DockGroupId> normalize(DockGroupId source, java.util.function.Predicate<DockingManager.Group> isEmpty) {
         Branch emptied = find(source);
-        if (!empty(emptied)) return List.of();
+        if (emptied == null || !empty(emptied, isEmpty)) return List.of();
         detach();
         List<DockGroupId> removed = new ArrayList<>();
         for (var iterator = roots.iterator(); iterator.hasNext();) {
             Root root = iterator.next();
             boolean affected = includes(root.branch, emptied);
-            root.branch = normalize(root.branch, emptied, removed);
-            if (affected && root.branch instanceof Leaf leaf && empty(leaf)
+            root.branch = normalize(root.branch, emptied, removed, isEmpty);
+            if (affected && root.branch instanceof Leaf leaf && empty(leaf, isEmpty)
                     && !leaf.group.definition().isPersistent()) {
                 areas.entrySet().removeIf(entry -> entry.getValue() == leaf);
                 removed.add(leaf.group.id());
@@ -220,12 +262,13 @@ final class DockLayoutTree {
         return List.copyOf(removed);
     }
 
-    private Branch normalize(Branch branch, Branch emptied, List<DockGroupId> removed) {
+    private Branch normalize(Branch branch, Branch emptied, List<DockGroupId> removed,
+                             java.util.function.Predicate<DockingManager.Group> isEmpty) {
         if (!(branch instanceof Split split) || !includes(branch, emptied)) return branch;
-        split.first = normalize(split.first, emptied, removed);
-        split.second = normalize(split.second, emptied, removed);
-        boolean firstEmpty = empty(split.first);
-        boolean secondEmpty = empty(split.second);
+        split.first = normalize(split.first, emptied, removed, isEmpty);
+        split.second = normalize(split.second, emptied, removed, isEmpty);
+        boolean firstEmpty = empty(split.first, isEmpty);
+        boolean secondEmpty = empty(split.second, isEmpty);
         if (!firstEmpty && !secondEmpty) return split;
         Branch survivor = firstEmpty && !secondEmpty ? split.second : split.first;
         Branch discarded = survivor == split.first ? split.second : split.first;
@@ -240,8 +283,8 @@ final class DockLayoutTree {
         return branch instanceof Split split && (includes(split.first, target) || includes(split.second, target));
     }
 
-    private static boolean empty(Branch branch) {
-        return branch.groups().stream().allMatch(group -> group.tabs().getTabs().isEmpty());
+    private static boolean empty(Branch branch, java.util.function.Predicate<DockingManager.Group> isEmpty) {
+        return branch.groups().stream().allMatch(isEmpty);
     }
 
     /** Reuses the live overlay dimensions when its group starts reserving space again. */
@@ -277,6 +320,43 @@ final class DockLayoutTree {
         if (Math.abs(position - split.position) * span < 1) return;
         split.position = position;
         if (!split.collapsedAllocation) split.pane.setDividerPositions(position);
+    }
+
+    boolean isResizing() { return roots.stream().anyMatch(root -> isResizing(root.branch)); }
+    private static boolean isResizing(Branch branch) {
+        return branch instanceof Split split && (split.dragging || isResizing(split.first) || isResizing(split.second));
+    }
+
+    List<LayoutSnapshot.Root> snapshotRoots(Map<DockAreaId, Side> edgeAreas) {
+        return snapshotRoots(edgeAreas, false);
+    }
+
+    List<LayoutSnapshot.Root> snapshotRoots(Map<DockAreaId, Side> edgeAreas, boolean preserveGeometry) {
+        return roots.stream().map(root -> {
+            Side side = edgeAreas.entrySet().stream().filter(entry -> areas.get(entry.getKey()) == root.branch)
+                    .map(Map.Entry::getValue).findFirst().orElse(null);
+            LayoutSnapshot.Placement placement = side == null ? LayoutSnapshot.Placement.CENTER
+                    : LayoutSnapshot.Placement.valueOf(side.name());
+            return new LayoutSnapshot.Root(placement, -1, -1, snapshot(root.branch, preserveGeometry));
+        }).toList();
+    }
+
+    private LayoutSnapshot.Branch snapshot(Branch branch, boolean preserveGeometry) {
+        List<DockAreaId> aliases = areas.entrySet().stream().filter(entry -> entry.getValue() == branch)
+                .map(Map.Entry::getKey).toList();
+        if (branch instanceof Split split) {
+            return new LayoutSnapshot.Split(aliases, split.pane.getOrientation(), split.position,
+                    snapshot(split.first, preserveGeometry), snapshot(split.second, preserveGeometry));
+        }
+        DockingManager.Group group = ((Leaf) branch).group;
+        DockGroupPane tabs = (DockGroupPane) group.tabs();
+        Tab selected = tabs.getSelectionModel().getSelectedItem();
+        double[] size = tabs.surface().snapshotSize(preserveGeometry);
+        return new LayoutSnapshot.Group(aliases, group.id(), new DockAreaId(group.definition().getDestinationId()),
+                LayoutSnapshot.GroupSettings.capture(group.definition()), tabs.isCollapsed(),
+                size[0], size[1],
+                tabs.getTabs().stream().map(tab -> (DockableId) tab.getUserData()).toList(),
+                selected == null ? null : (DockableId) selected.getUserData());
     }
 
     void captureGeometry() {

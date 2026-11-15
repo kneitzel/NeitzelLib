@@ -10,6 +10,8 @@ final class DockGroupSurface extends Region {
     private DockPane host;
     private double expandedWidth;
     private double expandedHeight;
+    private double committedWidth;
+    private double committedHeight;
 
     DockGroupSurface(DockGroupPane tabs, DockGroupDefinition definition) {
         this.tabs = tabs;
@@ -24,6 +26,14 @@ final class DockGroupSurface extends Region {
     boolean unreserved() { return tabs.isCollapsed() || tabs.isOverlay(); }
     double expandedWidth() { return expandedWidth > 0 ? expandedWidth : definition.getPreferredWidth(); }
     double expandedHeight() { return expandedHeight > 0 ? expandedHeight : definition.getPreferredHeight(); }
+
+    double[] snapshotSize(boolean preserveGeometry) {
+        if (!preserveGeometry || committedWidth <= 0 || committedHeight <= 0) {
+            committedWidth = expandedWidth();
+            committedHeight = expandedHeight();
+        }
+        return new double[]{committedWidth, committedHeight};
+    }
 
     boolean spansEdgeExtent(javafx.geometry.Side side) {
         for (Node current = getParent(); current != null && !(current instanceof DockEdgeRegion); current = current.getParent()) {

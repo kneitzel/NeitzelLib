@@ -69,16 +69,16 @@ final class DockDragController {
         String headerId = "dock-tab-" + ++nextHeaderId;
         tab.setId(headerId);
         headers.put(headerId, id);
-        Menu destinations = new Menu("Move to");
-        Menu splits = new Menu("Split");
-        MenuItem close = new MenuItem("Close");
+        Menu destinations = new Menu(manager.message("dock.action.move"));
+        Menu splits = new Menu(manager.message("dock.action.split"));
+        MenuItem close = new MenuItem(manager.message("dock.action.close"));
         close.setOnAction(event -> manager.requestTabClose(id));
-        javafx.scene.control.CheckMenuItem pin = new javafx.scene.control.CheckMenuItem("Pin group");
+        javafx.scene.control.CheckMenuItem pin = new javafx.scene.control.CheckMenuItem(manager.message("dock.action.pin"));
         pin.setOnAction(event -> currentGroup(id).ifPresent(group -> manager.updateGroup(group.id(),
                 DockGroupChanges.builder().mode(group.mode() == DockGroupMode.DOCKED
                         ? DockGroupMode.OVERLAY : DockGroupMode.DOCKED).build())));
         ContextMenu menu = new ContextMenu(destinations, splits, close,
-                new MenuItem("Float"), new MenuItem("Return to main"), pin);
+                new MenuItem(manager.message("dock.action.float")), new MenuItem(manager.message("dock.action.return")), pin);
         menu.setOnShowing(event -> {
             currentGroup(id).ifPresent(group -> {
                 pin.setSelected(group.mode() == DockGroupMode.DOCKED);
@@ -86,8 +86,8 @@ final class DockDragController {
             });
             populateDestinations(destinations, id);
             populateSplits(splits, id);
-            menu.getItems().set(3, moveItem("Float", id, DockTarget.floating()));
-            menu.getItems().set(4, moveItem("Return to main", id, DockTarget.returnToMain()));
+            menu.getItems().set(3, moveItem(manager.message("dock.action.float"), id, DockTarget.floating()));
+            menu.getItems().set(4, moveItem(manager.message("dock.action.return"), id, DockTarget.returnToMain()));
         });
         tab.setContextMenu(menu);
     }
@@ -130,12 +130,7 @@ final class DockDragController {
                 .flatMap(area -> area.groups().stream()).filter(group -> group.dockableIds().contains(id))
                 .findFirst().ifPresent(group -> {
                     for (Side side : Side.values()) {
-                        String label = switch (side) {
-                            case TOP -> "Above";
-                            case RIGHT -> "Right";
-                            case BOTTOM -> "Below";
-                            case LEFT -> "Left";
-                        };
+                        String label = manager.message("dock.side." + side.name());
                         menu.getItems().add(moveItem(label, id, DockTarget.split(group.id(), side)));
                     }
                 });
@@ -144,8 +139,9 @@ final class DockDragController {
 
     private MenuItem moveItem(String label, DockableId id, DockTarget target) {
         MoveCheck check = manager.checkMove(id, target);
-        if (check instanceof MoveCheck.Rejected rejected) label += " (" + rejected.failure().message() + ")";
-        else if (check instanceof MoveCheck.NoChange) label += " (Already here)";
+        if (check instanceof MoveCheck.Rejected rejected) label = manager.message("dock.action.unavailable", label,
+                manager.describeFailure(rejected.failure()));
+        else if (check instanceof MoveCheck.NoChange) label = manager.message("dock.action.noChange", label);
         MenuItem item = new MenuItem(label);
         item.setDisable(!(check instanceof MoveCheck.Allowed));
         item.setOnAction(event -> manager.move(id, target));
@@ -220,7 +216,7 @@ final class DockDragController {
             floatingFrame.setFill(javafx.scene.paint.Color.rgb(80, 140, 220, .16));
             floatingFrame.setStroke(javafx.scene.paint.Color.rgb(50, 110, 190));
             floatingFrame.setStrokeType(javafx.scene.shape.StrokeType.INSIDE);
-            javafx.scene.control.Label label = new javafx.scene.control.Label("Float");
+            javafx.scene.control.Label label = new javafx.scene.control.Label(manager.message("dock.action.float"));
             label.getStyleClass().add("dock-floating-preview-label");
             javafx.scene.layout.StackPane preview = new javafx.scene.layout.StackPane(floatingFrame, label);
             preview.getStyleClass().add("dock-floating-preview");

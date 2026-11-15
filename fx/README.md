@@ -12,6 +12,8 @@
 - [Docking: opening, moving and activating live contents](docs/docking.md), with ordinary Java/FXML startup examples.
 - [Optional MVVM docking integration](../fx-example/docs/docking-mvvm.md), with local and global bars.
 - [Dragging between windows](docs/docking-drag.md), with native pointer and keyboard qualification.
+- [Layout snapshots and empty-workspace restore](docs/docking-snapshots.md), with application-owned storage and loading.
+- [Live reset](../fx-example/docs/docking-reset.md), retaining existing contents and unsaved edits.
 - [Asynchronous tab close](docs/docking-close.md), including consent and resource release.
 - [Dependency injection](../injection/README.md).
 
