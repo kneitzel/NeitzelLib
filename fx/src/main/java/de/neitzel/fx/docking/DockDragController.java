@@ -187,7 +187,7 @@ final class DockDragController {
             if (hidden(group)) continue;
             Bounds bounds = group.tabs().localToScreen(group.tabs().getBoundsInLocal());
             if (bounds == null || !bounds.contains(screenX, screenY)) continue;
-            Node strip = group.tabs().lookup(".tab-header-area");
+            Node strip = headerStrip(group.tabs());
             Bounds stripBounds = strip == null ? null : strip.localToScreen(strip.getBoundsInLocal());
             if (stripBounds != null && stripBounds.contains(screenX, screenY)) {
                 Proposal insertion = insertion(group, screenX, screenY);
@@ -273,9 +273,16 @@ final class DockDragController {
         };
     }
 
+    private static Node headerStrip(TabPane tabs) {
+        return tabs.getChildrenUnmodifiable().stream()
+                .filter(node -> node.getStyleClass().contains("tab-header-area")).findFirst().orElse(null);
+    }
+
     private Proposal insertion(GroupSurface group, double x, double y) {
+        Node strip = headerStrip(group.tabs());
+        if (strip == null) return null;
         List<Header> visible = group.tabs().getTabs().stream().map(tab -> {
-            Node node = group.tabs().lookup("#" + tab.getId());
+            Node node = strip.lookup("#" + tab.getId());
             Bounds bounds = node == null ? null : node.localToScreen(node.getBoundsInLocal());
             return bounds == null ? null : new Header((DockableId) tab.getUserData(), bounds);
         }).filter(java.util.Objects::nonNull).toList();

@@ -105,7 +105,8 @@ class MoveTabsByGestureTest {
             stage.setScene(new Scene(pane, 800, 500));
             DockingManager manager = DockingManager.attach(stage, pane, new DockingOptions());
             for (String name : List.of("Alpha", "Beta", "Notes")) {
-                Dockable dockable = new Dockable(new DockableId(name), new TextArea(name));
+                TabPane applicationTabs = new TabPane(new javafx.scene.control.Tab("Application tab", new TextArea(name)));
+                Dockable dockable = new Dockable(new DockableId(name), applicationTabs);
                 dockable.setTitle(name);
                 manager.open(dockable, DockTarget.area("editors"));
             }
