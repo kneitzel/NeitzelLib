@@ -1,0 +1,14 @@
+.dock-pane {
+    -fx-base: #dce8f1;
+    -fx-accent: #156b83;
+    -fx-focus-color: #0c617b;
+}
+.dock-tab-header { -fx-background-color: #dce8f1; }
+.dock-tab-header:selected { -fx-background-color: #faf3dc; }
+.dock-tab-header:focused .focus-indicator { -fx-border-color: #0c617b; }
+.dock-divider, .dock-area-divider { -fx-background-color: #53869b; }
+.dock-edge-area { -fx-background-color: #b9d2dc; }
+.dock-drop-indicator { -fx-fill: rgba(15, 120, 130, 0.25); -fx-stroke: #0f7882; }
+.dock-drop-indicator:no-change { -fx-fill: rgba(130, 100, 20, 0.2); -fx-stroke: #826414; }
+.dock-floating-preview-frame { -fx-fill: rgba(15, 120, 130, 0.25); -fx-stroke: #0f7882; }
+.dock-floating-preview-label { -fx-background-color: #faf3dc; -fx-text-fill: #173b4a; }

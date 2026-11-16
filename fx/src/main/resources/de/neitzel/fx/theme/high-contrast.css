@@ -1,0 +1,13 @@
+.neitzel-theme {
+    -nl-surface: #080a0d;
+    -nl-raised: #111820;
+    -nl-text: #ffffff;
+    -nl-muted: #e4eaf2;
+    -nl-selection: #143e68;
+    -nl-selection-text: #ffffff;
+    -nl-focus: #ffdf00;
+    -nl-error: #ffc2bd;
+    -nl-warning: #ffe09a;
+    -nl-border: #e4eaf2;
+    -nl-hover: #24374b;
+}

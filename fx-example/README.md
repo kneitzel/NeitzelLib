@@ -2,6 +2,25 @@
 
 This runnable application demonstrates [NeitzelLib FX](../fx/README.md) and [injection](../injection/README.md) together. It edits one Person with a home Address, nested Note, visit list, selected visit and tags. Use it as a reference for wiring a real screen; the [minimal quick start](../fx/docs/quick-start.md) is the smaller starting point for a new project.
 
+Separate Java/FXML launchers demonstrate [standalone bars](../fx/docs/bars.md)
+and [docking](../fx/docs/docking.md) without initializing MVVM or injection.
+Their guides describe the implemented behavior and launch options. The
+[MVVM docking editor](docs/docking-mvvm.md) shows how an already loaded View and
+its local bars move between windows while global commands follow the active editor.
+The [live reset example](docs/docking-reset.md) restores the starting arrangement
+without replacing editors, and demonstrates an atomic rejection under changed placement rules.
+The [snapshot example](../fx/docs/docking-snapshots.md) restores a saved arrangement
+into a fresh workspace before it is shown, with load and cleanup diagnostics.
+The [Quit/Replace example](../fx/docs/docking-shutdown.md) holds every window open
+while saving or retrying, and can attach a fresh manager to the same main window.
+The [complete workspace](../fx/docs/docking-workspace.md) combines Java/FXML startup,
+plain or optional MVVM editors, real application-owned JSON storage, floating-window
+restoration, reset and all-consent shutdown with Retry/Cancel and manager replacement.
+
+The [shared theme gallery](docs/theme-gallery.md) demonstrates opt-in light, dark and high-contrast styles, live window propagation and measured control-state contrast.
+
+The [product DataGrid demonstration](docs/product-grid.md) adds equivalent memory/H2 sources, saved setups, themes, mutation and request-failure scenarios through a separate launcher.
+
 ## Build and run
 
 From the NeitzelLib root with JDK 25:
@@ -71,6 +90,12 @@ Changing a JavaBean setter directly after loading does not notify controls. All 
 
 ## Automated regression coverage
 
+The standalone `de.neitzel.fx.example.docking.CloseDockingMain` launcher shows
+an editor waiting for an asynchronous close decision. Choose Close Notes, then
+Keep open to continue editing or Allow close to release its content. The tab
+close control and context menu use the same consent callback. See the
+[tab-close guide](../fx/docs/docking-close.md) for the library contract.
+
 `src/test/java/de/neitzel/fx/example/DeskLoadsTest.java` loads the real Desk FXML on JavaFX and checks initial values, all binding directions, derived/computed text, conversion failures and recovery, child messages, Table edits/removal, message severities and boolean/enum write-back. It also demonstrates that a direct bean setter leaves controls unchanged and that another simple View reuses the same Model's ViewModel.
 
 Run the reactor tests without installing artifacts with:
@@ -79,7 +104,7 @@ Run the reactor tests without installing artifacts with:
 ./mvnw -pl fx-example -am clean verify
 ```
 
-Inspect Surefire XML reports; a successful Maven exit alone is insufficient with the current parent configuration. JavaFX tests need a usable graphical environment. See the Designer integration section below for the optional preview setup; ordinary application tests do not require the Designer.
+Inspect Surefire XML reports for test totals, failures and skips. JavaFX tests need a usable graphical environment. See the Designer integration section below for the optional preview setup; ordinary application tests do not require the Designer.
 
 ## Open the example in NeitzelFXDesigner
 

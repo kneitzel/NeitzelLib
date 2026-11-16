@@ -42,9 +42,17 @@ Some encryption classes that use format-preserving-encryption.
 
 **Important** This is not for production use! Please use secure encryption in production!
 
+### data-grid
+
+Toolkit-independent filter, query/result and setup contracts for DataGrid. See [data-grid/README.md](data-grid/README.md).
+
+### data-grid-jdbc
+
+Optional mapped JDBC DataGrid source, initially qualified with H2. See [data-grid-jdbc/README.md](data-grid-jdbc/README.md).
+
 ### fx
 
-JavaFX library that binds an FXML view to an ordinary Java model. See [fx/README.md](fx/README.md).
+JavaFX docking, standalone bars and optional MVVM bindings from FXML views to ordinary Java models. Docking works with plain JavaFX and standard FXMLLoader without initializing MVVM. See [fx/README.md](fx/README.md) and the [docking guide](fx/docs/docking.md).
 
 ### injection
 

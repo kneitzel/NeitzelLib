@@ -1,0 +1,6 @@
+.dock-tab-header { -fx-background-color: #f1e2c3; }
+.dock-drop-indicator { -fx-fill: #123456; -fx-stroke: #654321; }
+.dock-floating-preview-frame { -fx-fill: #234567; -fx-stroke: #765432; }
+
+.dock-divider { -fx-background-color: #345678; }
+.dock-area-divider { -fx-background-color: #456789; }

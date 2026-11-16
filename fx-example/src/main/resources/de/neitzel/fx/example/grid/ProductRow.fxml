@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.HBox?><?import javafx.scene.control.Label?>
+<HBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.neitzel.fx.example.grid.ProductRow">
+<Label style="-fx-padding: 4;" fx:id="id"/><Label style="-fx-padding: 4;" fx:id="name"/><Label style="-fx-padding: 4;" fx:id="category"/><Label style="-fx-padding: 4;" fx:id="quantity"/><Label style="-fx-padding: 4;" fx:id="price"/>
+</HBox>

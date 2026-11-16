@@ -14,6 +14,8 @@
         <module>core</module>
         <module>encryption</module>
         <module>injection</module>
+        <module>data-grid</module>
+        <module>data-grid-jdbc</module>
         <module>fx</module>
         <module>fx-example</module>
         <module>gson</module>

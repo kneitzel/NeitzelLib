@@ -1,0 +1,31 @@
+/* The text remains available to assistive technology while only the supplied icon is drawn. */
+.dock-icon-only .tab-label {
+    -fx-content-display: graphic-only;
+}
+
+/* Scope defaults to docking surfaces; application styles are loaded afterward. */
+.dock-edge-area {
+    -fx-background-color: -fx-background;
+}
+.dock-divider, .dock-area-divider {
+    -fx-background-color: -fx-box-border, -fx-inner-border;
+    -fx-background-insets: 0, 1;
+}
+.dock-drop-indicator {
+    -fx-fill: rgba(30, 144, 255, 0.18);
+    -fx-stroke: dodgerblue;
+    -fx-stroke-width: 2;
+}
+.dock-drop-indicator:no-change {
+    -fx-fill: rgba(100, 100, 100, 0.15);
+    -fx-stroke: gray;
+}
+.dock-floating-preview-frame {
+    -fx-fill: rgba(80, 140, 220, 0.16);
+    -fx-stroke: rgb(50, 110, 190);
+}
+.dock-floating-preview-label {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-padding: 4 8;
+}

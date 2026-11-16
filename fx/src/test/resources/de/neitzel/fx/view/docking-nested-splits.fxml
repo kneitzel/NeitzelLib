@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import de.neitzel.fx.docking.*?>
+<DockPane xmlns:fx="http://javafx.com/fxml/1">
+    <initialLayout>
+        <DockLayout>
+            <center>
+                <DockSplitDefinition destinationId="editors" orientation="HORIZONTAL" position="0.4">
+                    <first><DockGroupDefinition destinationId="one"/></first>
+                    <second>
+                        <DockSplitDefinition destinationId="remaining" orientation="VERTICAL" position="0.3">
+                            <first><DockGroupDefinition destinationId="two"/></first>
+                            <second><DockGroupDefinition destinationId="three"/></second>
+                        </DockSplitDefinition>
+                    </second>
+                </DockSplitDefinition>
+            </center>
+        </DockLayout>
+    </initialLayout>
+</DockPane>

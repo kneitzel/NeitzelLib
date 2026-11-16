@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import de.neitzel.fx.docking.DockPane?>
+<?import de.neitzel.fx.docking.DockLayout?>
+<?import de.neitzel.fx.docking.DockGroupDefinition?>
+<?import de.neitzel.fx.docking.DockSplitDefinition?>
+<DockPane xmlns:fx="http://javafx.com/fxml/1">
+    <initialLayout>
+        <DockLayout>
+            <center>
+                <DockSplitDefinition destinationId="editors" orientation="HORIZONTAL">
+                    <first><DockGroupDefinition destinationId="primary"/></first>
+                    <second>
+                        <DockSplitDefinition destinationId="secondary" orientation="VERTICAL">
+                            <first><DockGroupDefinition destinationId="preview"/></first>
+                            <second><DockGroupDefinition destinationId="output"/></second>
+                        </DockSplitDefinition>
+                    </second>
+                </DockSplitDefinition>
+            </center>
+            <right><DockGroupDefinition destinationId="tools" tabSide="RIGHT" collapsible="true" preferredWidth="200" splitDirections="VERTICAL"
+                visibleWhenEmpty="false" releaseSpaceWhenEmpty="true"/></right>
+        </DockLayout>
+    </initialLayout>
+</DockPane>

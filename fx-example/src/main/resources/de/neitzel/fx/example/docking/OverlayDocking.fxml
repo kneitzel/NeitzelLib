@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import de.neitzel.fx.docking.DockPane?>
+<?import de.neitzel.fx.docking.DockLayout?>
+<?import de.neitzel.fx.docking.DockGroupDefinition?>
+<DockPane xmlns:fx="http://javafx.com/fxml/1">
+    <initialLayout>
+        <DockLayout>
+            <center><DockGroupDefinition destinationId="editors" collapsible="false"
+                releaseSpaceWhenEmpty="false"/></center>
+            <left><DockGroupDefinition destinationId="project" tabSide="LEFT"
+                mode="OVERLAY" collapsible="true" preferredWidth="240" minimumWidth="120"/></left>
+            <right><DockGroupDefinition destinationId="changes" tabSide="RIGHT"
+                mode="OVERLAY" collapsible="true" preferredWidth="260" minimumWidth="120"/></right>
+        </DockLayout>
+    </initialLayout>
+</DockPane>

@@ -8,11 +8,27 @@
 - This page is the detailed FXML and runtime reference.
 - [Generated ViewModel classes and registries](docs/generated-viewmodels.md).
 - [Bounded integer spinners](docs/integer-spinners.md) and [system tray support](docs/tray-support.md).
+- [Standalone toolbar and status bar](docs/bars.md), usable without MVVM.
+- [Docking: opening, moving and activating live contents](docs/docking.md), with ordinary Java/FXML startup examples.
+- [Optional MVVM docking integration](../fx-example/docs/docking-mvvm.md), with local and global bars.
+- [Dragging between windows](docs/docking-drag.md), with native pointer and keyboard qualification.
+- [Layout snapshots and empty-workspace restore](docs/docking-snapshots.md), with application-owned storage and loading.
+- [Live reset](../fx-example/docs/docking-reset.md), retaining existing contents and unsaved edits.
+- [Asynchronous tab close](docs/docking-close.md), including consent and resource release.
+- [Quit, save and replace a workspace](docs/docking-shutdown.md), with global consent, retry and main-window ownership.
+- [Complete docking workspace](docs/docking-workspace.md), combining Java/FXML startup, application storage and shutdown.
+- [Keyboard access, translations and themes](docs/docking-accessibility.md).
 - [Dependency injection](../injection/README.md).
+
+- [Local DataGrid and asynchronous coordination](docs/data-grid.md).
+- [Transactional FXML filters and popup lifecycle](docs/filter-editors.md).
+- [Versioned saved setups and atomic restoration](docs/saved-setups.md).
+- [Opt-in shared themes](docs/themes.md) and the [theme gallery](../fx-example/docs/theme-gallery.md).
+- [Opt-in queried Table results](docs/table-results.md), the DataGrid rendering foundation.
 
 ## Introduction
 
-`fx` binds an FXML view to an ordinary Java model. The model stays a JavaBean. The library builds one view model for that instance, loads the view, and applies the binding elements declared in the FXML.
+`fx` includes docking and standalone bars for ordinary JavaFX applications; these controls do not require MVVM initialization. Its optional MVVM functionality binds an FXML view to an ordinary Java model. The model stays a JavaBean. The library builds one view model for that instance, loads the view, and applies the binding elements declared in the FXML.
 
 You write the model, the FXML, and, where a screen needs them, a controller, reusable components, and converters. The library creates the view model. The [injection](../injection/README.md) container creates the controller, each component, and each converter.
 
@@ -36,7 +52,7 @@ These are the versions configured by this source snapshot, not a promise of comp
 | JDK | Java 25 | Select a matching JDK for compilation and launch |
 | Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
 | Library | `de.neitzel.lib:fx:1.0-SNAPSHOT` | Install the local reactor first; no Central publication is assumed |
-| Internal modules | `fx` directly depends on `core` and `injection` | Resolved transitively through Maven |
+| Internal modules | `fx` directly depends on `core`, `injection` and toolkit-independent `data-grid` | Resolved transitively through Maven |
 | JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
 | Injection scanning | Reflections 0.10.2 | Brought by `injection` |
 | Injection annotations | `jakarta.inject-api` 2.0.1 | Use Jakarta annotations, not `javax.inject` |
