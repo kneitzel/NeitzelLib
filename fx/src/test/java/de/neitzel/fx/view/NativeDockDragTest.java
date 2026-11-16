@@ -50,6 +50,7 @@ class NativeDockDragTest {
         var watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.schedule(() -> robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK), 20, TimeUnit.SECONDS);
         try {
+            NativeFixtureFocus.establish(robot, f.notes);
             await(() -> f.main.isFocused(), "Initial main window must be focused");
             Point outside = onFx(() -> {
                 var screen = Screen.getPrimary().getVisualBounds();
@@ -131,6 +132,7 @@ class NativeDockDragTest {
         var watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.schedule(() -> robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK), 25, TimeUnit.SECONDS);
         try {
+            NativeFixtureFocus.establish(robot, f.notes);
             await(() -> source.get().isFocused(), "The initial source window must have focus");
             var before = onFx(f.manager::layout);
             drag(robot, onFx(() -> headerPoint(f.notes)), onFx(() -> center(readme.get())), () -> FxThread.onFx(() -> {
@@ -190,6 +192,7 @@ class NativeDockDragTest {
         var watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.schedule(() -> robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK), 20, TimeUnit.SECONDS);
         try {
+            NativeFixtureFocus.establish(robot, f.notes);
             await(() -> source.get().isFocused(), "The initial floating source must be focused");
             var initial = onFx(f.manager::layout);
             drag(robot, onFx(() -> headerPoint(f.notes)), onFx(() -> headerPoint(project.get())), () -> FxThread.onFx(() -> {

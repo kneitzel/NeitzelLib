@@ -101,3 +101,27 @@ independent managers/processes and JavaFX Dragboard interoperability are outside
 this implementation. Native input has to be qualified on each target desktop;
 see the [drag](docking-drag.md) and [keyboard](docking-accessibility.md) guides for
 the executed platform checks.
+
+## Verified integration
+
+On 2026-11-16, the complete affected reactor passed `verify` with Java 25,
+JavaFX 27.0.1 and macOS 27.2. All 329 `fx` tests and 34 `fx-example` tests ran
+without failures or skips. The reference application contributes five
+Java/FXML/storage/MVVM workflow cases, three actual file-boundary cases and one
+native desktop case. The latter drags Notes into a new window, replaces selected
+text, returns it through the real keyboard context menu and types again without
+a focus-repair click. It also observes every consent before cleanup, a veto,
+a pending/failed save and successful persistence before final closure.
+
+To rerun that native application case, use an exclusive desktop session:
+
+```sh
+./mvnw -pl fx-example -am -DskipVersions=true -Dversions.skip=true \
+  -Dtest=NativeReferenceWorkspaceTest -Dsurefire.failIfNoSpecifiedTests=false \
+  -Dneitzellib.nativeWorkspaceTest=true test
+```
+
+The suite asserts exact text, retained Node identities, visible outcomes and
+saved application data. The Changes list is illustrative content, not a file
+watcher. Windows/Linux native delivery and full screen-reader behavior are not
+established by this macOS qualification.

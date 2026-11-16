@@ -133,6 +133,61 @@ class OverlayDockDropTest {
         });
     }
 
+    @ParameterizedTest
+    @EnumSource(Side.class)
+    void expandedOverlayContentReceivesDropsAboveTheUnderlyingEditor(Side side) throws Exception {
+        FxThread.onFx(() -> {
+            DockLayout initial = new DockLayout();
+            initial.setCenter(new DockGroupDefinition("editors"));
+            DockGroupDefinition tools = new DockGroupDefinition("tools");
+            tools.setCollapsible(true);
+            tools.setMode(DockGroupMode.OVERLAY);
+            tools.setTabSide(side);
+            tools.setPreferredWidth(240);
+            tools.setPreferredHeight(190);
+            tools.setSplitDirections(de.neitzel.fx.docking.SplitDirections.NONE);
+            edge(initial, side, tools);
+            DockPane pane = new DockPane();
+            pane.setInitialLayout(initial);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(pane, 900, 600));
+            DockingManager manager = DockingManager.attach(stage, pane, new DockingOptions());
+            Dockable editor = new Dockable(new DockableId("editor"), new TextArea("Editor"));
+            Dockable first = new Dockable(new DockableId("first"), new TextArea("Unsaved first"));
+            first.setTitle("First");
+            Dockable second = new Dockable(new DockableId("second"), new TextArea("Second"));
+            second.setTitle("Second");
+            manager.open(editor, DockTarget.area("editors"));
+            manager.open(first, DockTarget.area("tools"));
+            manager.open(second, DockTarget.area("tools"));
+            stage.show();
+            try {
+                pane.applyCss();
+                pane.layout();
+                TabPane overlay = tabs(pane, first.getId());
+                Bounds into = second.getContent().localToScreen(second.getContent().getBoundsInLocal());
+                double x = into.getCenterX();
+                double y = into.getCenterY();
+                Bounds underneath = tabs(pane, editor.getId()).localToScreen(
+                        tabs(pane, editor.getId()).getBoundsInLocal());
+                assertTrue(underneath.contains(x, y), "The visible overlay content covers the editor drop surface");
+                assertFalse(group(manager).collapsed());
+                Node sourceHeader = header(overlay, first.getId());
+                Bounds from = sourceHeader.localToScreen(sourceHeader.getBoundsInLocal());
+                mouse(sourceHeader, MouseEvent.MOUSE_PRESSED, from.getCenterX(), from.getCenterY(), true);
+                mouse(sourceHeader, MouseEvent.MOUSE_DRAGGED, x, y, true);
+                assertTrue(pane.lookup(".dock-drop-indicator").isVisible());
+                mouse(sourceHeader, MouseEvent.MOUSE_RELEASED, x, y, false);
+                assertEquals(java.util.List.of(second.getId(), first.getId()), group(manager).dockableIds(),
+                        "A drop on overlay content appends within that visible group");
+                assertEquals(java.util.List.of(editor.getId()), group(manager, "editors").dockableIds());
+                assertSame(first, manager.activeDockable());
+                assertSame(first.getContent(), overlay.getSelectionModel().getSelectedItem().getContent());
+                assertFalse(group(manager).collapsed());
+            } finally { stage.hide(); }
+        });
+    }
+
     private static void edge(DockLayout layout, Side side, DockGroupDefinition group) {
         switch (side) {
             case LEFT -> layout.setLeft(group);

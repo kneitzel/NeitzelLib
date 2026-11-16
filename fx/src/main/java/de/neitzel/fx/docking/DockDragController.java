@@ -288,30 +288,20 @@ final class DockDragController {
     private Proposal proposal(DockableId id, double screenX, double screenY) {
         List<GroupSurface> groups = surfaces.get();
         for (GroupSurface group : groups) {
+            if (group.tabs() instanceof DockGroupPane tabs && tabs.isOverlay() && !tabs.isCollapsed()) {
+                Proposal overlay = visibleProposal(id, group, screenX, screenY);
+                if (overlay != null) return overlay;
+            }
+        }
+        for (GroupSurface group : groups) {
             if (hidden(group) && (group.edge() != null || group.tabs().isManaged())) {
                 Proposal empty = emptyProposal(group, screenX, screenY);
                 if (empty != null) return empty;
             }
         }
         for (GroupSurface group : groups) {
-            if (hidden(group)) continue;
-            Bounds bounds = group.tabs().localToScreen(group.tabs().getBoundsInLocal());
-            if (bounds == null || !bounds.contains(screenX, screenY)) continue;
-            Node strip = headerStrip(group.tabs());
-            Bounds stripBounds = strip == null ? null : strip.localToScreen(strip.getBoundsInLocal());
-            if (stripBounds != null && stripBounds.contains(screenX, screenY)) {
-                Proposal insertion = insertion(group, screenX, screenY);
-                if (insertion != null) return insertion;
-            }
-            Bounds content = contentBounds(bounds, stripBounds, group.tabs().getSide());
-            Side edge = edgeAt(content, screenX, screenY);
-            if (edge != null) {
-                DockTarget target = DockTarget.split(group.id(), edge);
-                MoveCheck split = manager.checkMove(id, target);
-                if (split instanceof MoveCheck.Allowed) return new Proposal(target, half(content, edge));
-                if (split instanceof MoveCheck.NoChange) return new Proposal(target, bounds);
-            }
-            return new Proposal(DockTarget.group(group.id()), bounds);
+            Proposal visible = visibleProposal(id, group, screenX, screenY);
+            if (visible != null) return visible;
         }
         for (GroupSurface group : groups) {
             if (hidden(group) && group.edge() == null && !group.tabs().isManaged()) {
@@ -320,6 +310,27 @@ final class DockDragController {
             }
         }
         return null;
+    }
+
+    private Proposal visibleProposal(DockableId id, GroupSurface group, double screenX, double screenY) {
+        if (hidden(group)) return null;
+        Bounds bounds = group.tabs().localToScreen(group.tabs().getBoundsInLocal());
+        if (bounds == null || !bounds.contains(screenX, screenY)) return null;
+        Node strip = headerStrip(group.tabs());
+        Bounds stripBounds = strip == null ? null : strip.localToScreen(strip.getBoundsInLocal());
+        if (stripBounds != null && stripBounds.contains(screenX, screenY)) {
+            Proposal insertion = insertion(group, screenX, screenY);
+            if (insertion != null) return insertion;
+        }
+        Bounds content = contentBounds(bounds, stripBounds, group.tabs().getSide());
+        Side edge = edgeAt(content, screenX, screenY);
+        if (edge != null) {
+            DockTarget target = DockTarget.split(group.id(), edge);
+            MoveCheck split = manager.checkMove(id, target);
+            if (split instanceof MoveCheck.Allowed) return new Proposal(target, half(content, edge));
+            if (split instanceof MoveCheck.NoChange) return new Proposal(target, bounds);
+        }
+        return new Proposal(DockTarget.group(group.id()), bounds);
     }
 
     private static boolean hidden(GroupSurface group) {

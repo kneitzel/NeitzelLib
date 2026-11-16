@@ -123,3 +123,9 @@ No MVVM setup is required.
 The buttons are setup/recovery commands; dragging uses the same move checks and
 live contents. Closing the demonstration's main Stage hides its floating
 windows; application-wide shutdown coordination is supplied by its own slice.
+
+The final native fixtures explicitly establish their initial desktop state with
+one real click in the initial editor, then restore its selected range. No such
+setup helper runs after a tested transfer, invalid drop or cancellation. This
+avoids assuming that programmatic Stage display alone established OS focus; it
+does not claim a specific operating-system defect.

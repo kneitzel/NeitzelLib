@@ -51,6 +51,7 @@ class FloatingNativeFocusTest {
         Fixture fixture = fixture();
         AtomicReference<Stage> firstFloating = new AtomicReference<>();
         try {
+            NativeFixtureFocus.establish(robot, fixture.notes);
             typeIntoFocusedNotes(robot, fixture, KeyEvent.VK_1, "1");
             FxThread.onFx(() -> {
                 command(fixture.notes, "Float", null);

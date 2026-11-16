@@ -147,14 +147,17 @@ class FloatingWindowGeometryTest {
         AtomicReference<Double> ratio = new AtomicReference<>();
         AtomicReference<Point> start = new AtomicReference<>();
         try {
+            FxThread.onFx(() -> fixture.floating.setWidth(760));
+            awaitClientWidth(fixture.floating, 740);
             FxThread.onFx(() -> {
-                fixture.floating.setWidth(760);
                 var window = fixture.manager.layout().windows().stream().filter(candidate -> !candidate.main()).findFirst().orElseThrow();
                 var group = window.areas().getFirst().groups().getFirst().id();
                 Dockable anchor = new Dockable(new DockableId("anchor"), new TextArea("Anchor"));
                 fixture.manager.open(anchor, DockTarget.group(group));
                 fixture.manager.move(anchor.getId(), DockTarget.split(group, Side.RIGHT));
-                fixture.manager.updateGroup(group, DockGroupChanges.builder().minimumWidth(320).build());
+                // Make this minimum active at the starting width as well: even a short native
+                // shrink must change the live ratio before testing committed publication.
+                fixture.manager.updateGroup(group, DockGroupChanges.builder().minimumWidth(500).build());
             });
             Thread.sleep(400);
             FxThread.onFx(() -> {
@@ -198,6 +201,17 @@ class FloatingWindowGeometryTest {
             watchdog.shutdownNow();
             FxThread.onFx(fixture::close);
         }
+    }
+
+    private static void awaitClientWidth(Stage stage, double minimum) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        AtomicReference<Boolean> ready = new AtomicReference<>(false);
+        do {
+            Thread.sleep(25);
+            FxThread.onFx(() -> ready.set(stage.getScene().getWidth() >= minimum
+                    && stage.getScene().getRoot().getLayoutBounds().getWidth() >= minimum));
+        } while (!ready.get() && System.nanoTime() < deadline);
+        assertTrue(ready.get(), "The native window's client layout must reach the starting width before splitting");
     }
 
     private static DockLayoutView.Split publishedSplit(DockingManager manager) {

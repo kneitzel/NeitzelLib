@@ -129,3 +129,9 @@ exclusive desktop slot:
 Without that property, the native pointer case is explicitly skipped. Ordinary
 public initial-bounds verification still runs. The native case includes a
 watchdog and restores the pointer in `finally`.
+
+The final native fixtures explicitly establish their initial desktop state with
+one real click in the initial editor, then restore its selected range. No such
+setup helper runs after a tested transfer, invalid drop or cancellation. This
+avoids assuming that programmatic Stage display alone established OS focus; it
+does not claim a specific operating-system defect.

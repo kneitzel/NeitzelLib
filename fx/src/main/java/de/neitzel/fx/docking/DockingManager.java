@@ -386,6 +386,15 @@ public final class DockingManager {
         if (kind == CloseScope.Kind.MAIN_WINDOW && mainWindowCloseMode == MainWindowCloseMode.AUTOMATIC) stage.hide();
     }
 
+    private void detachTab(Group group, Tab tab) {
+        dragFor(group).uninstallTab(tab);
+        DockTabPresentation.unbind(tab);
+        tab.textProperty().unbind();
+        tab.graphicProperty().unbind();
+        tab.setGraphic(null);
+        tab.setContent(null);
+    }
+
     private void removeDockables(List<DockableId> ids) {
         Dockable previousActive = active.get();
         Group previousGroup = previousActive == null ? null : containing(previousActive.getId());
@@ -395,12 +404,7 @@ public final class DockingManager {
                 Group group = containing(id);
                 if (group == null) continue;
                 Tab tab = group.tabs.getTabs().get(tabIndex(group, id));
-                dragFor(group).uninstallTab(tab);
-                DockTabPresentation.unbind(tab);
-                tab.textProperty().unbind();
-                tab.graphicProperty().unbind();
-                tab.setGraphic(null);
-                tab.setContent(null);
+                detachTab(group, tab);
                 group.tabs.getTabs().remove(tab);
                 dockables.remove(id);
                 previousFocus.remove(id);
@@ -963,12 +967,7 @@ public final class DockingManager {
         try {
             for (Group old : groups.values()) {
                 for (Tab tab : List.copyOf(old.tabs.getTabs())) {
-                    dragFor(old).uninstallTab(tab);
-                    DockTabPresentation.unbind(tab);
-                    tab.textProperty().unbind();
-                    tab.graphicProperty().unbind();
-                    tab.setGraphic(null);
-                    tab.setContent(null);
+                    detachTab(old, tab);
                 }
                 old.tabs.getTabs().clear();
             }
@@ -1103,18 +1102,8 @@ public final class DockingManager {
     }
 
     private Group createDetachedGroup(DockGroupId id, DockGroupDefinition definition) {
-        DockGroupDefinition captured = new DockGroupDefinition(definition.getDestinationId());
-        captured.setTabSide(definition.getTabSide());
-        captured.setMode(definition.getMode());
-        captured.setPreferredWidth(definition.getPreferredWidth());
-        captured.setPreferredHeight(definition.getPreferredHeight());
-        captured.setMinimumWidth(definition.getMinimumWidth());
-        captured.setMinimumHeight(definition.getMinimumHeight());
-        captured.setSplitDirections(definition.getSplitDirections());
-        captured.setPersistent(definition.isPersistent());
-        captured.setCollapsible(definition.isCollapsible());
-        captured.setVisibleWhenEmpty(definition.isVisibleWhenEmpty());
-        captured.setReleaseSpaceWhenEmpty(definition.isReleaseSpaceWhenEmpty());
+        DockGroupDefinition captured = LayoutSnapshot.GroupSettings.capture(definition)
+                .definition(new DockAreaId(definition.getDestinationId()));
         TabPane tabs = new DockGroupPane(captured);
         tabs.setSide(captured.getTabSide());
         ((DockGroupPane) tabs).setCollapsed(captured.getMode() == DockGroupMode.OVERLAY);
