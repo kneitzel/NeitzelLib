@@ -16,11 +16,13 @@
 - [Live reset](../fx-example/docs/docking-reset.md), retaining existing contents and unsaved edits.
 - [Asynchronous tab close](docs/docking-close.md), including consent and resource release.
 - [Quit, save and replace a workspace](docs/docking-shutdown.md), with global consent, retry and main-window ownership.
+- [Complete docking workspace](docs/docking-workspace.md), combining Java/FXML startup, application storage and shutdown.
+- [Keyboard access, translations and themes](docs/docking-accessibility.md).
 - [Dependency injection](../injection/README.md).
 
 ## Introduction
 
-`fx` binds an FXML view to an ordinary Java model. The model stays a JavaBean. The library builds one view model for that instance, loads the view, and applies the binding elements declared in the FXML.
+`fx` includes docking and standalone bars for ordinary JavaFX applications; these controls do not require MVVM initialization. Its optional MVVM functionality binds an FXML view to an ordinary Java model. The model stays a JavaBean. The library builds one view model for that instance, loads the view, and applies the binding elements declared in the FXML.
 
 You write the model, the FXML, and, where a screen needs them, a controller, reusable components, and converters. The library creates the view model. The [injection](../injection/README.md) container creates the controller, each component, and each converter.
 

@@ -44,7 +44,7 @@ Some encryption classes that use format-preserving-encryption.
 
 ### fx
 
-JavaFX library that binds an FXML view to an ordinary Java model. See [fx/README.md](fx/README.md).
+JavaFX docking, standalone bars and optional MVVM bindings from FXML views to ordinary Java models. Docking works with plain JavaFX and standard FXMLLoader without initializing MVVM. See [fx/README.md](fx/README.md) and the [docking guide](fx/docs/docking.md).
 
 ### injection
 

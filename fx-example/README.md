@@ -11,6 +11,11 @@ The [live reset example](docs/docking-reset.md) restores the starting arrangemen
 without replacing editors, and demonstrates an atomic rejection under changed placement rules.
 The [snapshot example](../fx/docs/docking-snapshots.md) restores a saved arrangement
 into a fresh workspace before it is shown, with load and cleanup diagnostics.
+The [Quit/Replace example](../fx/docs/docking-shutdown.md) holds every window open
+while saving or retrying, and can attach a fresh manager to the same main window.
+The [complete workspace](../fx/docs/docking-workspace.md) combines Java/FXML startup,
+plain or optional MVVM editors, real application-owned JSON storage, floating-window
+restoration, reset and all-consent shutdown with Retry/Cancel and manager replacement.
 
 ## Build and run
 
@@ -95,7 +100,7 @@ Run the reactor tests without installing artifacts with:
 ./mvnw -pl fx-example -am clean verify
 ```
 
-Inspect Surefire XML reports; a successful Maven exit alone is insufficient with the current parent configuration. JavaFX tests need a usable graphical environment. See the Designer integration section below for the optional preview setup; ordinary application tests do not require the Designer.
+Inspect Surefire XML reports for test totals, failures and skips. JavaFX tests need a usable graphical environment. See the Designer integration section below for the optional preview setup; ordinary application tests do not require the Designer.
 
 ## Open the example in NeitzelFXDesigner
 
