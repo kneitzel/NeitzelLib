@@ -316,7 +316,9 @@ class CloseFloatingWindowTest {
         pane.getInitialLayout().setCenter(new DockGroupDefinition("editors"));
         Stage main = new Stage();
         main.setScene(new Scene(pane, 800, 500));
-        DockingManager manager = DockingManager.attach(main, pane, new DockingOptions());
+        DockingOptions options = new DockingOptions();
+        options.setFallbackTarget(DockTarget.area("editors"));
+        DockingManager manager = DockingManager.attach(main, pane, options);
         main.show();
         Dockable first = new Dockable(new DockableId("first"), new TextArea("First"));
         Dockable second = new Dockable(new DockableId("second"), new TextArea("Second"));

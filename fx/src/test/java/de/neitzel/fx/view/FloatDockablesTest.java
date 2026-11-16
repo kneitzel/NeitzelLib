@@ -262,7 +262,9 @@ class FloatDockablesTest {
                 assertEquals(1, customized.get());
                 assertEquals("Floating editor", floating.getTitle());
                 assertEquals(List.of(icon), floating.getIcons());
-                assertEquals(List.of(stylesheet), floating.getScene().getStylesheets());
+                String defaults = DockPane.class.getResource("docking.css").toExternalForm();
+                assertEquals(List.of(defaults, stylesheet), floating.getScene().getStylesheets(),
+                        "Scoped library defaults precede the application's exact theme stylesheet");
                 assertTrue(appearedWithContent.get(), "A floating window must appear with its prepared content");
             } finally {
                 Window.getWindows().removeListener(shown);
@@ -383,6 +385,91 @@ class FloatDockablesTest {
                 for (Window window : List.copyOf(Window.getWindows())) {
                     if (!existing.contains(window)) window.hide();
                 }
+            }
+        });
+    }
+
+    @Test
+    void returnUsesItsRememberedSideAreaWhenTheRelativeAnchorHasAlsoFloated() throws Exception {
+        FxThread.onFx(() -> {
+            List<Window> existing = List.copyOf(Window.getWindows()); Stage main = new Stage();
+            try {
+                DockPane pane = new DockPane();
+                pane.getInitialLayout().setCenter(new DockGroupDefinition("unrelated-editors"));
+                pane.getInitialLayout().setRight(new DockGroupDefinition("tools"));
+                main.setScene(new Scene(pane, 1000, 600));
+                DockingManager manager = DockingManager.attach(main, pane, new DockingOptions());
+                Dockable notes = new Dockable(new DockableId("notes"), new TextArea("Notes"));
+                Dockable anchor = new Dockable(new DockableId("anchor"), new TextArea("Anchor"));
+                manager.open(notes, DockTarget.area("tools")); manager.open(anchor, DockTarget.area("tools"));
+                main.show();
+                manager.move(notes.getId(), DockTarget.floating()); manager.move(anchor.getId(), DockTarget.floating());
+                MoveCheck.Allowed checked = assertInstanceOf(MoveCheck.Allowed.class,
+                        manager.checkMove(notes.getId(), DockTarget.returnToMain()));
+                assertEquals(new de.neitzel.fx.docking.DockGroupId("tools"),
+                        assertInstanceOf(de.neitzel.fx.docking.ResolvedDockTarget.Insertion.class, checked.destination()).groupId());
+                assertInstanceOf(ActionResult.Applied.class, manager.move(notes.getId(), DockTarget.returnToMain()));
+                var originalArea = manager.layout().windows().getFirst().areas().stream()
+                        .filter(area -> area.id().value().equals("tools")).findFirst().orElseThrow();
+                assertEquals(List.of(notes.getId()), originalArea.groups().getFirst().dockableIds());
+                assertSame(main, notes.getContent().getScene().getWindow());
+            } finally {
+                List.copyOf(Window.getWindows()).stream().filter(window -> !existing.contains(window)).forEach(Window::hide);
+                main.hide();
+            }
+        });
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"never-docked", "removed", "denied"})
+    void returnWithoutADesignatedFallbackDoesNotChooseAnUnrelatedMainArea(String previousTarget) throws Exception {
+        FxThread.onFx(() -> {
+            List<Window> existing = List.copyOf(Window.getWindows());
+            Stage main = new Stage();
+            try {
+                DockPane pane = new DockPane();
+                pane.getInitialLayout().setCenter(new DockGroupDefinition("unrelated-editors"));
+                DockGroupDefinition tools = new DockGroupDefinition("tools");
+                tools.setPersistent(!previousTarget.equals("removed"));
+                pane.getInitialLayout().setRight(tools);
+                main.setScene(new Scene(pane, 1000, 600));
+                var allowTools = new java.util.concurrent.atomic.AtomicBoolean(true);
+                DockingOptions options = new DockingOptions();
+                options.setPlacementRule((dockable, destination) -> {
+                    if (!allowTools.get() && destination instanceof de.neitzel.fx.docking.ResolvedDockTarget.Insertion insertion
+                            && insertion.groupId().value().equals("tools")) {
+                        return java.util.Optional.of(new de.neitzel.fx.docking.DockFailure(
+                                de.neitzel.fx.docking.DockFailure.Code.PLACEMENT_REJECTED, dockable.getId(),
+                                "The remembered tools destination is unavailable", null, "return.tools.denied"));
+                    }
+                    return java.util.Optional.empty();
+                });
+                DockingManager manager = DockingManager.attach(main, pane, options);
+                Dockable notes = new Dockable(new DockableId("notes"), new TextArea("Unsaved floating notes"));
+                assertInstanceOf(ActionResult.Applied.class, manager.open(notes,
+                        previousTarget.equals("never-docked") ? DockTarget.floating() : DockTarget.area("tools")));
+                if (!previousTarget.equals("never-docked")) {
+                    assertInstanceOf(ActionResult.Applied.class, manager.move(notes.getId(), DockTarget.floating()));
+                }
+                main.show();
+                if (previousTarget.equals("denied")) allowTools.set(false);
+                var before = manager.layout(); var snapshot = manager.snapshot();
+                Window floating = notes.getContent().getScene().getWindow();
+                MoveCheck.Rejected checked = assertInstanceOf(MoveCheck.Rejected.class,
+                        manager.checkMove(notes.getId(), DockTarget.returnToMain()));
+                ActionResult.Rejected result = assertInstanceOf(ActionResult.Rejected.class,
+                        manager.move(notes.getId(), DockTarget.returnToMain()));
+                assertEquals(checked.failure(), result.failure());
+                assertEquals(previousTarget.equals("denied") ? de.neitzel.fx.docking.DockFailure.Code.PLACEMENT_REJECTED
+                        : de.neitzel.fx.docking.DockFailure.Code.TARGET_NOT_FOUND, result.failure().code());
+                assertEquals(notes.getId(), result.failure().dockableId());
+                if (previousTarget.equals("denied")) assertEquals("return.tools.denied", result.failure().messageKey());
+                assertSame(before, manager.layout()); assertSame(snapshot, manager.snapshot());
+                assertSame(floating, notes.getContent().getScene().getWindow()); assertTrue(floating.isShowing());
+                assertEquals("Unsaved floating notes", ((TextArea) notes.getContent()).getText());
+            } finally {
+                List.copyOf(Window.getWindows()).stream().filter(window -> !existing.contains(window)).forEach(Window::hide);
+                main.hide();
             }
         });
     }

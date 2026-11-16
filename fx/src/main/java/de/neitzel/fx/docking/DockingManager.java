@@ -533,18 +533,20 @@ public final class DockingManager {
             Group source = containing(id);
             if (source != null && !groupWindows.containsKey(source.id)) return new MoveCheck.NoChange();
             ReturnLocation remembered = returnTargets.get(id);
+            MoveCheck refusal = moveRejected(DockFailure.Code.TARGET_NOT_FOUND, id,
+                    "No remembered main-window destination or designated fallback");
             if (remembered != null) {
                 MoveCheck result = resolveMainTarget(dockable, remembered.target());
                 if (!(result instanceof MoveCheck.Rejected)) return result;
-                if (((MoveCheck.Rejected) result).failure().code() == DockFailure.Code.TARGET_NOT_FOUND) {
+                refusal = result;
+                DockFailure.Code code = ((MoveCheck.Rejected) result).failure().code();
+                if (code == DockFailure.Code.TARGET_NOT_FOUND || code == DockFailure.Code.REFERENCE_TAB_NOT_FOUND) {
                     MoveCheck areaResult = resolveMainTarget(dockable, DockTarget.area(remembered.areaId()));
                     if (!(areaResult instanceof MoveCheck.Rejected)) return areaResult;
+                    refusal = areaResult;
                 }
             }
-            if (fallbackTarget != null) return resolveMainTarget(dockable, fallbackTarget);
-            List<DockLayoutView.Area> mainAreas = tree.view();
-            return mainAreas.isEmpty() ? moveRejected(DockFailure.Code.TARGET_NOT_FOUND, id, "No main-window destination")
-                    : resolveMainTarget(dockable, DockTarget.area(mainAreas.getFirst().id()));
+            return fallbackTarget == null ? refusal : resolveMainTarget(dockable, fallbackTarget);
         }
         if (target instanceof DockTarget.Split split) {
             Group receiver = group(split.id());
