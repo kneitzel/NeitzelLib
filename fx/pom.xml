@@ -44,6 +44,7 @@
         </dependency>
 
         <!-- NeitzelLib dependencies -->
+        <dependency><groupId>de.neitzel.lib</groupId><artifactId>data-grid</artifactId><version>${project.version}</version></dependency>
         <dependency>
             <groupId>de.neitzel.lib</groupId>
             <artifactId>core</artifactId>

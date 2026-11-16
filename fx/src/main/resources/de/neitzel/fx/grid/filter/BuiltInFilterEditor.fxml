@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.neitzel.fx.grid.filter.BuiltInFilterEditor" spacing="8" prefWidth="330" styleClass="filter-editor">
+    <Label text="Filter mode" labelFor="$mode"/>
+    <ComboBox fx:id="mode" maxWidth="Infinity"/>
+    <VBox fx:id="comparison" spacing="8">
+        <Label text="Comparison" labelFor="$operator"/>
+        <ComboBox fx:id="operator" maxWidth="Infinity"/>
+        <TextField fx:id="operand" promptText="Value" accessibleText="Filter value"/>
+        <TextField fx:id="upper" promptText="Inclusive upper value" accessibleText="Inclusive upper value"/>
+        <CheckBox fx:id="caseSensitive" text="Case sensitive"/>
+    </VBox>
+    <VBox fx:id="checklistPane" spacing="8">
+        <Label fx:id="scope" wrapText="true"/>
+        <TextField fx:id="search" promptText="Search candidates" accessibleText="Search candidates"/>
+        <HBox spacing="8"><Button fx:id="selectShown" text="Select all shown"/><Button fx:id="clearShown" text="Uncheck shown"/></HBox>
+        <ScrollPane fitToWidth="true" prefViewportHeight="140"><content><VBox fx:id="candidates" spacing="4"/></content></ScrollPane>
+        <Label fx:id="selectionSummary" wrapText="true"/>
+        <Label fx:id="lookupMessage" wrapText="true"/>
+        <HBox spacing="8"><Button fx:id="more" text="More"/><Button fx:id="retry" text="Retry lookup"/></HBox>
+    </VBox>
+    <Label fx:id="validation" wrapText="true" styleClass="filter-validation"/>
+</VBox>

@@ -228,6 +228,27 @@ public class Table extends VBox {
      */
     private Class<?> rowType;
 
+    /** True once the explicit queried-result rendering path has been selected. */
+    private boolean resultMode;
+
+    /**
+     * Opens the opt-in queried-result renderer on a fresh Table. Existing FXML/collection behavior
+     * is unchanged. This must be called on the FX thread before legacy ViewLoader initialization.
+     * The returned renderer owns rows until closed; its factory supplies mapped, already-bound nodes.
+     */
+    public <K, T> TableResults<K, T> openResults(List<ResultColumn> definitions,
+            java.util.function.Function<T, ResultRow> factory) {
+        if (!javafx.application.Platform.isFxApplicationThread()) {
+            throw new IllegalStateException("Use the JavaFX application thread");
+        }
+        if (opened || resultMode) {
+            throw new IllegalStateException("Table is already open");
+        }
+        TableResults<K, T> renderer = new TableResults<>(header, body, List.copyOf(definitions), factory);
+        resultMode = true;
+        return renderer;
+    }
+
     /**
      * Creates a Table and prepares its header, scrolling body, and popup.
      */
@@ -327,6 +348,9 @@ public class Table extends VBox {
      * @param context   the container that creates each Row
      */
     void open(Object viewModel, ApplicationContext context) {
+        if (resultMode) {
+            return;
+        }
         if (opened) {
             return;
         }

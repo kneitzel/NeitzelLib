@@ -1,0 +1,94 @@
+/* Opt-in scope. Geometry is identical in all bundled palettes. */
+.neitzel-theme, .neitzel-theme .root {
+    -fx-font-family: "System";
+    -fx-font-size: 13px;
+    -fx-base: -nl-raised;
+    -fx-background: -nl-surface;
+    -fx-control-inner-background: -nl-surface;
+    -fx-control-inner-background-alt: -nl-raised;
+    -fx-text-base-color: -nl-text;
+    -fx-text-background-color: -nl-text;
+    -fx-text-inner-color: -nl-text;
+    -fx-accent: -nl-selection;
+    -fx-selection-bar: -nl-selection;
+    -fx-selection-bar-non-focused: -nl-selection;
+    -fx-selection-bar-text: -nl-selection-text;
+    -fx-focus-color: -nl-focus;
+    -fx-faint-focus-color: transparent;
+    -fx-box-border: -nl-border;
+    -fx-inner-border: -nl-raised;
+    -fx-mark-color: -nl-text;
+    -fx-background-color: -nl-surface;
+}
+.neitzel-theme .label, .neitzel-theme .check-box, .neitzel-theme .radio-button { -fx-text-fill: -nl-text; }
+.neitzel-theme .button, .neitzel-theme .toggle-button, .neitzel-theme .combo-box-base, .neitzel-theme .menu-button {
+    -fx-background-color: -nl-raised; -fx-text-fill: -nl-text;
+    -fx-border-color: -nl-border; -fx-border-width: 2; -fx-background-radius: 3; -fx-border-radius: 3;
+    -fx-padding: 4 8;
+}
+.neitzel-theme .button:hover, .neitzel-theme .toggle-button:hover, .neitzel-theme .combo-box-base:hover { -fx-background-color: -nl-hover; }
+.neitzel-theme .button:focused, .neitzel-theme .toggle-button:focused, .neitzel-theme .combo-box-base:focused,
+.neitzel-theme .text-input:focused, .neitzel-theme .table-view:focused, .neitzel-theme .list-view:focused { -fx-border-color: -nl-focus; }
+.neitzel-theme .text-input {
+    -fx-text-fill: -nl-text; -fx-prompt-text-fill: -nl-muted; -fx-background-color: -nl-surface;
+    -fx-border-color: -nl-border; -fx-border-width: 2; -fx-padding: 4 6;
+    -fx-highlight-fill: -nl-selection; -fx-highlight-text-fill: -nl-selection-text;
+}
+.neitzel-theme .text-area .content { -fx-background-color: -nl-surface; }
+.neitzel-theme .text-input:invalid { -fx-border-color: -nl-error; -fx-border-style: dashed; }
+.neitzel-theme .button:disabled, .neitzel-theme .text-input:disabled, .neitzel-theme .combo-box-base:disabled,
+.neitzel-theme .check-box:disabled, .neitzel-theme .radio-button:disabled { -fx-opacity: 1; -fx-text-fill: -nl-muted; -fx-border-style: dashed; }
+.neitzel-theme .label:disabled { -fx-opacity: 1; -fx-text-fill: -nl-muted; }
+.neitzel-theme .table:disabled, .neitzel-theme .data-grid:disabled { -fx-opacity: 1; }
+.neitzel-theme .table-row-cell, .neitzel-theme .list-cell, .neitzel-theme .tree-cell, .neitzel-theme .table-cell {
+    -fx-background-color: -nl-surface; -fx-text-fill: -nl-text;
+}
+.neitzel-theme .table-row-cell:odd { -fx-background-color: -nl-raised; }
+.neitzel-theme .table-row-cell:odd .table-cell { -fx-background-color: transparent; }
+.neitzel-theme .table-row-cell:selected, .neitzel-theme .table-row-cell:selected .table-cell,
+.neitzel-theme .list-cell:selected, .neitzel-theme .tree-cell:selected {
+    -fx-background-color: -nl-selection; -fx-text-fill: -nl-selection-text;
+}
+.neitzel-theme .list-cell:filled:hover, .neitzel-theme .tree-cell:filled:hover { -fx-background-color: -nl-hover; -fx-text-fill: -nl-text; }
+.neitzel-theme .list-cell:filled:selected, .neitzel-theme .tree-cell:filled:selected { -fx-background-color: -nl-selection; -fx-text-fill: -nl-selection-text; }
+.neitzel-theme .table-row-cell:selected:focused, .neitzel-theme .list-cell:selected:focused { -fx-border-color: -nl-focus; -fx-border-width: 2; }
+.neitzel-theme .table-view, .neitzel-theme .list-view, .neitzel-theme .tree-view { -fx-background-color: -nl-surface; -fx-border-color: -nl-border; -fx-border-width: 2; }
+.neitzel-theme .table-header, .neitzel-theme .column-cell, .neitzel-theme .column-header, .neitzel-theme .column-header-background { -fx-background-color: -nl-raised; }
+.neitzel-theme .table .selected, .neitzel-theme .result-row:selected { -fx-background-color: -nl-selection; }
+.neitzel-theme .table .selected .label, .neitzel-theme .result-row:selected .label { -fx-text-fill: -nl-selection-text; }
+.neitzel-theme .result-row { -fx-padding: 0; -fx-border-color: transparent; -fx-border-width: 0; }
+.neitzel-theme .result-row:disabled { -fx-opacity: 1; }
+.neitzel-theme .result-row:disabled .label { -fx-text-fill: -nl-muted; }
+.neitzel-theme .filter-button { -fx-padding: 4; }
+.neitzel-theme .filter-icon { -fx-fill: -nl-text; }
+.neitzel-theme .filter-button:filtered, .neitzel-theme .column-opener.filtered { -fx-border-style: segments(3, 2); -fx-border-color: -nl-focus; }
+.neitzel-theme .filter-validation, .neitzel-theme .theme-error { -fx-text-fill: -nl-error; -fx-font-weight: bold; }
+.neitzel-theme .theme-warning { -fx-text-fill: -nl-warning; }
+.neitzel-theme .data-grid-status { -fx-text-fill: -nl-text; }
+.neitzel-theme .data-grid:error .data-grid-status { -fx-text-fill: -nl-error; -fx-font-weight: bold; }
+.neitzel-theme .data-grid:loading .data-grid-status { -fx-font-style: italic; }
+.neitzel-theme .filter-popup, .neitzel-theme .context-menu, .neitzel-theme .dialog-pane, .neitzel-theme .tooltip { -fx-background-color: -nl-surface; -fx-border-color: -nl-border; -fx-border-width: 2; }
+.neitzel-theme .menu-item .label { -fx-text-fill: -nl-text; }
+.neitzel-theme .menu-item:focused { -fx-background-color: -nl-selection; }
+.neitzel-theme .menu-item:focused .label { -fx-text-fill: -nl-selection-text; }
+.neitzel-theme .dock-drop-indicator, .neitzel-theme .dock-floating-preview-frame { -fx-fill: transparent; -fx-stroke: -nl-focus; -fx-stroke-width: 2; }
+.neitzel-theme .dock-drop-indicator:no-change { -fx-stroke: -nl-muted; -fx-stroke-dash-array: 4 3; }
+.neitzel-theme .dock-divider, .neitzel-theme .dock-area-divider { -fx-background-color: -nl-border; }
+
+.neitzel-theme .result-row:selected:disabled .label { -fx-text-fill: -nl-selection-text; }
+.neitzel-theme.tooltip, .neitzel-theme .tooltip { -fx-text-fill: -nl-text; -fx-background-color: -nl-surface; }
+.neitzel-theme .progress-indicator { -fx-progress-color: -nl-focus; }
+.neitzel-theme .progress-bar .bar { -fx-background-color: -nl-focus; }
+.neitzel-theme .combo-box-base > .list-cell, .neitzel-theme .combo-box-base > .list-cell:filled:selected {
+    -fx-background-color: transparent; -fx-text-fill: -nl-text;
+}
+.neitzel-theme .column-cell { -fx-alignment: center-left; -fx-spacing: 6; -fx-padding: 4 6; }
+.neitzel-theme .check-box .box, .neitzel-theme .radio-button .radio {
+    -fx-background-color: -nl-raised; -fx-border-color: -nl-border; -fx-border-width: 2; -fx-padding: 3;
+}
+.neitzel-theme .radio-button .radio { -fx-border-radius: 100; -fx-background-radius: 100; }
+.neitzel-theme .check-box:focused .box, .neitzel-theme .radio-button:focused .radio { -fx-border-color: -nl-focus; }
+.neitzel-theme .check-box:selected .mark, .neitzel-theme .radio-button:selected .dot { -fx-background-color: -nl-text; }
+.neitzel-theme .combo-box-base > .list-cell, .neitzel-theme .combo-box-base > .list-cell:filled:selected { -fx-border-width: 0; }
+.neitzel-theme .column-header-row { -fx-background-color: -nl-raised; }
+.neitzel-theme .column-popup { -fx-background-color: -nl-surface; -fx-border-color: -nl-border; -fx-border-width: 2; -fx-padding: 8; }

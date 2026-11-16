@@ -1351,6 +1351,7 @@ public final class DockingManager {
         DockPane floatingPane = new DockPane();
         Stage floatingStage = new Stage();
         floatingStage.setScene(new javafx.scene.Scene(floatingPane));
+        de.neitzel.fx.theme.ThemeManager.link(floatingStage, stage.getScene());
         javafx.event.EventHandler<javafx.stage.WindowEvent> closeHandler = event -> {
             event.consume();
             requestFloatingWindowClose(windowId);

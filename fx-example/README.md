@@ -17,6 +17,10 @@ The [complete workspace](../fx/docs/docking-workspace.md) combines Java/FXML sta
 plain or optional MVVM editors, real application-owned JSON storage, floating-window
 restoration, reset and all-consent shutdown with Retry/Cancel and manager replacement.
 
+The [shared theme gallery](docs/theme-gallery.md) demonstrates opt-in light, dark and high-contrast styles, live window propagation and measured control-state contrast.
+
+The [product DataGrid demonstration](docs/product-grid.md) adds equivalent memory/H2 sources, saved setups, themes, mutation and request-failure scenarios through a separate launcher.
+
 ## Build and run
 
 From the NeitzelLib root with JDK 25:
