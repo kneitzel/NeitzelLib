@@ -87,7 +87,8 @@ Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 
 
 ## Use a release from Maven
 
-Add the Gitea registry to the consuming project's POM and use the release
+The main branch builds `1.1-SNAPSHOT`. For the published `1.0` release,
+add the Gitea registry to the consuming project's POM and use the release
 version for the module you need:
 
 ```xml
