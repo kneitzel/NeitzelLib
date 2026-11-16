@@ -81,9 +81,35 @@ Some additions for quarkus that might be useful.
 
 ## Start a JavaFX project
 
-The [complete quick start](fx/docs/quick-start.md) includes local snapshot installation, a standalone Maven POM, Java classes, FXML and launch commands. Continue with [MVVM and runtime architecture](fx/docs/architecture.md), the [FXML reference](fx/README.md), and the [person desk walkthrough](fx-example/README.md). The [injection guide](injection/README.md) also covers use without JavaFX.
+The [complete quick start](fx/docs/quick-start.md) includes local installation, a standalone Maven POM, Java classes, FXML and launch commands. Continue with [MVVM and runtime architecture](fx/docs/architecture.md), the [FXML reference](fx/README.md), and the [person desk walkthrough](fx-example/README.md). The [injection guide](injection/README.md) also covers use without JavaFX.
 
-Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Library version `1.0-SNAPSHOT` denotes development artifacts, not a published stable release. Surefire fails the build if tests fail.
+Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Surefire fails the build if tests fail.
+
+## Use a release from Maven
+
+Add the Gitea registry to the consuming project's POM and use the release
+version for the module you need:
+
+```xml
+<repositories>
+    <repository>
+        <id>gitea-neitzellib</id>
+        <url>https://gitea.neitzel.de/api/packages/konrad/maven</url>
+        <snapshots><enabled>false</enabled></snapshots>
+    </repository>
+</repositories>
+<dependencies>
+    <dependency>
+        <groupId>de.neitzel.lib</groupId>
+        <artifactId>fx</artifactId>
+        <version>1.0</version>
+    </dependency>
+</dependencies>
+```
+
+The POM and transitive NeitzelLib modules resolve from the same registry.
+See the [Gitea releases](https://gitea.neitzel.de/konrad/NeitzelLib/releases)
+for the source tags and release notes.
 
 ## Java source conventions
 
