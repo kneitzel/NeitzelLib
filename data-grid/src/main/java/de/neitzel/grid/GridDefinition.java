@@ -57,7 +57,7 @@ public record GridDefinition(String id, int version, List<Column> columns) {
             Consumer<FilterCondition> validateFilter) {
         Objects.requireNonNull(input);
         Objects.requireNonNull(migrations);
-        if (input.formatVersion() != 1)
+        if (input.formatVersion() != 1 && input.formatVersion() != 2)
             throw new IllegalArgumentException(
                     "Unsupported setup format version: " + input.formatVersion());
         if (!id.equals(input.definitionId()))
@@ -75,10 +75,10 @@ public record GridDefinition(String id, int version, List<Column> columns) {
             setup = Objects.requireNonNull(migrate.apply(setup), "Migration returned no setup");
             if (!id.equals(setup.definitionId())
                     || setup.definitionVersion() != old + 1
-                    || setup.formatVersion() != 1)
+                    || setup.formatVersion() != input.formatVersion())
                 throw new IllegalArgumentException(
                         "Migration must preserve identity/format and advance one definition"
-                            + " version");
+                                + " version");
         }
         Map<String, Column> definitions = new LinkedHashMap<>();
         columns.forEach(c -> definitions.put(c.id(), c));
@@ -123,7 +123,15 @@ public record GridDefinition(String id, int version, List<Column> columns) {
         source.validate(setup.page());
         setup.filters().forEach(validateFilter);
         return new Prepared(
-                new GridSetup(1, id, version, next, setup.sort(), setup.filters(), setup.page()),
+                new GridSetup(
+                        setup.formatVersion(),
+                        id,
+                        version,
+                        next,
+                        setup.sort(),
+                        setup.filters(),
+                        setup.page(),
+                        setup.grouping()),
                 adjustments);
     }
 }

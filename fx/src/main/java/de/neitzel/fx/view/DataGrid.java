@@ -4,9 +4,12 @@ import de.neitzel.fx.grid.filter.*;
 import de.neitzel.grid.*;
 
 import javafx.application.Platform;
+import javafx.beans.DefaultProperty;
 import javafx.beans.property.*;
+import javafx.collections.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.shape.SVGPath;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -18,22 +21,23 @@ import java.util.function.*;
  * load. The application owns the source and executor. Closing releases only this grid's requests
  * and rows.
  */
+@DefaultProperty("columns")
 public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     private final Table table = new Table();
-    private final TableResults<K, T> renderer;
-    private final GridCoordinator<K, T> coordinator;
+    private TableResults<K, T> renderer;
+    private GridCoordinator<K, T> coordinator;
     private final ReadOnlyObjectWrapper<GridCoordinator.State<K, T>> state =
             new ReadOnlyObjectWrapper<>();
     private final Label status = new Label("Not loaded");
-    private final Button first = new Button("First"),
-            previous = new Button("Previous"),
-            next = new Button("Next"),
-            last = new Button("Last"),
+    private final Button first = pagingButton("First page", "M0 0 H2 V14 H0 Z M4 7 L16 0 V14 Z"),
+            previous = pagingButton("Previous page", "M2 7 L14 0 V14 Z"),
+            next = pagingButton("Next page", "M2 0 L14 7 L2 14 Z"),
+            last = pagingButton("Last page", "M0 0 L12 7 L0 14 Z M14 0 H16 V14 H14 Z"),
             retry = new Button("Retry"),
             refresh = new Button("Refresh");
     private final ComboBox<String> pageSize = new ComboBox<>();
-    private final GridQuery initial;
-    private final List<ResultColumn> columnDefinitions;
+    private GridQuery initial;
+    private List<ResultColumn> columnDefinitions;
     private GridDefinition setupDefinition;
     private Map<Integer, java.util.function.UnaryOperator<GridSetup>> setupMigrations = Map.of();
     private final ReadOnlyObjectWrapper<List<String>> restorationAdjustments =
@@ -50,11 +54,201 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     private Alert pendingAlert;
     private long alertGeneration;
 
+    private final HBox groupingBar = new HBox(8);
+    private final HBox filterSummary = new HBox(8);
+    private final Label activeFilters = new Label();
+    private final Label interactionStatus = new Label();
+    private final MenuButton setupMenu = new MenuButton("Grid setup");
+    private final ReadOnlyLongWrapper committedRevision = new ReadOnlyLongWrapper();
+    private List<String> defaultGrouping = List.of();
+    private GridSetup developerDefaults;
+    private boolean hasPublished, restoredPublication;
+    private GridQuery lastPublishedQuery;
+    private long restoreSerial, lastRestoredSerial;
+    private GridPersistenceAttachment<K, T> attachment;
+    private GridColumnSettings<K, T> columnSettings;
+
+    private static Button pagingButton(String name, String path) {
+        var button = new Button();
+        var icon = new SVGPath();
+        icon.setContent(path);
+        icon.fillProperty().bind(button.textFillProperty());
+        var graphic = new StackPane(icon);
+        graphic.setMinSize(18, 16);
+        graphic.setPrefSize(18, 16);
+        graphic.setMaxSize(18, 16);
+        graphic.setMouseTransparent(true);
+        button.setGraphic(graphic);
+        button.setMinSize(36, 30);
+        button.setAccessibleText(name);
+        button.setTooltip(new Tooltip(name));
+        return button;
+    }
+
+    private final DataGridDeclaration<K, T> declaration = new DataGridDeclaration<>(this);
+    private final ReadOnlyObjectWrapper<K> selectedKey = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyObjectWrapper<T> selectedElement = new ReadOnlyObjectWrapper<>();
+
+    /** Creates a query-free FXML control. Columns are visible before a source is attached. */
+    public DataGrid() {
+        requireFx();
+        getStyleClass().add("data-grid");
+        setSpacing(8);
+        getChildren().addAll(declaration.preview(), status);
+    }
+
+    public ObservableList<DataGridColumn> getColumns() {
+        return declaration.columns();
+    }
+
+    public ObjectProperty<ObservableList<T>> itemsProperty() {
+        return declaration.itemsProperty();
+    }
+
+    public ObservableList<T> getItems() {
+        return itemsProperty().get();
+    }
+
+    public void setItems(ObservableList<T> items) {
+        requireFx();
+        if (closed) throw new IllegalStateException("Grid is closed");
+        if (getSource() != null) throw new IllegalStateException("Choose items or source");
+        itemsProperty().set(items);
+    }
+
+    public GridSource<K, T> getSource() {
+        return declaration.sourceProperty().get();
+    }
+
+    public ObjectProperty<GridSource<K, T>> sourceProperty() {
+        return declaration.sourceProperty();
+    }
+
+    public Function<T, ResultRow> getRowFactory() {
+        return declaration.rowFactory;
+    }
+
+    public void setRowFactory(Function<T, ResultRow> factory) {
+        declaration.beforeOpen();
+        declaration.rowFactory = factory;
+    }
+
+    public Function<T, K> getKeyFactory() {
+        return declaration.keyFactory;
+    }
+
+    public void setKeyFactory(Function<T, K> factory) {
+        declaration.beforeOpen();
+        declaration.keyFactory = factory;
+    }
+
+    public Comparator<K> getKeyComparator() {
+        return declaration.keyComparator;
+    }
+
+    public void setKeyComparator(Comparator<K> comparator) {
+        declaration.beforeOpen();
+        declaration.keyComparator = comparator;
+    }
+
+    public String getKeyAttribute() {
+        return declaration.keyAttribute;
+    }
+
+    public void setKeyAttribute(String attribute) {
+        declaration.beforeOpen();
+        declaration.keyAttribute = attribute;
+    }
+
+    public String getSetupId() {
+        return declaration.setupId;
+    }
+
+    public void setSetupId(String id) {
+        declaration.beforeOpen();
+        declaration.setupId = id;
+    }
+
+    public int getSetupVersion() {
+        return declaration.setupVersion;
+    }
+
+    public void setSetupVersion(int version) {
+        declaration.beforeOpen();
+        declaration.setupVersion = version;
+    }
+
+    public int getMaximumPageSize() {
+        return declaration.maximumPageSize;
+    }
+
+    public void setMaximumPageSize(int size) {
+        declaration.beforeOpen();
+        if (size < 1) throw new IllegalArgumentException("Positive maximum page size required");
+        declaration.maximumPageSize = size;
+    }
+
+    public String getGroupBy() {
+        return declaration.groupBy;
+    }
+
+    public void setGroupBy(String columns) {
+        declaration.beforeOpen();
+        declaration.groupBy = columns;
+    }
+
+    public boolean isGroupsCollapsed() {
+        return declaration.groupsCollapsed;
+    }
+
+    public void setGroupsCollapsed(boolean collapsed) {
+        declaration.beforeOpen();
+        declaration.groupsCollapsed = collapsed;
+    }
+
+    public int getInactiveGroupHistoryLimit() {
+        return declaration.inactiveGroupHistoryLimit;
+    }
+
+    public void setInactiveGroupHistoryLimit(int limit) {
+        declaration.beforeOpen();
+        if (limit < 0) throw new IllegalArgumentException("Negative group history limit");
+        declaration.inactiveGroupHistoryLimit = limit;
+    }
+
+    /** Completes declarative configuration without executing a query. */
+    public void initialize() {
+        requireFx();
+        if (closed) throw new IllegalStateException("Grid is closed");
+        if (coordinator == null) {
+            try {
+                declaration.open();
+            } catch (RuntimeException failure) {
+                try {
+                    close();
+                } catch (RuntimeException cleanup) {
+                    failure.addSuppressed(cleanup);
+                }
+                throw failure;
+            }
+        }
+    }
+
     public DataGrid(
             List<ResultColumn> columns,
             Function<T, ResultRow> rowFactory,
             GridSource<K, T> source) {
+        this();
+        declaration.setInitialSource(source);
+        initialize(columns, rowFactory, source);
+    }
+
+    void initialize(
+            List<ResultColumn> columns,
+            Function<T, ResultRow> rowFactory,
+            GridSource<K, T> source) {
         requireFx();
+        getChildren().clear();
         columnDefinitions = List.copyOf(columns);
         Objects.requireNonNull(source);
         initial =
@@ -64,40 +258,37 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         new PageRequest.Paged(
                                 0, Math.min(50, source.capabilities().maximumPageSize())));
         renderer = table.openResults(columns, rowFactory);
+        renderer.enableColumnSeparators();
+        selectedKey.bind(renderer.selectedKeyProperty());
+        selectedElement.bind(renderer.selectedElementProperty());
         coordinator =
                 new GridCoordinator<>(
-                        source,
-                        Platform::runLater,
-                        this::changed,
-                        result -> renderer.show(result.rows()));
+                        source, Platform::runLater, this::changed, result -> publishRows(result));
         coordinator.setConfirmation(this::confirmAll);
-        renderer.setOnSortRequest(
-                id -> {
-                    var q = query();
-                    SortKey.Direction direction =
-                            q.sort().size() == 1
-                                            && q.sort().getFirst().columnId().equals(id)
-                                            && q.sort().getFirst().direction()
-                                                    == SortKey.Direction.ASCENDING
-                                    ? SortKey.Direction.DESCENDING
-                                    : SortKey.Direction.ASCENDING;
-                    setSort(new SortKey(id, direction));
-                });
+        renderer.setOnSortRequest(id -> {
+            var q = query();
+            SortKey.Direction direction =
+                    q.sort().size() == 1
+                                    && q.sort().getFirst().columnId().equals(id)
+                                    && q.sort().getFirst().direction()
+                                            == SortKey.Direction.ASCENDING
+                            ? SortKey.Direction.DESCENDING
+                            : SortKey.Direction.ASCENDING;
+            setSort(new SortKey(id, direction));
+        });
         first.setOnAction(e -> first());
         previous.setOnAction(e -> previous());
         next.setOnAction(e -> next());
         last.setOnAction(e -> last());
         retry.setOnAction(e -> coordinator.retry());
         refresh.setOnAction(e -> refresh());
-        pageSize.setOnAction(
-                e -> {
-                    if (updating || pageSize.getValue() == null) return;
-                    setPageRequest(
-                            pageSize.getValue().equals("All")
-                                    ? new PageRequest.All()
-                                    : new PageRequest.Paged(
-                                            0, Integer.parseInt(pageSize.getValue())));
-                });
+        pageSize.setOnAction(e -> {
+            if (updating || pageSize.getValue() == null) return;
+            setPageRequest(
+                    pageSize.getValue().equals("All")
+                            ? new PageRequest.All()
+                            : new PageRequest.Paged(0, Integer.parseInt(pageSize.getValue())));
+        });
         status.setWrapText(true);
         status.getStyleClass().add("data-grid-status");
         HBox controls =
@@ -112,9 +303,37 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         refresh,
                         retry);
         controls.getStyleClass().add("data-grid-paging");
-        getStyleClass().add("data-grid");
-        setSpacing(8);
-        getChildren().addAll(table, controls, status);
+        renderer.setOnLayoutCommitted(this::layoutCommitted);
+        renderer.setOnInteractionMessage(interactionStatus::setText);
+        groupingBar.getStyleClass().add("data-grid-grouping");
+        groupingBar.setAccessibleText("Grouping columns");
+        groupingBar.setFocusTraversable(true);
+        groupingBar.setVisible(false);
+        groupingBar.setManaged(false);
+        renderer.gestures().groupTarget(groupingBar);
+        MenuItem columnsItem = new MenuItem("Column settings…");
+        columnsItem.setOnAction(e -> {
+            if (columnSettings != null) columnSettings.close();
+            columnSettings = new GridColumnSettings<>(this, renderer);
+            columnSettings.show();
+        });
+        MenuItem resetExpansion = new MenuItem("Reset expansion");
+        resetExpansion.setOnAction(e -> resetExpansion());
+        MenuItem clearFilters = new MenuItem("Clear filters");
+        clearFilters.setOnAction(e -> setFilters(List.of()));
+        setupMenu.getItems().addAll(columnsItem, resetExpansion, clearFilters);
+        controls.getChildren().add(setupMenu);
+        interactionStatus.setWrapText(true);
+        interactionStatus.getStyleClass().add("data-grid-interaction-status");
+        var css = DataGrid.class.getResource("data-grid.css");
+        if (css != null) getStylesheets().add(css.toExternalForm());
+        Button clearActiveFilters = new Button("Clear filters");
+        clearActiveFilters.setOnAction(e -> setFilters(List.of()));
+        filterSummary.getChildren().addAll(activeFilters, clearActiveFilters);
+        filterSummary.setVisible(false);
+        filterSummary.setManaged(false);
+        getChildren()
+                .addAll(groupingBar, table, filterSummary, controls, status, interactionStatus);
         VBox.setVgrow(table, Priority.ALWAYS);
         state.set(coordinator.state());
         updateControls(coordinator.state());
@@ -125,11 +344,11 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     }
 
     public ReadOnlyObjectProperty<K> selectedKeyProperty() {
-        return renderer.selectedKeyProperty();
+        return selectedKey.getReadOnlyProperty();
     }
 
     public ReadOnlyObjectProperty<T> selectedElementProperty() {
-        return renderer.selectedElementProperty();
+        return selectedElement.getReadOnlyProperty();
     }
 
     public void select(K key) {
@@ -191,6 +410,15 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     }
 
     public void setSource(GridSource<K, T> source) {
+        requireFx();
+        if (closed) throw new IllegalStateException("Grid is closed");
+        if (getItems() != null) throw new IllegalStateException("Choose items or source");
+        Objects.requireNonNull(source);
+        if (coordinator != null && source == getSource()) replaceSource(source);
+        else sourceProperty().set(source);
+    }
+
+    void replaceSource(GridSource<K, T> source) {
         check();
         closeFilter();
         var q = query();
@@ -220,15 +448,14 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         id,
                         version,
                         columnDefinitions.stream()
-                                .map(
-                                        c ->
-                                                new GridDefinition.Column(
-                                                        c.id(),
-                                                        types.get(c.id()),
-                                                        c.defaultWidth(),
-                                                        c.minimumWidth(),
-                                                        c.maximumWidth(),
-                                                        c.fixedPosition()))
+                                .map(c ->
+                                        new GridDefinition.Column(
+                                                c.id(),
+                                                types.get(c.id()),
+                                                c.defaultWidth(),
+                                                c.minimumWidth(),
+                                                c.maximumWidth(),
+                                                c.fixedPosition()))
                                 .toList());
         Map<Integer, java.util.function.UnaryOperator<GridSetup>> next = Map.copyOf(migrations);
         if (coordinator.isRestoring())
@@ -247,18 +474,18 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         Map<String, String> types = new HashMap<>();
         setupDefinition.columns().forEach(c -> types.put(c.id(), c.type()));
         return new GridSetup(
-                1,
+                2,
                 setupDefinition.id(),
                 setupDefinition.version(),
                 renderer.columnOrder().stream()
-                        .map(
-                                id ->
-                                        new GridSetup.ColumnState(
-                                                id, types.get(id), renderer.columnWidths().get(id)))
+                        .map(id ->
+                                new GridSetup.ColumnState(
+                                        id, types.get(id), renderer.columnWidths().get(id)))
                         .toList(),
                 committed.sort(),
                 committed.filters(),
-                firstPage(committed.page()));
+                firstPage(committed.page()),
+                renderer.groupingSetup());
     }
 
     public ReadOnlyObjectProperty<List<String>> restorationAdjustmentsProperty() {
@@ -287,6 +514,12 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                             coordinator.capabilities(),
                             condition -> coordinator.validateFilters(List.of(condition)));
             var setup = prepared.setup();
+            var grouping =
+                    setup.grouping() == null
+                            ? new GroupingSetup(defaultGrouping, List.of())
+                            : setup.grouping();
+            renderer.validateGrouping(grouping);
+            long serial = restoreSerial;
             Map<String, ColumnWidth> widths = new LinkedHashMap<>();
             setup.columns().forEach(c -> widths.put(c.id(), c.width()));
             coordinator.restoreSetup(
@@ -296,7 +529,11 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         renderer.show(
                                 result.rows(),
                                 setup.columns().stream().map(GridSetup.ColumnState::id).toList(),
-                                widths);
+                                widths,
+                                grouping);
+                        lastRestoredSerial = serial;
+                        restoredPublication = true;
+                        drawGroupingBar();
                         restorationAdjustments.set(prepared.adjustments());
                     });
         } catch (RuntimeException error) {
@@ -431,8 +668,27 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         firstPage(q.page())));
     }
 
+    public int getPageSize() {
+        return coordinator == null
+                ? declaration.pageSize
+                : query().page() instanceof PageRequest.Paged page ? page.pageSize() : 0;
+    }
+
     public void setPageSize(int size) {
+        requireFx();
+        if (closed) throw new IllegalStateException("Grid is closed");
+        if (size < 1) throw new IllegalArgumentException("Positive page size required");
+        if (coordinator == null) {
+            declaration.pageSize = size;
+            return;
+        }
         setPageRequest(new PageRequest.Paged(0, size));
+    }
+
+    void setInitialPageSize(int size) {
+        coordinator.capabilities().validate(new PageRequest.Paged(0, size));
+        initial = new GridQuery(initial.filters(), initial.sort(), new PageRequest.Paged(0, size));
+        updateControls(coordinator.state());
     }
 
     public void showAll() {
@@ -502,11 +758,13 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
             pseudoClassStateChanged(
                     javafx.css.PseudoClass.getPseudoClass("error"),
                     value.phase() == GridCoordinator.Phase.ERROR);
-            if (value.displayed() != null)
+            if (value.displayed() != null) {
                 renderer.setFilteredColumns(
                         value.displayed().filters().stream()
                                 .map(FilterCondition::columnId)
                                 .collect(java.util.stream.Collectors.toSet()));
+                renderer.setSortKeys(value.displayed().sort());
+            }
             if (visibleSourceVersion != value.sourceVersion()) {
                 visibleSourceVersion = value.sourceVersion();
                 renderer.select(null);
@@ -515,6 +773,18 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
             updateControls(value);
         }
         state.set(value);
+        if (!closed && value.phase() == GridCoordinator.Phase.READY) {
+            GridQuery published =
+                    new GridQuery(
+                            value.displayed().filters(),
+                            value.displayed().sort(),
+                            firstPage(value.displayed().page()));
+            boolean changedQuery = hasPublished && !Objects.equals(published, lastPublishedQuery);
+            hasPublished = true;
+            lastPublishedQuery = published;
+            if (changedQuery && !restoredPublication) fireCommitted();
+            restoredPublication = false;
+        }
     }
 
     private void updateControls(GridCoordinator.State<K, T> s) {
@@ -592,7 +862,27 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         yield pageLabel(requested.page()) + " — total unknown";
                     }
                 };
-        status.setText(message);
+        List<String> filtered =
+                s.displayed() == null
+                        ? List.of()
+                        : s.displayed().filters().stream()
+                                .map(f ->
+                                        columnDefinitions.stream()
+                                                .filter(c -> c.id().equals(f.columnId()))
+                                                .findFirst()
+                                                .orElseThrow()
+                                                .header())
+                                .toList();
+        activeFilters.setText("Active filters: " + String.join(", ", filtered));
+        filterSummary.setVisible(!filtered.isEmpty());
+        filterSummary.setManaged(!filtered.isEmpty());
+        status.setText(
+                message
+                        + (renderer.groupingEnabled() && !renderer.groupingColumns().isEmpty()
+                                ? (requested.page() instanceof PageRequest.All
+                                        ? " · Grouping loaded result"
+                                        : " · Grouping current page")
+                                : ""));
     }
 
     private static String pageLabel(PageRequest page) {
@@ -617,13 +907,277 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
             alert.initOwner(getScene().getWindow());
         pendingAlert = alert;
         alertGeneration = coordinator.state().generation();
-        alert.setOnHidden(
-                e -> {
-                    if (pendingAlert == alert) pendingAlert = null;
-                    answer.complete(alert.getResult() == proceed);
-                });
+        alert.setOnHidden(e -> {
+            if (pendingAlert == alert) pendingAlert = null;
+            answer.complete(alert.getResult() == proceed);
+        });
         alert.show();
         return answer;
+    }
+
+    public CompletionStage<Void> loadAsync() {
+        return awaitOperation(this::load, -1);
+    }
+
+    public CompletionStage<Void> restoreSetupAsync(GridSetup setup) {
+        long serial = ++restoreSerial;
+        return awaitOperation(() -> restoreSetup(setup), serial);
+    }
+
+    private CompletionStage<Void> awaitOperation(Runnable action, long serial) {
+        check();
+        action.run();
+        long generation = coordinator.state().generation();
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        javafx.beans.value.ChangeListener<GridCoordinator.State<K, T>> listener =
+                (observable, before, value) -> {
+                    if (value.generation() != generation
+                            || value.phase() == GridCoordinator.Phase.CLOSED)
+                        future.completeExceptionally(
+                                new CancellationException("Grid operation superseded"));
+                    else if (value.phase() == GridCoordinator.Phase.ERROR)
+                        future.completeExceptionally(value.error());
+                    else if (value.phase() == GridCoordinator.Phase.READY) {
+                        if (serial < 0 || lastRestoredSerial == serial) future.complete(null);
+                        else
+                            future.completeExceptionally(
+                                    new CancellationException("Restore declined"));
+                    }
+                };
+        state.addListener(listener);
+        future.whenComplete((ok, error) -> state.removeListener(listener));
+        listener.changed(state, state.get(), state.get());
+        return future;
+    }
+
+    GridSetup developerDefaults() {
+        return developerDefaults == null ? snapshotSetup() : developerDefaults;
+    }
+
+    void cancelOwnedRestore(long generation) {
+        if (!closed && state.get().generation() == generation) coordinator.cancelRestore();
+    }
+
+    public ReadOnlyLongProperty committedRevisionProperty() {
+        return committedRevision.getReadOnlyProperty();
+    }
+
+    public List<String> groupingColumns() {
+        return renderer.groupingColumns();
+    }
+
+    public boolean groupingEnabled() {
+        return renderer.groupingEnabled();
+    }
+
+    public void configureGrouping(
+            List<GroupColumn<T>> columns,
+            boolean enabled,
+            List<String> defaults,
+            boolean collapsed,
+            int inactiveHistoryLimit) {
+        check();
+        renderer.configureGrouping(columns, enabled, defaults, collapsed, inactiveHistoryLimit);
+        defaultGrouping = List.copyOf(defaults);
+        developerDefaults = null;
+        drawGroupingBar();
+    }
+
+    public void setGroupingColumns(List<String> columns) {
+        check();
+        closeFilter();
+        coordinator.cancelRestore();
+        try {
+            renderer.setGroupingColumns(columns);
+        } catch (RuntimeException failure) {
+            interactionStatus.setText("Cannot change grouping: " + failure.getMessage());
+            throw failure;
+        }
+    }
+
+    public boolean isGroupingEnabled() {
+        return coordinator == null ? declaration.groupingEnabled : groupingEnabled();
+    }
+
+    public void setGroupingEnabled(boolean enabled) {
+        requireFx();
+        if (coordinator == null) {
+            declaration.groupingEnabled = enabled;
+            return;
+        }
+        check();
+        coordinator.cancelRestore();
+        renderer.setGroupingEnabled(enabled);
+        drawGroupingBar();
+        updateControls(coordinator.state());
+    }
+
+    public void resetExpansion() {
+        check();
+        coordinator.cancelRestore();
+        renderer.resetExpansion();
+    }
+
+    public void setExpanded(GroupPath path, boolean expanded) {
+        check();
+        coordinator.cancelRestore();
+        renderer.setExpanded(path, expanded);
+    }
+
+    public void regroup() {
+        check();
+        coordinator.cancelRestore();
+        try {
+            renderer.regroup();
+            interactionStatus.setText("");
+        } catch (RuntimeException failure) {
+            interactionStatus.setText("Cannot update grouping: " + failure.getMessage());
+            throw failure;
+        }
+    }
+
+    private void publishRows(PageResult<K, T> result) {
+        renderer.show(result.rows());
+        drawGroupingBar();
+    }
+
+    private void layoutCommitted() {
+        if (closed) return;
+        coordinator.cancelRestore();
+        drawGroupingBar();
+        updateControls(coordinator.state());
+        fireCommitted();
+    }
+
+    private void fireCommitted() {
+        committedRevision.set(committedRevision.get() + 1);
+    }
+
+    private void drawGroupingBar() {
+        groupingBar.setVisible(renderer.groupingEnabled());
+        groupingBar.setManaged(renderer.groupingEnabled());
+        NodeFocus focus = new NodeFocus(groupingBar);
+        groupingBar.getChildren().clear();
+        if (renderer.groupingColumns().isEmpty())
+            groupingBar
+                    .getChildren()
+                    .add(new Label("Drag a column here to group the current page"));
+        for (String id : renderer.groupingColumns()) {
+            String label =
+                    columnDefinitions.stream()
+                            .filter(c -> c.id().equals(id))
+                            .findFirst()
+                            .orElseThrow()
+                            .header();
+            Label text = new Label(label);
+            Button remove = new Button("×");
+            remove.setAccessibleText("Remove grouping by " + label);
+            remove.setOnAction(e ->
+                    setGroupingColumns(
+                            renderer.groupingColumns().stream()
+                                    .filter(c -> !c.equals(id))
+                                    .toList()));
+            remove.addEventHandler(
+                    javafx.scene.input.MouseEvent.DRAG_DETECTED, javafx.event.Event::consume);
+            HBox chip = new HBox(6, text, remove);
+            chip.getStyleClass().add("grouping-chip");
+            chip.setAccessibleText(
+                    "Grouping level " + (groupingBar.getChildren().size() + 1) + ": " + label);
+            chip.setFocusTraversable(true);
+            renderer.gestures().chip(chip, id);
+            groupingBar.getChildren().add(chip);
+        }
+        focus.restore(groupingBar);
+    }
+
+    private static final class NodeFocus {
+        private final boolean inside;
+
+        NodeFocus(javafx.scene.Parent parent) {
+            javafx.scene.Node focus =
+                    parent.getScene() == null ? null : parent.getScene().getFocusOwner();
+            boolean found = false;
+            for (var node = focus; node != null; node = node.getParent())
+                if (node == parent) found = true;
+            inside = found;
+        }
+
+        void restore(javafx.scene.Parent parent) {
+            if (inside) parent.requestFocus();
+        }
+    }
+
+    /**
+     * Configure defaults without fetching. Call after column/group definitions, before
+     * attachment/load.
+     */
+    public void configureDefaults(GridSetup defaults) {
+        check();
+        if (hasPublished || attachment != null || state.get().phase() != GridCoordinator.Phase.IDLE)
+            throw new IllegalStateException("Configure defaults before attachment or loading");
+        if (setupDefinition == null)
+            throw new IllegalStateException("Configure the grid definition first");
+        var prepared =
+                setupDefinition
+                        .prepare(
+                                defaults,
+                                setupMigrations,
+                                coordinator.capabilities(),
+                                condition -> coordinator.validateFilters(List.of(condition)))
+                        .setup();
+        var groups =
+                prepared.grouping() == null
+                        ? new GroupingSetup(defaultGrouping, List.of())
+                        : prepared.grouping();
+        renderer.validateGrouping(groups);
+        var widths = new LinkedHashMap<String, ColumnWidth>();
+        prepared.columns().forEach(c -> widths.put(c.id(), c.width()));
+        renderer.show(
+                List.of(),
+                prepared.columns().stream().map(GridSetup.ColumnState::id).toList(),
+                widths,
+                groups);
+        initial = new GridQuery(prepared.filters(), prepared.sort(), firstPage(prepared.page()));
+        defaultGrouping = groups.columns();
+        developerDefaults = snapshotSetup();
+        drawGroupingBar();
+        updateControls(coordinator.state());
+    }
+
+    public GridSetup defaultSetup() {
+        check();
+        if (developerDefaults == null) developerDefaults = snapshotSetup();
+        return developerDefaults;
+    }
+
+    public GridPersistenceAttachment<K, T> attachPersistence(
+            GridApplicationConfiguration config, String gridId) {
+        return attachPersistence(config, gridId, null);
+    }
+
+    public GridPersistenceAttachment<K, T> attachPersistence(
+            GridApplicationConfiguration config, String gridId, String context) {
+        check();
+        if (attachment != null) throw new IllegalStateException("Persistence already attached");
+        if (developerDefaults == null) developerDefaults = snapshotSetup();
+        attachment =
+                new GridPersistenceAttachment<>(
+                        this, config, new GridSetupStore.Key(gridId, context));
+        return attachment;
+    }
+
+    void addPersistenceControls(javafx.scene.Node feedback, List<MenuItem> items) {
+        getChildren().add(feedback);
+        setupMenu.getItems().addAll(items);
+    }
+
+    void removePersistenceControls(javafx.scene.Node feedback, List<MenuItem> items) {
+        getChildren().remove(feedback);
+        setupMenu.getItems().removeAll(items);
+    }
+
+    void detached(GridPersistenceAttachment<K, T> handle) {
+        if (attachment == handle) attachment = null;
     }
 
     private static void requireFx() {
@@ -634,19 +1188,49 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     private void check() {
         requireFx();
         if (closed) throw new IllegalStateException("Grid is closed");
+        initialize();
+    }
+
+    void refreshItems() {
+        if (coordinator == null
+                || closed
+                || coordinator.state().phase() == GridCoordinator.Phase.IDLE) return;
+        if (attachment != null) {
+            var ready = attachment.ready().toCompletableFuture();
+            if (!ready.isDone() || ready.isCompletedExceptionally()) return;
+        }
+        refresh();
+    }
+
+    boolean isInitialized() {
+        return coordinator != null;
+    }
+
+    boolean isClosed() {
+        return closed;
     }
 
     public void close() {
         requireFx();
         if (closed) return;
+        if (columnSettings != null) {
+            columnSettings.close();
+            columnSettings = null;
+        }
+        if (attachment != null) attachment.close();
         closed = true;
         closeFilter();
-        coordinator.close();
+        declaration.close();
+        if (coordinator != null) coordinator.close();
         if (pendingAlert != null) {
             pendingAlert.close();
             pendingAlert = null;
         }
-        renderer.close();
+        if (renderer != null) renderer.close();
+        selectedKey.unbind();
+        selectedElement.unbind();
+        selectedKey.set(null);
+        selectedElement.set(null);
         getChildren().clear();
     }
 }

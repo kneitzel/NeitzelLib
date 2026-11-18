@@ -6,7 +6,7 @@ From the repository root with JDK 25, build without installing runtime artifacts
 
 ```sh
 ./mvnw -pl fx-example -am package -DskipTests
-java -cp 'fx-example/target/fx-example-1.1-SNAPSHOT.jar:fx-example/target/libs/*' de.neitzel.fx.example.grid.ProductGridMain
+java -cp 'fx-example/target/fx-example-1.0.1.jar:fx-example/target/libs/*' de.neitzel.fx.example.grid.ProductGridMain
 ```
 
 The default catalog has 10,000 products. Both backends use identical stable IDs, names, categories, quantities and DECIMAL(12,2) prices. Fixtures include duplicate sort values, nulls, empty text, mixed case, Unicode, apostrophes and literal SQL wildcard characters. One `ProductCatalog` service maintains original text and Locale.ROOT comparison keys together on insertion/reset. Mutations run on application workers and explicitly refresh the grid; browsing is read-only.

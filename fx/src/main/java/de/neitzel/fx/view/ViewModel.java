@@ -835,7 +835,7 @@ public class ViewModel {
      * @return {@code true} when the element is a simple value
      */
     private static boolean isSimpleValue(Class<?> type) {
-        if (type == String.class || type == Boolean.class || type == boolean.class || type.isEnum()) {
+        if (type == String.class || type == Boolean.class || type == boolean.class || type.isEnum() || type.isRecord()) {
             return true;
         }
         if (type.isPrimitive()) {

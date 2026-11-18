@@ -18,10 +18,13 @@ public final class IntegerSpinners {
      * @return an editable spinner
      */
     public static Spinner<Integer> nonNegative(int min, int max, int value) {
+        return new NonNegativeIntegerSpinner(min, max, value);
+    }
+
+    static void configure(Spinner<Integer> spinner, int min, int max, int value) {
         if (min < 0 || max < min || value < min || value > max) {
             throw new IllegalArgumentException("Invalid nonnegative spinner bounds or value");
         }
-        Spinner<Integer> spinner = new Spinner<>(min, max, value);
         spinner.setEditable(true);
         spinner.getEditor().setTextFormatter(new TextFormatter<String>(change -> {
             String text = change.getControlNewText();
@@ -46,6 +49,5 @@ public final class IntegerSpinners {
                 spinner.getEditor().setText(spinner.getValue().toString());
             }
         });
-        return spinner;
     }
 }

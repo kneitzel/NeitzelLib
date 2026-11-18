@@ -1,6 +1,7 @@
 # Saved DataGrid setups
 
-Saved setups are opt-in and preserve the legacy Table path. The `data-grid` module owns immutable models, definition validation and migrations; `fx` stages layout/result publication; the existing optional `gson` module owns JSON encoding. Applications choose storage and save/load timing. The FX library does not depend on Gson.
+Saved setups are opt-in and preserve the legacy Table path. The `data-grid` module owns immutable models, definition validation and migrations; `fx` stages layout/result publication; the existing optional `gson` module owns JSON encoding. Applications choose storage and save/load timing. The FX library does not depend on Gson. An optional application-owned attachment
+now supplies automatic storage/timing; see [layout and persistence](data-grid-layout.md).
 
 ## Configure and save
 
@@ -48,3 +49,12 @@ Appending a new column does not itself require a migration when the saved defini
 Implement and register `GridSetupJson.FilterCodec` for a custom stable filter type ID. Declare the write version, readable versions, explicit JSON payload and decoding logic. The codec must preserve the requested column/type identity. `readableVersions` defaults to the current write version; support older payloads only with explicit decoding/migration logic. Missing codecs and unsupported payload versions fail visibly. Codec registration is independent of editor availability and local/adapter execution; successful decoding does not establish that the active source supports the condition.
 
 Built-in text, number, missing/present and checklist codecs are supplied. The built-in editor registrations now declare persistence support through this optional module. See the [JDBC demonstration](../../fx-example/docs/product-grid.md) and [shared themes](themes.md) for opt-in integration.
+
+## Grouping format and automatic storage
+
+Format version 2 adds ordered grouping columns and typed expansion-path choices.
+The version-one constructor/codec path remains available; compatible old documents
+inherit developer grouping defaults at restore. Preserve explicit expansion choices
+even when equal to defaults. The optional file integration wraps the setup in a
+strict grid/context/revision document and uses conditional atomic replacement.
+The plain GridSetupJson API remains available for application-managed storage.

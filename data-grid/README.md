@@ -37,3 +37,16 @@ Collection changes do not automatically trigger requests in this slice. Call ref
 ## Saved setups
 
 `GridDefinition.prepare` applies explicit definition migrations and validates column types/order, widths and source support. `GridSetup.ColumnState` carries stable type IDs. JSON is provided separately by `de.neitzel.lib:gson`; `data-grid` does not depend on JavaFX or Gson. See the [saved setup guide](../fx/docs/saved-setups.md).
+
+## Page-local grouping and application configuration
+
+`GroupColumn`, `GroupProjection`, `GroupPath` and `GroupExpansion` capture typed
+values and project a returned page without fetching or mutating source order.
+GroupingSetup extends GridSetup v2 with ordered columns and explicit path choices;
+old constructors/version-one documents remain supported. Group expansion retains
+current choices plus a configurable inactive LRU history, never historical rows.
+
+`GridApplicationConfiguration` owns debounced immutable setup snapshots and queued
+saves after views detach. `GridSetupStore` requires revision-aware conditional
+writes. The default optional JSON/file implementation is in Gson; no toolkit or
+JSON dependency is introduced here. See the [integration guide](../fx/docs/data-grid-layout.md).

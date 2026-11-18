@@ -18,10 +18,15 @@ Factories may supply freshly bound FXML Components as HBox roots. They must map 
 
 The renderer preserves supplied row order and does no local filtering, sorting, fetching or edit observation. The caller validates query results and handles guard approval before calling `show`. It stages new rows before replacing old ones. If construction or mapping validation fails, staged rows are disposed and the old page remains. Factory code that throws before returning a row owns cleanup of its partial construction.
 
-`setColumnOrder` validates complete stable-ID membership and fixed positions before updating headers and fields. `setColumnWidth` accepts default/explicit intent; it returns the clamped applied width so the coordinator can report adjustments. Row roots must have zero padding (put padding inside mapped fields). Rows use zero inter-field spacing to align with result headers; action controls keep their intrinsic size. This first integration point supplies programmatic ordering/sizing, not drag UI. Header requests can be delegated through `setOnSortRequest`; the renderer never sorts locally.
+`setColumnOrder` validates complete stable-ID membership and fixed positions before updating headers and fields. `setColumnWidth` accepts default/explicit intent; it returns the clamped applied width so the coordinator can report adjustments. Row roots must have zero padding (put padding inside mapped fields). Rows use zero inter-field spacing to align with result headers; action controls keep their intrinsic size. The result integration now also supplies native resize/reorder and grouping support
+when composed by DataGrid; the stable programmatic operations remain available. Header requests can be delegated through `setOnSortRequest`; the renderer never sorts locally.
 
 `select(key)` retains an off-page key; the read-only loaded selected element becomes null until that key returns. Row clicks and blank-body clicks update this separate result selection. The old `Table.selectionProperty()` remains the legacy path and is not the result-mode selection API.
 
 `close()` is idempotent, removes rows/handlers and disposes row resources. Disposal failures do not undo an already published page; observe `disposalFailureProperty()` to surface them. Explicit close is necessary; attaching/removing a Table from a Scene does not infer application ownership.
 
-This is a rendering foundation, not the complete DataGrid. [Local DataGrid](data-grid.md) now supplies request coordination and local source execution. [FXML popup editors](filter-editors.md), [setup codecs](saved-setups.md), and [themes](themes.md) are implemented. Ordering and sizing use the documented programmatic API; drag reorder/resize is not supplied by this result renderer.
+This is a rendering foundation, not the complete DataGrid. [Local DataGrid](data-grid.md) now supplies request coordination and local source execution. [FXML popup editors](filter-editors.md), [setup codecs](saved-setups.md), and [themes](themes.md) are implemented. DataGrid exposes both programmatic layout operations and native resize/reorder interactions over this result renderer.
+
+[DataGrid layout/grouping](data-grid-layout.md) documents the component-preserving
+projection path. Local grouping must not call `show` to recreate current-page
+editors; `show` remains the guarded replacement/publication boundary.
