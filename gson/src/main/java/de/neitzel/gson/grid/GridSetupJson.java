@@ -26,7 +26,7 @@ public final class GridSetupJson {
     }
 
     private final Map<String, FilterCodec> codecs = new LinkedHashMap<>();
-    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 
     public GridSetupJson() {
         for (String id :
@@ -50,10 +50,10 @@ public final class GridSetupJson {
     }
 
     public String encode(GridSetup setup) {
-        if (setup.formatVersion() != 1)
+        if (setup.formatVersion() != 1 && setup.formatVersion() != 2)
             throw new IllegalArgumentException("Unsupported setup format version");
         JsonObject root = new JsonObject();
-        root.addProperty("formatVersion", 1);
+        root.addProperty("formatVersion", setup.formatVersion());
         root.addProperty("definitionId", setup.definitionId());
         root.addProperty("definitionVersion", setup.definitionVersion());
         JsonArray columns = new JsonArray();
@@ -97,6 +97,7 @@ public final class GridSetupJson {
         page.addProperty("mode", setup.page() instanceof PageRequest.All ? "all" : "paged");
         if (setup.page() instanceof PageRequest.Paged p) page.addProperty("size", p.pageSize());
         root.add("page", page);
+        if (setup.formatVersion() == 2) root.add("grouping", grouping(setup.grouping()));
         return gson.toJson(root);
     }
 
@@ -107,18 +108,29 @@ public final class GridSetupJson {
             JsonObject root = object(read(reader));
             if (reader.peek() != JsonToken.END_DOCUMENT)
                 throw new IllegalArgumentException("Trailing JSON content");
-            keys(
-                    root,
-                    "formatVersion",
-                    "definitionId",
-                    "definitionVersion",
-                    "columns",
-                    "sort",
-                    "filters",
-                    "page");
             int format = integer(root, "formatVersion");
-            if (format != 1)
-                throw new IllegalArgumentException("Unsupported setup format version: " + format);
+            if (format == 1)
+                keys(
+                        root,
+                        "formatVersion",
+                        "definitionId",
+                        "definitionVersion",
+                        "columns",
+                        "sort",
+                        "filters",
+                        "page");
+            else if (format == 2)
+                keys(
+                        root,
+                        "formatVersion",
+                        "definitionId",
+                        "definitionVersion",
+                        "columns",
+                        "sort",
+                        "filters",
+                        "page",
+                        "grouping");
+            else throw new IllegalArgumentException("Unsupported setup format version: " + format);
             List<GridSetup.ColumnState> columns = new ArrayList<>();
             for (var entry : array(root, "columns")) {
                 var c = object(entry);
@@ -184,13 +196,69 @@ public final class GridSetupJson {
                     columns,
                     sort,
                     filters,
-                    page);
+                    page,
+                    format == 2 ? grouping(object(required(root, "grouping"))) : null);
         } catch (IOException | IllegalStateException | ArithmeticException error) {
             throw new IllegalArgumentException("Invalid saved setup: " + error.getMessage(), error);
         }
     }
 
-    private static JsonElement read(JsonReader reader) throws IOException {
+    private static JsonObject grouping(GroupingSetup grouping) {
+        var object = new JsonObject();
+        var columns = new JsonArray();
+        grouping.columns().forEach(columns::add);
+        object.add("columns", columns);
+        var choices = new JsonArray();
+        for (var choice : grouping.choices()) {
+            var item = new JsonObject();
+            item.addProperty("expanded", choice.expanded());
+            var path = new JsonArray();
+            for (var segment : choice.path().segments()) {
+                var value = new JsonObject();
+                value.addProperty("column", segment.columnId());
+                value.add(
+                        "value",
+                        segment.value() == null
+                                ? JsonNull.INSTANCE
+                                : BuiltIn.value(segment.value()));
+                path.add(value);
+            }
+            item.add("path", path);
+            choices.add(item);
+        }
+        object.add("choices", choices);
+        return object;
+    }
+
+    private static GroupingSetup grouping(JsonObject object) {
+        keys(object, "columns", "choices");
+        List<String> columns = new ArrayList<>();
+        for (var column : array(object, "columns")) {
+            if (!column.isJsonPrimitive() || !column.getAsJsonPrimitive().isString())
+                throw new IllegalArgumentException("Grouping column must be text");
+            columns.add(column.getAsString());
+        }
+        List<GroupingSetup.Choice> choices = new ArrayList<>();
+        for (var entry : array(object, "choices")) {
+            var item = object(entry);
+            keys(item, "expanded", "path");
+            List<GroupPath.Segment> path = new ArrayList<>();
+            for (var part : array(item, "path")) {
+                var segment = object(part);
+                keys(segment, "column", "value");
+                path.add(
+                        new GroupPath.Segment(
+                                string(segment, "column"),
+                                segment.get("value").isJsonNull()
+                                        ? null
+                                        : BuiltIn.value(object(segment.get("value")))));
+            }
+            choices.add(new GroupingSetup.Choice(new GroupPath(path), bool(item, "expanded")));
+        }
+        return new GroupingSetup(columns, choices);
+    }
+
+    static JsonElement read(JsonReader reader) throws IOException {
         return switch (reader.peek()) {
             case BEGIN_OBJECT -> {
                 reader.beginObject();
@@ -223,7 +291,7 @@ public final class GridSetupJson {
         };
     }
 
-    private static void keys(JsonObject o, String... names) {
+    static void keys(JsonObject o, String... names) {
         if (!o.keySet().equals(Set.of(names)))
             throw new IllegalArgumentException(
                     "Expected properties " + Arrays.toString(names) + ", found " + o.keySet());
@@ -236,7 +304,7 @@ public final class GridSetupJson {
         return v;
     }
 
-    private static JsonObject object(JsonElement v) {
+    static JsonObject object(JsonElement v) {
         if (!v.isJsonObject()) throw new IllegalArgumentException("Expected JSON object");
         return v.getAsJsonObject();
     }
@@ -247,7 +315,7 @@ public final class GridSetupJson {
         return v.getAsJsonArray();
     }
 
-    private static String string(JsonObject o, String name) {
+    static String string(JsonObject o, String name) {
         var v = required(o, name);
         if (!v.isJsonPrimitive() || !v.getAsJsonPrimitive().isString())
             throw new IllegalArgumentException("Expected string: " + name);

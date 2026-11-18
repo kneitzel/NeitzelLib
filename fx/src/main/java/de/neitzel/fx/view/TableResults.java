@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
-import de.neitzel.grid.ColumnWidth;
-import de.neitzel.grid.GridRow;
+import de.neitzel.grid.*;
 
 import javafx.application.Platform;
 import javafx.beans.property.*;
@@ -40,19 +39,40 @@ public final class TableResults<K, T> implements AutoCloseable {
             new ReadOnlyObjectWrapper<>();
     private boolean closed;
     private boolean rowsInteractive = true;
+    private boolean columnSeparators;
     private Set<String> filterColumns = Set.of();
     private Set<String> filteredColumns = Set.of();
+    private List<SortKey> sortKeys = List.of();
     private java.util.function.BiConsumer<String, Node> filterRequest = (id, node) -> {};
     private java.util.function.Consumer<String> sortRequest = id -> {};
+
+    private List<GroupColumn<T>> groupColumns = List.of();
+    private List<String> grouping = List.of();
+    private boolean groupingEnabled, defaultCollapsed = true;
+    private int inactiveHistoryLimit = 1000;
+    private GroupExpansion expansion = new GroupExpansion(true, 1000);
+    private GroupProjection.Snapshot<K, T> captured = GroupProjection.capture(List.of(), List.of());
+    private List<GroupProjection.Node<K, T>> groupTree = List.of();
+    private final Map<GroupPath, Button> disclosure = new HashMap<>();
+    private Runnable layoutCommitted = () -> {};
+    private java.util.function.Consumer<String> interactionMessage = ignored -> {};
+    private final ResultHeaderGestures gestures;
+    private final ResultScrollAlignment scrollAlignment;
 
     private record Entry<K, T>(GridRow<K, T> row, ResultRow view, EventHandler<MouseEvent> click) {}
 
     TableResults(
-            HBox header, VBox body, List<ResultColumn> columns, Function<T, ResultRow> factory) {
+            HBox header,
+            VBox body,
+            List<ResultColumn> columns,
+            Function<T, ResultRow> factory,
+            javafx.scene.control.ScrollPane headerScroll,
+            javafx.scene.control.ScrollPane bodyScroll) {
         requireFx();
         this.header = header;
         this.body = body;
         this.factory = Objects.requireNonNull(factory);
+        gestures = new ResultHeaderGestures(this, header, body);
         if (columns.isEmpty())
             throw new IllegalArgumentException("At least one column is required");
         for (var c : columns) {
@@ -62,11 +82,18 @@ public final class TableResults<K, T> implements AutoCloseable {
         }
         order = List.copyOf(definitions.keySet());
         validateOrder(order);
+        scrollAlignment = new ResultScrollAlignment(header, body, headerScroll, bodyScroll);
         drawHeader();
-        body.setOnMouseClicked(
-                e -> {
-                    if (e.getTarget() == body && e.getButton() == MouseButton.PRIMARY) select(null);
-                });
+        body.setOnMouseClicked(e -> {
+            if (e.getTarget() == body && e.getButton() == MouseButton.PRIMARY) select(null);
+        });
+    }
+
+    void enableColumnSeparators() {
+        checkOpen();
+        columnSeparators = true;
+        drawHeader();
+        entries.forEach(e -> layoutRow(e.view()));
     }
 
     public ReadOnlyObjectProperty<K> selectedKeyProperty() {
@@ -130,6 +157,28 @@ public final class TableResults<K, T> implements AutoCloseable {
                         markFilter(button, (String) cell.getUserData());
     }
 
+    public void setSortKeys(List<SortKey> keys) {
+        checkOpen();
+        if (keys.size() > 1 || keys.stream().anyMatch(k -> !definitions.containsKey(k.columnId())))
+            throw new IllegalArgumentException("Unknown sort column");
+        sortKeys = List.copyOf(keys);
+        for (Node node : header.getChildren()) {
+            HBox cell = (HBox) node;
+            Label label = (Label) cell.getChildren().getFirst();
+            label.setText(headerText((String) cell.getUserData()));
+            label.setAccessibleText("Sort " + headerText((String) cell.getUserData()));
+        }
+    }
+
+    private String headerText(String id) {
+        return definitions.get(id).header()
+                + sortKeys.stream()
+                        .filter(k -> k.columnId().equals(id))
+                        .map(k -> k.direction() == SortKey.Direction.ASCENDING ? " ↑" : " ↓")
+                        .findFirst()
+                        .orElse("");
+    }
+
     private void markFilter(Button button, String id) {
         boolean active = filteredColumns.contains(id);
         button.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("filtered"), active);
@@ -153,7 +202,7 @@ public final class TableResults<K, T> implements AutoCloseable {
      * page.
      */
     public void show(List<GridRow<K, T>> result) {
-        show(result, order, widths);
+        show(result, order, widths, groupingSetup());
     }
 
     /** Stages both fresh rows and complete layout, publishing neither on preparation failure. */
@@ -161,7 +210,21 @@ public final class TableResults<K, T> implements AutoCloseable {
             List<GridRow<K, T>> result,
             List<String> nextOrder,
             Map<String, ColumnWidth> nextWidths) {
+        show(result, nextOrder, nextWidths, groupingSetup());
+    }
+
+    public void show(
+            List<GridRow<K, T>> result,
+            List<String> nextOrder,
+            Map<String, ColumnWidth> nextWidths,
+            GroupingSetup nextGrouping) {
         checkOpen();
+        validateGrouping(nextGrouping);
+        var nextCaptured = GroupProjection.capture(result, groupColumns);
+        var nextTree = GroupProjection.project(nextCaptured, nextGrouping.columns());
+        var nextExpansion = new GroupExpansion(defaultCollapsed, inactiveHistoryLimit);
+        nextExpansion.current(GroupProjection.paths(nextTree));
+        nextExpansion.restore(nextGrouping.choices());
         nextOrder = List.copyOf(nextOrder);
         validateOrder(nextOrder);
         nextWidths = Map.copyOf(nextWidths);
@@ -213,8 +276,12 @@ public final class TableResults<K, T> implements AutoCloseable {
         widths.clear();
         widths.putAll(preparedWidths);
         header.getChildren().setAll(nextHeader);
-        body.getChildren().setAll(entries.stream().map(e -> e.view().root()).toList());
-        markSelection();
+        captured = nextCaptured;
+        groupTree = nextTree;
+        grouping = nextGrouping.columns();
+        expansion = nextExpansion;
+        disclosure.clear();
+        drawGroups();
         release(old);
     }
 
@@ -226,6 +293,8 @@ public final class TableResults<K, T> implements AutoCloseable {
         order = ids;
         drawHeader();
         entries.forEach(e -> layoutRow(e.view()));
+        resizeGroupHeadings();
+        layoutCommitted.run();
     }
 
     /**
@@ -243,8 +312,8 @@ public final class TableResults<K, T> implements AutoCloseable {
         widths.put(
                 id,
                 width instanceof ColumnWidth.Explicit ? new ColumnWidth.Explicit(applied) : width);
-        drawHeader();
-        entries.forEach(e -> layoutRow(e.view()));
+        applyWidths(widths);
+        layoutCommitted.run();
         return applied;
     }
 
@@ -271,7 +340,7 @@ public final class TableResults<K, T> implements AutoCloseable {
                         "Mapped fields must be distinct direct children");
     }
 
-    private double width(String id) {
+    double width(String id) {
         return width(id, widths);
     }
 
@@ -288,15 +357,23 @@ public final class TableResults<K, T> implements AutoCloseable {
     private List<Node> headerNodes(List<String> ordering, Map<String, ColumnWidth> sizes) {
         List<Node> nodes = new ArrayList<>();
         for (String id : ordering) {
-            Label label = new Label(definitions.get(id).header());
+            Label label = new Label(headerText(id));
             label.getStyleClass().add("column-header");
             HBox cell = new HBox(label);
             cell.getStyleClass().add("column-cell");
             cell.setUserData(id);
-            cell.setOnMouseClicked(
-                    event -> {
-                        if (event.getButton() == MouseButton.PRIMARY) sortRequest.accept(id);
-                    });
+            HBox.setHgrow(label, javafx.scene.layout.Priority.ALWAYS);
+            label.setMaxWidth(Double.MAX_VALUE);
+            label.setFocusTraversable(true);
+            label.setAccessibleRole(javafx.scene.AccessibleRole.BUTTON);
+            label.setAccessibleText("Sort " + definitions.get(id).header());
+            label.setOnKeyPressed(event -> {
+                if (event.getCode() == javafx.scene.input.KeyCode.ENTER
+                        || event.getCode() == javafx.scene.input.KeyCode.SPACE) {
+                    sortRequest.accept(id);
+                    event.consume();
+                }
+            });
             if (filterColumns.contains(id)) {
                 SVGPath icon = new SVGPath();
                 icon.setContent("M0 0 H14 L9 6 V12 L5 14 V6 Z");
@@ -310,6 +387,16 @@ public final class TableResults<K, T> implements AutoCloseable {
                 button.addEventHandler(MouseEvent.MOUSE_CLICKED, MouseEvent::consume);
                 cell.getChildren().add(button);
             }
+            Region handle = new Region();
+            handle.getStyleClass().add("column-resize");
+            handle.setMinWidth(9);
+            handle.setPrefWidth(9);
+            handle.setMaxWidth(9);
+            handle.setCursor(javafx.scene.Cursor.E_RESIZE);
+            cell.getChildren().add(handle);
+            if (columnSeparators && !id.equals(ordering.getLast()))
+                cell.getChildren().add(ResultColumnSeparators.forHeader(cell));
+            gestures.header(cell, label, handle, id, () -> sortRequest.accept(id));
             size(cell, width(id, sizes));
             nodes.add(cell);
         }
@@ -335,10 +422,25 @@ public final class TableResults<K, T> implements AutoCloseable {
             size(field, width(id, sizes));
             children.add(field);
         }
-        for (Node child : view.root().getChildren())
-            if (!fields.contains(child)) children.add(child);
+        ResultColumnSeparators separators = null;
+        for (Node child : view.root().getChildren()) {
+            if (child instanceof ResultColumnSeparators existing) separators = existing;
+            else if (!fields.contains(child)) children.add(child);
+        }
+        if (columnSeparators) {
+            if (separators == null)
+                separators = new ResultColumnSeparators(view.root(), ordering.size());
+            separators.position(ordering.stream().mapToDouble(id -> width(id, sizes)).toArray());
+            children.add(separators);
+        }
         view.root().setSpacing(0);
-        view.root().getChildren().setAll(children);
+        if (!view.root().getChildren().equals(children)) {
+            Node focus =
+                    view.root().getScene() == null ? null : view.root().getScene().getFocusOwner();
+            boolean restore = focus != null && descendant(view.root(), focus);
+            view.root().getChildren().setAll(children);
+            if (restore) focus.requestFocus();
+        }
     }
 
     private void markSelection() {
@@ -352,10 +454,320 @@ public final class TableResults<K, T> implements AutoCloseable {
             e.view().root().getStyleClass().remove("selected");
             if (selected) {
                 e.view().root().getStyleClass().add("selected");
-                loaded = e.row().model();
+                if (e.view().root().getParent() == body) loaded = e.row().model();
             }
         }
         selectedElement.set(rowsInteractive ? loaded : null);
+    }
+
+    public void setOnLayoutCommitted(Runnable handler) {
+        layoutCommitted = Objects.requireNonNull(handler);
+    }
+
+    public void setOnInteractionMessage(java.util.function.Consumer<String> handler) {
+        interactionMessage = Objects.requireNonNull(handler);
+    }
+
+    void message(String text) {
+        interactionMessage.accept(text);
+    }
+
+    List<ResultColumn> definitions() {
+        return List.copyOf(definitions.values());
+    }
+
+    ResultHeaderGestures gestures() {
+        return gestures;
+    }
+
+    boolean canGroup(String id) {
+        return groupingEnabled && groupColumns.stream().anyMatch(c -> c.id().equals(id));
+    }
+
+    public List<String> groupingColumns() {
+        return grouping;
+    }
+
+    public boolean groupingEnabled() {
+        return groupingEnabled;
+    }
+
+    public GroupingSetup groupingSetup() {
+        return new GroupingSetup(grouping, expansion.snapshot());
+    }
+
+    public void configureGrouping(
+            List<GroupColumn<T>> columns,
+            boolean enabled,
+            List<String> defaults,
+            boolean collapsed,
+            int historyLimit) {
+        checkOpen();
+        if (!entries.isEmpty())
+            throw new IllegalStateException("Configure grouping before first publication");
+        if (historyLimit < 0
+                || !definitions
+                        .keySet()
+                        .containsAll(columns.stream().map(GroupColumn::id).toList()))
+            throw new IllegalArgumentException("Unknown group column or invalid history limit");
+        var snapshot = GroupProjection.<K, T>capture(List.of(), columns);
+        GroupProjection.project(snapshot, defaults);
+        groupColumns = List.copyOf(columns);
+        captured = snapshot;
+        groupingEnabled = enabled;
+        grouping = List.copyOf(defaults);
+        defaultCollapsed = collapsed;
+        inactiveHistoryLimit = historyLimit;
+        expansion = new GroupExpansion(collapsed, historyLimit);
+        drawGroups();
+    }
+
+    public void validateGrouping(GroupingSetup setup) {
+        Set<String> ids =
+                groupColumns.stream()
+                        .map(GroupColumn::id)
+                        .collect(java.util.stream.Collectors.toSet());
+        if (!ids.containsAll(setup.columns()))
+            throw new IllegalArgumentException("Column has no grouping mapping");
+        for (var choice : setup.choices())
+            for (var part : choice.path().segments()) {
+                var column =
+                        groupColumns.stream()
+                                .filter(c -> c.id().equals(part.columnId()))
+                                .findFirst()
+                                .orElseThrow(() ->
+                                        new IllegalArgumentException(
+                                                "Unknown group path column; provide migration"));
+                column.validate(part.value());
+            }
+    }
+
+    public void setGroupingColumns(List<String> ids) {
+        checkOpen();
+        var setup = new GroupingSetup(ids, expansion.snapshot());
+        validateGrouping(setup);
+        var next = GroupProjection.project(captured, ids);
+        grouping = setup.columns();
+        groupTree = next;
+        expansion.current(GroupProjection.paths(next));
+        drawGroups();
+        layoutCommitted.run();
+    }
+
+    /** Refresh mapping snapshots only after an explicit application data-update signal. */
+    public void regroup() {
+        checkOpen();
+        var next = GroupProjection.capture(entries.stream().map(Entry::row).toList(), groupColumns);
+        var tree = GroupProjection.project(next, grouping);
+        captured = next;
+        groupTree = tree;
+        expansion.current(GroupProjection.paths(tree));
+        drawGroups();
+    }
+
+    public void setGroupingEnabled(boolean enabled) {
+        checkOpen();
+        groupingEnabled = enabled;
+        drawGroups();
+    }
+
+    public void resetExpansion() {
+        checkOpen();
+        expansion.reset();
+        drawGroups();
+        layoutCommitted.run();
+    }
+
+    public void setExpanded(GroupPath path, boolean expanded) {
+        checkOpen();
+        if (!GroupProjection.paths(groupTree).contains(path))
+            throw new IllegalArgumentException("Group is not on current page");
+        Node focus = body.getScene() == null ? null : body.getScene().getFocusOwner();
+        boolean hidesFocus = !expanded && focus != null && descendantContainsFocus(path, focus);
+        expansion.set(path, expanded);
+        drawGroups();
+        if (hidesFocus) disclosure.get(path).requestFocus();
+        layoutCommitted.run();
+    }
+
+    private boolean descendantContainsFocus(GroupPath path, Node focus) {
+        for (var row : entries) {
+            if (!descendant(row.view().root(), focus)) continue;
+            var values =
+                    captured.rows().stream()
+                            .filter(r -> Objects.equals(r.row().key(), row.row().key()))
+                            .findFirst()
+                            .orElseThrow()
+                            .values();
+            return path.segments().stream()
+                    .allMatch(p -> Objects.equals(values.get(p.columnId()).key(), p.value()));
+        }
+        return disclosure.entrySet().stream()
+                .anyMatch(e ->
+                        descendant(e.getValue(), focus)
+                                && e.getKey().segments().size() > path.segments().size()
+                                && e.getKey()
+                                        .segments()
+                                        .subList(0, path.segments().size())
+                                        .equals(path.segments()));
+    }
+
+    private static boolean descendant(Node ancestor, Node node) {
+        for (Node current = node; current != null; current = current.getParent())
+            if (current == ancestor) return true;
+        return false;
+    }
+
+    private void drawGroups() {
+        Node focus = body.getScene() == null ? null : body.getScene().getFocusOwner();
+        boolean restoreFocus = focus != null && descendant(body, focus);
+        GroupPath focusedPath = restoreFocus ? focusPath(focus) : null;
+        disclosure.keySet().retainAll(new HashSet<>(GroupProjection.paths(groupTree)));
+        List<Node> nodes = new ArrayList<>();
+        Map<K, Node> rows = new HashMap<>();
+        entries.forEach(e -> rows.put(e.row().key(), e.view().root()));
+        if (!groupingEnabled || grouping.isEmpty())
+            entries.forEach(e -> nodes.add(e.view().root()));
+        else appendGroups(nodes, groupTree, rows);
+        if (!body.getChildren().equals(nodes)) body.getChildren().setAll(nodes);
+        if (restoreFocus) {
+            if (descendant(body, focus)) focus.requestFocus();
+            else {
+                Button destination = null;
+                if (focusedPath != null)
+                    for (int level = 1; level <= focusedPath.segments().size(); level++) {
+                        var candidate =
+                                disclosure.get(
+                                        new GroupPath(focusedPath.segments().subList(0, level)));
+                        if (candidate != null && candidate.getParent() == body)
+                            destination = candidate;
+                        if (candidate != null
+                                && !expansion.expanded(
+                                        new GroupPath(focusedPath.segments().subList(0, level))))
+                            break;
+                    }
+                if (destination != null) destination.requestFocus();
+                else if (!header.getChildren().isEmpty())
+                    ((HBox) header.getChildren().getFirst())
+                            .getChildren()
+                            .getFirst()
+                            .requestFocus();
+            }
+        }
+        resizeGroupHeadings();
+        markSelection();
+    }
+
+    private GroupPath focusPath(Node focus) {
+        for (var entry : entries)
+            if (descendant(entry.view().root(), focus) && !grouping.isEmpty()) {
+                var values =
+                        captured.rows().stream()
+                                .filter(r -> Objects.equals(r.row().key(), entry.row().key()))
+                                .findFirst()
+                                .orElseThrow()
+                                .values();
+                return new GroupPath(
+                        grouping.stream()
+                                .map(id -> new GroupPath.Segment(id, values.get(id).key()))
+                                .toList());
+            }
+        return disclosure.entrySet().stream()
+                .filter(e -> descendant(e.getValue(), focus))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void appendGroups(
+            List<Node> nodes, List<GroupProjection.Node<K, T>> groups, Map<K, Node> rows) {
+        for (var group : groups) {
+            Button button =
+                    disclosure.computeIfAbsent(
+                            group.path(),
+                            path -> {
+                                Button control =
+                                        new Button() {
+                                            @Override
+                                            public Object queryAccessibleAttribute(
+                                                    javafx.scene.AccessibleAttribute attribute,
+                                                    Object... parameters) {
+                                                if (attribute
+                                                        == javafx.scene.AccessibleAttribute
+                                                                .EXPANDED)
+                                                    return expansion.expanded(path);
+                                                if (attribute
+                                                        == javafx.scene.AccessibleAttribute.LEAF)
+                                                    return false;
+                                                return super.queryAccessibleAttribute(
+                                                        attribute, parameters);
+                                            }
+                                        };
+                                control.setAccessibleRole(javafx.scene.AccessibleRole.TREE_ITEM);
+                                control.getStyleClass().add("group-heading");
+                                control.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                                control.setOnAction(
+                                        e -> setExpanded(path, !expansion.expanded(path)));
+                                control.setOnKeyPressed(e -> {
+                                    if (e.getCode() == javafx.scene.input.KeyCode.LEFT) {
+                                        setExpanded(path, false);
+                                        e.consume();
+                                    }
+                                    if (e.getCode() == javafx.scene.input.KeyCode.RIGHT) {
+                                        setExpanded(path, true);
+                                        e.consume();
+                                    }
+                                });
+                                return control;
+                            });
+            String id = group.path().segments().getLast().columnId();
+            boolean open = expansion.expanded(group.path());
+            button.setText(
+                    (open ? "▾ " : "▸ ")
+                            + definitions.get(id).header()
+                            + ": "
+                            + group.label()
+                            + " — "
+                            + group.count()
+                            + " records");
+            button.setAccessibleText(
+                    definitions.get(id).header()
+                            + ": "
+                            + group.label()
+                            + ", "
+                            + group.count()
+                            + " records, "
+                            + (open ? "expanded" : "collapsed"));
+            button.setPadding(
+                    new javafx.geometry.Insets(
+                            6, 8, 6, 8 + 24 * (group.path().segments().size() - 1)));
+            button.notifyAccessibleAttributeChanged(javafx.scene.AccessibleAttribute.EXPANDED);
+            nodes.add(button);
+            if (open) {
+                if (group.children().isEmpty())
+                    group.rows().forEach(row -> nodes.add(rows.get(row.key())));
+                else appendGroups(nodes, group.children(), rows);
+            }
+        }
+    }
+
+    private void resizeGroupHeadings() {
+        double total = order.stream().mapToDouble(this::width).sum();
+        disclosure.values().forEach(button -> size(button, total));
+    }
+
+    void previewWidth(String id, ColumnWidth value) {
+        var next = new LinkedHashMap<>(widths);
+        next.put(id, value);
+        applyWidths(next);
+    }
+
+    private void applyWidths(Map<String, ColumnWidth> sizes) {
+        for (Node node : header.getChildren())
+            size((Region) node, width((String) node.getUserData(), sizes));
+        entries.forEach(e -> layoutRow(e.view(), order, sizes));
+        double total = order.stream().mapToDouble(id -> width(id, sizes)).sum();
+        disclosure.values().forEach(button -> size(button, total));
     }
 
     private void release(List<Entry<K, T>> retired) {
@@ -394,6 +806,12 @@ public final class TableResults<K, T> implements AutoCloseable {
         body.setOnMouseClicked(null);
         selectedKey.set(null);
         selectedElement.set(null);
+        captured = GroupProjection.capture(List.of(), List.of());
+        groupTree = List.of();
+        disclosure.clear();
+        expansion.reset();
+        gestures.close();
+        scrollAlignment.close();
         release(old);
     }
 }

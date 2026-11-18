@@ -2,6 +2,8 @@
 
 ## Documentation map
 
+- [FXML support for every public control](docs/fxml-controls.md).
+
 - [Build a complete application from scratch](docs/quick-start.md).
 - [Architecture, MVVM, identity, threading and lifetime](docs/architecture.md).
 - [Walk through the person desk](../fx-example/README.md).
@@ -21,6 +23,7 @@
 - [Dependency injection](../injection/README.md).
 
 - [Local DataGrid and asynchronous coordination](docs/data-grid.md).
+- [Interactive layout, grouping and optional application persistence](docs/data-grid-layout.md).
 - [Transactional FXML filters and popup lifecycle](docs/filter-editors.md).
 - [Versioned saved setups and atomic restoration](docs/saved-setups.md).
 - [Opt-in shared themes](docs/themes.md) and the [theme gallery](../fx-example/docs/theme-gallery.md).
@@ -51,7 +54,7 @@ These are the versions configured by this source snapshot, not a promise of comp
 | --- | --- | --- |
 | JDK | Java 25 | Select a matching JDK for compilation and launch |
 | Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
-| Library | `de.neitzel.lib:fx:1.0` | Use the Gitea Maven registry or install the local reactor |
+| Library | `de.neitzel.lib:fx:1.0.1` | Use the Gitea Maven registry or install the local reactor |
 | Internal modules | `fx` directly depends on `core`, `injection` and toolkit-independent `data-grid` | Resolved transitively through Maven |
 | JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
 | Injection scanning | Reflections 0.10.2 | Brought by `injection` |

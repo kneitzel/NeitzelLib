@@ -244,7 +244,9 @@ public class Table extends VBox {
         if (opened || resultMode) {
             throw new IllegalStateException("Table is already open");
         }
-        TableResults<K, T> renderer = new TableResults<>(header, body, List.copyOf(definitions), factory);
+        TableResults<K, T> renderer = new TableResults<>(header, body, List.copyOf(definitions), factory, headerScroll, scroll);
+        // DataGrid grows this Table; let its viewport consume that height as well.
+        VBox.setVgrow(scroll, Priority.ALWAYS);
         resultMode = true;
         return renderer;
     }

@@ -62,6 +62,29 @@ class DataGridTest {
     }
 
     @Test
+    void viewportUsesAvailableHeightAndGrowsWithGrid() throws Exception {
+        fx(() -> {
+            var g = grid(List.of(new Item(1, "Alpha")), new AtomicInteger());
+            try {
+                var root = new javafx.scene.layout.StackPane(g);
+                new javafx.scene.Scene(root, 800, 400);
+                root.applyCss();
+                root.resize(800, 400);
+                root.layout();
+                var viewport = (javafx.scene.control.ScrollPane) g.lookup(".table-scroll");
+                double before = viewport.getHeight();
+                assertTrue(before > 200, "Viewport should fill the grid above paging controls");
+                root.resize(800, 700);
+                root.layout();
+                assertEquals(300, viewport.getHeight() - before, 1,
+                        "Additional height must reach the scrolling body");
+            } finally {
+                g.close();
+            }
+        });
+    }
+
+    @Test
     void pagingFilteringSelectionAndAllUseCoordinatorWithoutChangingLegacyTable() throws Exception {
         var ref = new AtomicReference<DataGrid<Long, Item>>();
         AtomicInteger disposed = new AtomicInteger();
