@@ -10,6 +10,7 @@
 - [Walk through the person desk](../fx-example/README.md).
 - This page is the detailed FXML and runtime reference.
 - [Generated ViewModel classes and registries](docs/generated-viewmodels.md).
+- [Saved HTML and SingleFile viewing](docs/html-viewer.md).
 - [Bounded integer spinners](docs/integer-spinners.md) and [system tray support](docs/tray-support.md).
 - [Standalone toolbar and status bar](docs/bars.md), usable without MVVM.
 - [Docking: opening, moving and activating live contents](docs/docking.md), with ordinary Java/FXML startup examples.
@@ -55,9 +56,10 @@ These are the versions configured by this source snapshot, not a promise of comp
 | --- | --- | --- |
 | JDK | Java 25 | Select a matching JDK for compilation and launch |
 | Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
-| Library | `de.neitzel.lib:fx:1.0.1` | Use the Gitea Maven registry or install the local reactor |
+| Library | `de.neitzel.lib:fx:1.0.2` | Use the Gitea Maven registry or install the local reactor |
 | Internal modules | `fx` directly depends on `core`, `injection` and toolkit-independent `data-grid` | Resolved transitively through Maven |
 | JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
+| Saved HTML | jsoup 1.23.2, ph-css 8.2.3, TwelveMonkeys WebP 3.15.3 | Resolved transitively by `fx`; no separate application setup |
 | Injection scanning | Reflections 0.10.2 | Brought by `injection` |
 | Injection annotations | `jakarta.inject-api` 2.0.1 | Use Jakarta annotations, not `javax.inject` |
 | Logging | SLF4J API 2.0.20 | Choose one logging backend; the example uses `slf4j-simple` 2.0.20 at runtime |

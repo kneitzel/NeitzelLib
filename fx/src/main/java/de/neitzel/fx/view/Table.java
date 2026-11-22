@@ -137,7 +137,15 @@ public class Table extends VBox {
     /**
      * The Rows currently showing.
      */
-    private final VBox body = new VBox();
+    private final VBox body = new VBox() {
+        private static final String SELECTION_CSS =
+                Table.class.getResource("result-selection.css").toExternalForm();
+
+        @Override
+        public String getUserAgentStylesheet() {
+            return SELECTION_CSS;
+        }
+    };
 
     /**
      * The column popup.

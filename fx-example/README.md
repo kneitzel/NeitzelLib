@@ -30,12 +30,12 @@ From the NeitzelLib root with JDK 25:
 ./mvnw -f fx-example/pom.xml javafx:run
 ```
 
-The first command installs local `1.0.2-SNAPSHOT` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
+The first command installs local `1.0.2` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
 
 The packaged alternative, after `package` or `install`, is:
 
 ```bash
-java -jar fx-example/target/fx-example-1.0.2-SNAPSHOT.jar
+java -jar fx-example/target/fx-example-1.0.2.jar
 ```
 
 Keep the adjacent `target/libs` directory with the JAR: the manifest refers to those copied runtime dependencies. A desktop session is required. This example has no `module-info.java`; it is a classpath application.
@@ -108,7 +108,7 @@ Inspect Surefire XML reports for test totals, failures and skips. JavaFX tests n
 
 ## Open the example in NeitzelFXDesigner
 
-The repository root includes `neitzel-fx-designer.json` with the `person-desk` context. It selects `fx-example`, classpath launch, the `designer-preview` Maven profile, the local runtime key `java21`, and `de.neitzel.fx.example.preview.DeskPreviewProvider`. Configure your own JDK path for that key; machine paths are not part of the shared project configuration.
+The repository root includes `neitzel-fx-designer.json` with the `person-desk` context. It selects `fx-example`, classpath launch, the `designer-preview` Maven profile, the local runtime key `java25`, and `de.neitzel.fx.example.preview.DeskPreviewProvider`. Configure your own JDK path for that key; machine paths are not part of the shared project configuration.
 
 The optional profile adds the Designer preview API only to the test source set, compiles `src/designer/java`, includes its resources, and produces Model metadata for Person, Address and Note. It does not add a runtime dependency to the ordinary application, replace its handwritten PersonViewModel, or generate a default ViewModel registry.
 

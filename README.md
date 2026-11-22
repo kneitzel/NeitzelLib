@@ -34,7 +34,7 @@ domain or usable under a license compatible with this project's license.
 ### core
 
 Core utilities, including [foreground desktop observations](core/docs/foreground-detection.md)
-using JNA for optional native desktop integration, and [native application configuration folders](core/docs/application-directories.md).
+using JNA for optional native desktop integration, and [native application configuration folders](core/docs/application-directories.md). Use [ImageScaler.fitOpaque](core/docs/image-fitting.md) to fit images within bounds and composite transparent pixels onto a background.
 
 ### encryption
 
@@ -52,7 +52,7 @@ Optional mapped JDBC DataGrid source, initially qualified with H2. See [data-gri
 
 ### fx
 
-JavaFX docking, standalone bars and optional MVVM bindings from FXML views to ordinary Java models. Docking works with plain JavaFX and standard FXMLLoader without initializing MVVM. See [fx/README.md](fx/README.md) and the [docking guide](fx/docs/docking.md).
+JavaFX docking, saved HTML/SingleFile viewing, standalone bars and optional MVVM bindings from FXML views to ordinary Java models. Docking works with plain JavaFX and standard FXMLLoader without initializing MVVM. See [fx/README.md](fx/README.md) and the [docking guide](fx/docs/docking.md).
 
 ### injection
 
@@ -64,20 +64,19 @@ Person desk that shows how to use `fx` and `injection`. Build with `./mvnw -pl f
 
 ### gson
 
-TypeAdapter for gson.
+Gson configuration and type adapters, plus JSON storage for versioned DataGrid setups. See the [Gson guide](gson/README.md).
 
 ### log4j
 
-Stuff for log4j (Version 1). Please use log4j2 if you want to use log4j! (Or log with slf4j as I do in all other
-modules!)
+Configuration helpers for legacy Log4j 1 applications.
 
 ### net
 
-Some network stuff using javax.mail as dependency.
+IMAP account monitoring, new-message events and message utilities built on JavaMail.
 
 ### quarkus
 
-Some additions for quarkus that might be useful.
+Request filters and route logging for Quarkus applications.
 
 ## Start a JavaFX project
 
@@ -85,10 +84,16 @@ The [complete quick start](fx/docs/quick-start.md) includes local installation, 
 
 Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Surefire fails the build if tests fail.
 
+## Changes in 1.0.2
+
+- Display saved HTML and SingleFile archives offline with [HtmlViewer](fx/docs/html-viewer.md). Each viewer can grant external image access for its current document.
+- Configure single, multiple or disabled [DataGrid row selection](fx/docs/data-grid.md). Applications can track selected keys across pages and access the selected rows on the current page.
+- Offer prefix suggestions with `AutoCompleteTextField`, removable tags with `TagChip`, and dismissible toolbars with `ToolBarPane`. See the [FXML control reference](fx/docs/fxml-controls.md).
+- Give each window a [platform menu bar](fx/docs/bars.md#window-menus), including floating docking windows. Use [message catalogs](fx/docs/i18n.md) to translate FXML and Java controls and offer a language menu.
+
 ## Use a release from Maven
 
-The main branch builds `1.0.2-SNAPSHOT`. For the published `1.0.1` release,
-add the Gitea registry to the consuming project's POM and use the release
+To use release `1.0.2`, add the Gitea registry to the consuming project's POM and use the release
 version for the module you need:
 
 ```xml
@@ -103,7 +108,7 @@ version for the module you need:
     <dependency>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>fx</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </dependency>
 </dependencies>
 ```

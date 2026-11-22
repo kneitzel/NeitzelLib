@@ -88,11 +88,26 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     private final DataGridDeclaration<K, T> declaration = new DataGridDeclaration<>(this);
     private final ReadOnlyObjectWrapper<K> selectedKey = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<T> selectedElement = new ReadOnlyObjectWrapper<>();
+    private final ReadOnlyListWrapper<K> selectedKeys = new ReadOnlyListWrapper<>(
+            FXCollections.emptyObservableList());
+    private final ReadOnlyListWrapper<T> selectedElements = new ReadOnlyListWrapper<>(
+            FXCollections.emptyObservableList());
+    private final ObjectProperty<RowSelectionMode> selectionMode =
+            new SimpleObjectProperty<>(this, "selectionMode", RowSelectionMode.SINGLE) {
+                @Override public void set(RowSelectionMode value) {
+                    requireFx();
+                    if (closed) throw new IllegalStateException("Grid is closed");
+                    super.set(Objects.requireNonNull(value));
+                }
+            };
 
     /** Creates a query-free FXML control. Columns are visible before a source is attached. */
     public DataGrid() {
         requireFx();
         getStyleClass().add("data-grid");
+        selectionMode.addListener((property, old, mode) -> {
+            if (renderer != null) renderer.setSelectionMode(mode);
+        });
         setSpacing(8);
         getChildren().addAll(declaration.preview(), status);
     }
@@ -258,6 +273,9 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         new PageRequest.Paged(
                                 0, Math.min(50, source.capabilities().maximumPageSize())));
         renderer = table.openResults(columns, rowFactory);
+        renderer.setSelectionMode(getSelectionMode());
+        selectedKeys.bind(renderer.selectedKeysProperty());
+        selectedElements.bind(renderer.selectedElementsProperty());
         renderer.enableColumnSeparators();
         selectedKey.bind(renderer.selectedKeyProperty());
         selectedElement.bind(renderer.selectedElementProperty());
@@ -351,6 +369,21 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         return selectedElement.getReadOnlyProperty();
     }
 
+    public ObjectProperty<RowSelectionMode> selectionModeProperty() { return selectionMode; }
+
+    public RowSelectionMode getSelectionMode() { return selectionMode.get(); }
+
+    public void setSelectionMode(RowSelectionMode mode) { selectionMode.set(mode); }
+
+    public ReadOnlyListProperty<K> selectedKeysProperty() { return selectedKeys.getReadOnlyProperty(); }
+
+    public ReadOnlyListProperty<T> selectedElementsProperty() { return selectedElements.getReadOnlyProperty(); }
+
+    public void selectKeys(Collection<? extends K> keys) {
+        check();
+        renderer.selectKeys(keys);
+    }
+
     public void select(K key) {
         check();
         renderer.select(key);
@@ -358,7 +391,7 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
 
     public void confirmedDeleted(K key) {
         check();
-        if (Objects.equals(key, selectedKeyProperty().get())) renderer.select(null);
+        renderer.deselect(key);
         refresh();
     }
 
@@ -1229,6 +1262,10 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         if (renderer != null) renderer.close();
         selectedKey.unbind();
         selectedElement.unbind();
+        selectedKeys.unbind();
+        selectedElements.unbind();
+        selectedKeys.set(FXCollections.emptyObservableList());
+        selectedElements.set(FXCollections.emptyObservableList());
         selectedKey.set(null);
         selectedElement.set(null);
         getChildren().clear();
