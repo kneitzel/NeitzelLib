@@ -9,9 +9,12 @@ context. The optional `ViewLoader` applies NeitzelLib binding declarations.
 | `de.neitzel.fx.view.DataGrid` | Columns, typed attributes, widths, filters, grouping, page size and setup identity | Bind `items` or `source`; explicitly load after configuration, close with the view |
 | `de.neitzel.fx.view.Table` | `collection`, `row`, `Column` declarations | Existing ViewLoader collection/Component rows and `selection` binding |
 | `de.neitzel.fx.control.StatusBar` | `leftItems`, `rightItems` containing ordinary Nodes | Bind the properties of the contained controls |
+| `de.neitzel.fx.control.AutoCompleteTextField` | Standard TextField attributes and a `suggestions` list of strings | Type a prefix, use arrow keys and Enter or select with the mouse. Selecting emits the normal text-field action |
+| `de.neitzel.fx.control.TagChip` | `text`, `removable` (false by default), `onRemove` | The action handler owns removing the tag from its model |
 | `de.neitzel.fx.docking.DockPane` | `initialLayout`, `DockLayout`, group/split definitions | Attach a DockingManager to open application-owned content |
 | `de.neitzel.fx.control.NonNegativeIntegerSpinner` | `minimum`, `maximum`, `initialValue` constructor attributes | Bind writable `number`, which shares the value factory's property |
 | `javafx.scene.control.ToolBar` | Standard `items` and `orientation` | Standard JavaFX control, deliberately reused by the library |
+| `de.neitzel.fx.control.ToolBarPane` | `items`, `dismissible`, `dismissText`, `onDismiss` | Uses a JavaFX ToolBar and keeps the optional dismissal button outside overflow |
 
 Supporting objects such as coordinators, sources, setup stores, popup hosts,
 result renderers, theme managers and tray integrations are application/runtime

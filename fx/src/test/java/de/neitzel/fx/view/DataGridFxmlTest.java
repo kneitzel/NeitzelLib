@@ -55,6 +55,69 @@ class DataGridFxmlTest {
             </DataGrid>
             """;
 
+    @Test
+    void loadsReusableTagAndCompletionControls() throws Exception {
+        DataGridTest.fx(() -> {
+            String xml = """
+                    <?import de.neitzel.fx.control.*?>
+                    <?import java.lang.String?>
+                    <?import javafx.scene.layout.VBox?>
+                    <VBox xmlns:fx="http://javafx.com/fxml/1">
+                        <AutoCompleteTextField promptText="Tag">
+                            <suggestions><String fx:value="Archiv"/></suggestions>
+                        </AutoCompleteTextField>
+                        <TagChip text="Archiv" removable="true"/>
+                    </VBox>""";
+            try {
+                javafx.scene.layout.VBox box = new FXMLLoader().load(
+                        new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+                var field = (de.neitzel.fx.control.AutoCompleteTextField) box.getChildren().getFirst();
+                assertEquals(List.of("Archiv"), field.getSuggestions());
+                var tag = (de.neitzel.fx.control.TagChip) box.getChildren().getLast();
+                assertEquals("Archiv", tag.getText());
+                var remove = (javafx.scene.control.Button) tag.getChildren().getLast();
+                var clicked = new AtomicBoolean();
+                tag.setOnRemove(event -> clicked.set(true));
+                remove.fire();
+                assertTrue(clicked.get());
+                tag.setRemovable(false);
+                assertFalse(remove.isVisible());
+            } catch (IOException failure) {
+                throw new UncheckedIOException(failure);
+            }
+        });
+    }
+
+    @Test
+    void dismissibleToolbarRetainsItsItemsWhenReopened() throws Exception {
+        DataGridTest.fx(() -> {
+            String markup = """
+                    <?import de.neitzel.fx.control.ToolBarPane?>
+                    <?import javafx.scene.control.Label?>
+                    <ToolBarPane xmlns:fx="http://javafx.com/fxml/1" dismissible="true" dismissText="Schließen">
+                        <Label text="Suche"/>
+                    </ToolBarPane>""";
+            try {
+                de.neitzel.fx.control.ToolBarPane toolbar = new FXMLLoader().load(
+                        new ByteArrayInputStream(markup.getBytes(StandardCharsets.UTF_8)));
+                var item = toolbar.getItems().getFirst();
+                var dismiss = (javafx.scene.control.Button) toolbar.getLeft();
+                assertEquals("Schließen", dismiss.getAccessibleText());
+                var dismissed = new AtomicBoolean();
+                toolbar.setOnDismiss(event -> dismissed.set(true));
+                dismiss.fire();
+                assertTrue(dismissed.get());
+                assertFalse(toolbar.isVisible());
+                toolbar.setVisible(true);
+                assertSame(item, toolbar.getItems().getFirst());
+                toolbar.setDismissible(false);
+                assertNull(toolbar.getLeft());
+            } catch (IOException failure) {
+                throw new UncheckedIOException(failure);
+            }
+        });
+    }
+
     @SuppressWarnings("unchecked")
     private static DataGrid<Long, Item> load(String fxml, Map<String, Object> namespace)
             throws IOException {
