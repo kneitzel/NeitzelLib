@@ -13,6 +13,7 @@ import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.IndexRange;
+import javafx.scene.control.MenuBar;
 import javafx.scene.control.TextArea;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -142,7 +143,13 @@ class FloatDockablesTest {
             pane.getInitialLayout().setCenter(new DockGroupDefinition("editors"));
             Stage main = new Stage();
             main.setScene(new Scene(pane, 800, 500));
-            DockingManager manager = DockingManager.attach(main, pane, new DockingOptions());
+            DockingOptions options = new DockingOptions();
+            options.setFloatingWindowCustomizer(config -> config.setMenuBarFactory(owner -> {
+                MenuBar menu = new MenuBar();
+                menu.setUserData(owner);
+                return menu;
+            }));
+            DockingManager manager = DockingManager.attach(main, pane, options);
             TextArea notes = new TextArea("Edited without saving");
             Dockable editor = new Dockable(new DockableId("notes"), notes);
             editor.setTitle("Notes");
@@ -160,6 +167,8 @@ class FloatDockablesTest {
                 Window detached = notes.getScene().getWindow();
                 assertNotSame(main, detached);
                 assertTrue(detached.isShowing());
+                MenuBar menu = (MenuBar) detached.getScene().lookup(".menu-bar");
+                assertSame(detached, menu.getUserData());
                 assertEquals(2, manager.layout().windows().size());
                 assertEquals("Edited without saving", notes.getText());
                 assertEquals(new IndexRange(2, 8), notes.getSelection());

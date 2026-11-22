@@ -1,5 +1,7 @@
 package de.neitzel.fx.view;
 
+import de.neitzel.fx.i18n.Localizer;
+import de.neitzel.fx.i18n.Messages;
 import de.neitzel.injection.ApplicationContext;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -75,11 +77,12 @@ public final class ViewLoader {
      * @throws IllegalArgumentException when a Direct binding names a path that is not a read-write Attribute
      */
     public static LoadedView load(URL fxml, Object model, ApplicationContext context) {
-        Class<?> viewModelClass = ViewModels.namedOn(FxmlControllers.controllerClass(fxml));
+        Class<?> controllerType = FxmlControllers.controllerClass(fxml);
+        Class<?> viewModelClass = ViewModels.namedOn(controllerType);
         Object viewModel = ViewModels.of(model, viewModelClass);
         LoadSession session = LoadSession.open();
         try {
-            FXMLLoader loader = new FXMLLoader(fxml);
+            FXMLLoader loader = new FXMLLoader(fxml, resources(context, fxml, controllerType));
             loader.setControllerFactory(type -> controller(context, type));
             loader.setBuilderFactory(type -> Components.builder(type, context));
             Object loaded = loader.load();
@@ -103,6 +106,16 @@ public final class ViewLoader {
         } finally {
             LoadSession.close();
         }
+    }
+
+    static Messages resources(ApplicationContext context, URL fxml, Class<?> type) {
+        Localizer languages;
+        try {
+            languages = context.getComponent(Localizer.class);
+        } catch (IllegalArgumentException unregistered) {
+            return null;
+        }
+        return languages.forView(fxml, type);
     }
 
     /**

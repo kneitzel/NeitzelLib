@@ -2,6 +2,7 @@
 
 ## Documentation map
 
+- [Message catalogs, FXML localization and language changes](docs/i18n.md).
 - [FXML support for every public control](docs/fxml-controls.md).
 
 - [Build a complete application from scratch](docs/quick-start.md).

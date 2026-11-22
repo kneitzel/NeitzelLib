@@ -1350,7 +1350,18 @@ public final class DockingManager {
         }
         DockPane floatingPane = new DockPane();
         Stage floatingStage = new Stage();
-        floatingStage.setScene(new javafx.scene.Scene(floatingPane));
+        if (configuration.getMenuBarFactory() == null) {
+            floatingStage.setScene(new javafx.scene.Scene(floatingPane));
+        } else {
+            try {
+                var menu = Objects.requireNonNull(configuration.getMenuBarFactory().apply(floatingStage));
+                var root = new javafx.scene.layout.BorderPane(floatingPane);
+                root.setTop(menu);
+                floatingStage.setScene(new javafx.scene.Scene(root));
+            } catch (RuntimeException failure) {
+                throw new FloatingPreparationFailure(failure);
+            }
+        }
         de.neitzel.fx.theme.ThemeManager.link(floatingStage, stage.getScene());
         javafx.event.EventHandler<javafx.stage.WindowEvent> closeHandler = event -> {
             event.consume();

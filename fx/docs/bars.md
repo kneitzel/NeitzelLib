@@ -98,3 +98,9 @@ required. The launch class is ordinary Java and delegates to the Application.
 The [MVVM docking editor](../../fx-example/docs/docking-mvvm.md) demonstrates
 Dockable-owned bars and optional MVVM bindings alongside a plain JavaFX editor.
 The standalone controls also support ordinary JavaFX property bindings.
+
+## Window menus
+
+Use `PlatformMenuBar.create(file, quit, view)` from `de.neitzel.fx.control` to build a window's JavaFX menu bar. Supply fresh menus and a localized Quit item with its action already set. Place the result at the top of the scene. On macOS the native menu bar follows the focused stage and supplies the Quit command. On other platforms the file menu includes the supplied Quit item. With docking, route its action to `manager.requestMainWindowClose()`.
+
+For floating windows, set `FloatingWindowConfiguration.setMenuBarFactory(...)` in the floating window customizer. The factory receives the new window before it is shown. Use that window as the owner for dialogs launched by its menu.

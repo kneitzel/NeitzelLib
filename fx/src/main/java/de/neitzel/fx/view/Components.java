@@ -178,7 +178,7 @@ final class Components {
         }
         LoadSession nested = LoadSession.nest();
         try {
-            FXMLLoader loader = new FXMLLoader(fxml);
+            FXMLLoader loader = new FXMLLoader(fxml, ViewLoader.resources(context, fxml, type));
             loader.setRoot(component);
             loader.setController(component);
             loader.setBuilderFactory(nestedType -> builder(nestedType, context));
