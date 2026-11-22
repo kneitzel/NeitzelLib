@@ -1,0 +1,2 @@
+.result-row:selected { -fx-background-color: -fx-selection-bar; }
+.result-row:selected .label { -fx-text-fill: -fx-selection-bar-text; }

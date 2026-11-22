@@ -71,9 +71,7 @@ detection is working. No compositor extensions or bridges are installed.
 ## Tests and observed evidence
 
 Public capability/lifecycle tests run with `mvn -pl core
--Dtest=ForegroundDetectorTest -Dmaven.test.failure.ignore=false test`. The parent
-project otherwise permits ignored test failures, so use that override when
-verifying acceptance.
+-Dtest=ForegroundDetectorTest test`. Surefire fails the build when a test fails.
 
 Native opt-in smoke check: add `-Ddesktop.native.tests=true` in a graphical
 session with an identifiable external application foreground. It validates focus

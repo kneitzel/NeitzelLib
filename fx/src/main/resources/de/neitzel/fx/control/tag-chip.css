@@ -1,0 +1,16 @@
+.tag-chip {
+    -fx-background-color: derive(-fx-base, 12%);
+    -fx-background-radius: 14;
+    -fx-border-color: -fx-outer-border;
+    -fx-border-radius: 14;
+    -fx-padding: 2 8 2 8;
+}
+.tag-chip .tag-chip-remove {
+    -fx-background-color: transparent;
+    -fx-padding: 0 1 0 3;
+}
+.tag-chip .tag-chip-remove:hover,
+.tag-chip .tag-chip-remove:focused {
+    -fx-background-color: -fx-outer-border;
+    -fx-background-radius: 10;
+}

@@ -4,6 +4,7 @@ import de.neitzel.grid.*;
 
 import javafx.application.Platform;
 import javafx.beans.property.*;
+import javafx.collections.*;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -11,6 +12,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -35,6 +38,14 @@ public final class TableResults<K, T> implements AutoCloseable {
     private List<Entry<K, T>> entries = List.of();
     private final ReadOnlyObjectWrapper<K> selectedKey = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<T> selectedElement = new ReadOnlyObjectWrapper<>();
+    private final ObservableList<K> selectedKeys = FXCollections.observableArrayList();
+    private final ObservableList<T> selectedElements = FXCollections.observableArrayList();
+    private final ReadOnlyListWrapper<K> keysView = new ReadOnlyListWrapper<>(
+            FXCollections.unmodifiableObservableList(selectedKeys));
+    private final ReadOnlyListWrapper<T> elementsView = new ReadOnlyListWrapper<>(
+            FXCollections.unmodifiableObservableList(selectedElements));
+    private RowSelectionMode selectionMode = RowSelectionMode.SINGLE;
+    private K anchor;
     private final ReadOnlyObjectWrapper<RuntimeException> disposalFailure =
             new ReadOnlyObjectWrapper<>();
     private boolean closed;
@@ -59,7 +70,8 @@ public final class TableResults<K, T> implements AutoCloseable {
     private final ResultHeaderGestures gestures;
     private final ResultScrollAlignment scrollAlignment;
 
-    private record Entry<K, T>(GridRow<K, T> row, ResultRow view, EventHandler<MouseEvent> click) {}
+    private record Entry<K, T>(GridRow<K, T> row, ResultRow view,
+            EventHandler<MouseEvent> click, EventHandler<KeyEvent> key) {}
 
     TableResults(
             HBox header,
@@ -102,6 +114,20 @@ public final class TableResults<K, T> implements AutoCloseable {
 
     public ReadOnlyObjectProperty<T> selectedElementProperty() {
         return selectedElement.getReadOnlyProperty();
+    }
+
+    public ReadOnlyListProperty<K> selectedKeysProperty() { return keysView.getReadOnlyProperty(); }
+
+    /** Only selected models currently visible and interactive are actionable. */
+    public ReadOnlyListProperty<T> selectedElementsProperty() { return elementsView.getReadOnlyProperty(); }
+
+    public RowSelectionMode getSelectionMode() { return selectionMode; }
+
+    public void setSelectionMode(RowSelectionMode mode) {
+        checkOpen();
+        selectionMode = Objects.requireNonNull(mode);
+        if (mode == RowSelectionMode.NONE) select(null);
+        else if (mode == RowSelectionMode.SINGLE && selectedKeys.size() > 1) select(selectedKey.get());
     }
 
     /** Cleanup failures are exposed separately: they do not roll back an already published page. */
@@ -193,8 +219,79 @@ public final class TableResults<K, T> implements AutoCloseable {
     /** Retains an off-page key while exposing no loaded selected element. */
     public void select(K key) {
         checkOpen();
-        selectedKey.set(key);
+        selectKeys(key == null ? List.of() : List.of(key));
+    }
+
+    /** Replaces selection, retaining off-page identities. The last key is the lead. */
+    public void selectKeys(Collection<? extends K> keys) {
+        checkOpen();
+        var next = new LinkedHashSet<K>();
+        keys.forEach(key -> next.add(Objects.requireNonNull(key)));
+        if (selectionMode == RowSelectionMode.NONE) next.clear();
+        if (selectionMode == RowSelectionMode.SINGLE && next.size() > 1)
+            throw new IllegalArgumentException("Multiple selection is disabled");
+        selectedKeys.setAll(next);
+        selectedKey.set(next.isEmpty() ? null : next.getLast());
+        anchor = selectedKey.get();
         markSelection();
+    }
+
+    public void deselect(K key) {
+        checkOpen();
+        var remaining = new ArrayList<>(selectedKeys);
+        remaining.remove(key);
+        selectKeys(remaining);
+    }
+
+    private List<K> visibleKeys() {
+        var byRoot = new IdentityHashMap<Node, K>();
+        entries.forEach(e -> byRoot.put(e.view().root(), e.row().key()));
+        return body.getChildren().stream().filter(byRoot::containsKey).map(byRoot::get).toList();
+    }
+
+    private void choose(K key, boolean shortcut, boolean shift) {
+        if (!rowsInteractive || selectionMode == RowSelectionMode.NONE) return;
+        if (selectionMode == RowSelectionMode.SINGLE) { select(key); return; }
+        K previousAnchor = anchor;
+        var next = new LinkedHashSet<K>();
+        if (shortcut) next.addAll(selectedKeys);
+        var visible = visibleKeys();
+        int start = visible.indexOf(anchor), end = visible.indexOf(key);
+        if (shift && start >= 0 && end >= 0) {
+            next.addAll(visible.subList(Math.min(start, end), Math.max(start, end) + 1));
+            next.remove(key);
+            next.add(key);
+        } else if (!shortcut || !next.remove(key)) next.add(key);
+        selectKeys(next);
+        anchor = shift && previousAnchor != null ? previousAnchor : key;
+    }
+
+    private void keyPressed(K key, KeyEvent event) {
+        // Embedded editors retain their own keyboard behavior.
+        if (event.getTarget() != event.getSource() || !rowsInteractive
+                || selectionMode == RowSelectionMode.NONE) return;
+        var visible = visibleKeys();
+        int index = visible.indexOf(key);
+        if (event.getCode() == KeyCode.A && event.isShortcutDown()
+                && selectionMode == RowSelectionMode.MULTIPLE) selectKeys(visible);
+        else if (event.getCode() == KeyCode.ESCAPE) select(null);
+        else if (event.getCode() == KeyCode.SPACE) choose(key, event.isShortcutDown(), event.isShiftDown());
+        else {
+            int next = switch (event.getCode()) {
+                case UP -> Math.max(0, index - 1);
+                case DOWN -> Math.min(visible.size() - 1, index + 1);
+                case HOME -> 0;
+                case END -> visible.size() - 1;
+                default -> -1;
+            };
+            if (next < 0 || visible.isEmpty()) return;
+            K target = visible.get(next);
+            if (!event.isShortcutDown() || event.isShiftDown())
+                choose(target, event.isShortcutDown(), event.isShiftDown());
+            entries.stream().filter(e -> Objects.equals(e.row().key(), target))
+                    .findFirst().ifPresent(e -> e.view().root().requestFocus());
+        }
+        event.consume();
     }
 
     /**
@@ -258,13 +355,20 @@ public final class TableResults<K, T> implements AutoCloseable {
                             "Row factory must create detached fresh rows");
                 EventHandler<MouseEvent> click =
                         e -> {
-                            if (e.getButton() == MouseButton.PRIMARY) select(row.key());
+                            if (e.getButton() == MouseButton.PRIMARY)
+                                choose(row.key(), e.isShortcutDown(), e.isShiftDown());
+                            if (e.getButton() == MouseButton.PRIMARY
+                                    && (e.getTarget() == view.root() || e.getTarget() instanceof Label))
+                                view.root().requestFocus();
                         };
-                next.add(new Entry<>(row, view, click));
+                EventHandler<KeyEvent> key = e -> keyPressed(row.key(), e);
+                next.add(new Entry<>(row, view, click, key));
                 validateRow(view);
                 view.root().getStyleClass().add("result-row");
                 layoutRow(view, nextOrder, preparedWidths);
                 view.root().addEventHandler(MouseEvent.MOUSE_CLICKED, click);
+                view.root().setFocusTraversable(true);
+                view.root().addEventHandler(KeyEvent.KEY_PRESSED, key);
             }
         } catch (RuntimeException failure) {
             release(next);
@@ -445,8 +549,10 @@ public final class TableResults<K, T> implements AutoCloseable {
 
     private void markSelection() {
         T loaded = null;
+        List<T> actionable = new ArrayList<>();
+        Set<K> keys = new HashSet<>(selectedKeys);
         for (var e : entries) {
-            boolean selected = Objects.equals(selectedKey.get(), e.row().key());
+            boolean selected = keys.contains(e.row().key());
             e.view()
                     .root()
                     .pseudoClassStateChanged(
@@ -454,10 +560,14 @@ public final class TableResults<K, T> implements AutoCloseable {
             e.view().root().getStyleClass().remove("selected");
             if (selected) {
                 e.view().root().getStyleClass().add("selected");
-                if (e.view().root().getParent() == body) loaded = e.row().model();
+                if (rowsInteractive && e.view().root().getParent() == body) {
+                    actionable.add(e.row().model());
+                    if (Objects.equals(selectedKey.get(), e.row().key())) loaded = e.row().model();
+                }
             }
         }
         selectedElement.set(rowsInteractive ? loaded : null);
+        selectedElements.setAll(actionable);
     }
 
     public void setOnLayoutCommitted(Runnable handler) {
@@ -774,6 +884,7 @@ public final class TableResults<K, T> implements AutoCloseable {
         RuntimeException aggregate = null;
         for (var e : retired) {
             e.view().root().removeEventHandler(MouseEvent.MOUSE_CLICKED, e.click());
+            e.view().root().removeEventHandler(KeyEvent.KEY_PRESSED, e.key());
             try {
                 e.view().dispose().run();
             } catch (RuntimeException failure) {
@@ -806,6 +917,9 @@ public final class TableResults<K, T> implements AutoCloseable {
         body.setOnMouseClicked(null);
         selectedKey.set(null);
         selectedElement.set(null);
+        selectedKeys.clear();
+        selectedElements.clear();
+        anchor = null;
         captured = GroupProjection.capture(List.of(), List.of());
         groupTree = List.of();
         disclosure.clear();

@@ -5,9 +5,12 @@ Use JavaFX's `ToolBar` for toolbar content and NeitzelLib's
 ordinary application Nodes. They work in Java and ordinary FXML without a
 DockingManager, ViewLoader, ViewModel or initialized injection context.
 
-The toolbar deliberately reuses JavaFX's existing public control: its item
-list, orientation, overflow handling, accessibility and CSS already provide
-the required behavior. There is no second library toolbar API to learn.
+Use JavaFX's `ToolBar` directly for permanent bars. `ToolBarPane` hosts a
+horizontal JavaFX toolbar and adds an optional × at its left edge, outside
+the overflow menu. Set `dismissible` to show the button. Clicking it hides
+the pane and calls `onDismiss` if supplied. Bind `managedProperty()` to
+`visibleProperty()` when a hidden pane should release its layout space.
+Show the pane again with `setVisible(true)`. Its items are retained.
 
 ## Java
 
