@@ -8,8 +8,10 @@ import javafx.collections.*;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.geometry.Side;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.KeyEvent;
@@ -20,6 +22,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -31,10 +34,12 @@ import java.util.function.Function;
 public final class TableResults<K, T> implements AutoCloseable {
     private final HBox header;
     private final VBox body;
+    private final Region headerAccessory;
     private final Function<T, ResultRow> factory;
     private final Map<String, ResultColumn> definitions = new LinkedHashMap<>();
     private final Map<String, ColumnWidth> widths = new LinkedHashMap<>();
     private List<String> order;
+    private final Set<String> hiddenColumns = new HashSet<>();
     private List<Entry<K, T>> entries = List.of();
     private final ReadOnlyObjectWrapper<K> selectedKey = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<T> selectedElement = new ReadOnlyObjectWrapper<>();
@@ -56,6 +61,8 @@ public final class TableResults<K, T> implements AutoCloseable {
     private List<SortKey> sortKeys = List.of();
     private java.util.function.BiConsumer<String, Node> filterRequest = (id, node) -> {};
     private java.util.function.Consumer<String> sortRequest = id -> {};
+    private BiFunction<String, HBox, ContextMenu> headerMenuFactory;
+    private ContextMenu headerMenu;
 
     private List<GroupColumn<T>> groupColumns = List.of();
     private List<String> grouping = List.of();
@@ -79,10 +86,12 @@ public final class TableResults<K, T> implements AutoCloseable {
             List<ResultColumn> columns,
             Function<T, ResultRow> factory,
             javafx.scene.control.ScrollPane headerScroll,
-            javafx.scene.control.ScrollPane bodyScroll) {
+            javafx.scene.control.ScrollPane bodyScroll,
+            Region headerAccessory) {
         requireFx();
         this.header = header;
         this.body = body;
+        this.headerAccessory = headerAccessory;
         this.factory = Objects.requireNonNull(factory);
         gestures = new ResultHeaderGestures(this, header, body);
         if (columns.isEmpty())
@@ -94,7 +103,8 @@ public final class TableResults<K, T> implements AutoCloseable {
         }
         order = List.copyOf(definitions.keySet());
         validateOrder(order);
-        scrollAlignment = new ResultScrollAlignment(header, body, headerScroll, bodyScroll);
+        scrollAlignment = new ResultScrollAlignment(
+                header, body, headerScroll, bodyScroll, headerAccessory != null);
         drawHeader();
         body.setOnMouseClicked(e -> {
             if (e.getTarget() == body && e.getButton() == MouseButton.PRIMARY) select(null);
@@ -105,7 +115,7 @@ public final class TableResults<K, T> implements AutoCloseable {
         checkOpen();
         columnSeparators = true;
         drawHeader();
-        entries.forEach(e -> layoutRow(e.view()));
+        applyWidths(widths);
     }
 
     public ReadOnlyObjectProperty<K> selectedKeyProperty() {
@@ -143,6 +153,27 @@ public final class TableResults<K, T> implements AutoCloseable {
         return Map.copyOf(widths);
     }
 
+    boolean isColumnVisible(String id) {
+        checkOpen();
+        if (!definitions.containsKey(id)) throw new IllegalArgumentException("Unknown column: " + id);
+        return !hiddenColumns.contains(id);
+    }
+
+    void setColumnVisible(String id, boolean visible) {
+        if (visible == isColumnVisible(id)) return;
+        Node focus = header.getScene() == null ? null : header.getScene().getFocusOwner();
+        boolean headerFocused = focus != null && descendant(header, focus);
+        if (visible) hiddenColumns.remove(id);
+        else hiddenColumns.add(id);
+        drawHeader();
+        applyWidths(widths);
+        if (headerFocused && headerAccessory != null) headerAccessory.requestFocus();
+    }
+
+    private List<String> visibleOrder(List<String> ordering) {
+        return ordering.stream().filter(id -> !hiddenColumns.contains(id)).toList();
+    }
+
     /** Marks retained rows unavailable without disabling header/query controls. */
     public void setRowsInteractive(boolean interactive) {
         checkOpen();
@@ -155,6 +186,11 @@ public final class TableResults<K, T> implements AutoCloseable {
     public void setOnSortRequest(java.util.function.Consumer<String> handler) {
         checkOpen();
         sortRequest = Objects.requireNonNull(handler);
+    }
+
+    void setHeaderMenuFactory(BiFunction<String, HBox, ContextMenu> factory) {
+        checkOpen();
+        headerMenuFactory = Objects.requireNonNull(factory);
     }
 
     /** Opt-in filter actions; clicking the icon never issues a sort request. */
@@ -196,8 +232,12 @@ public final class TableResults<K, T> implements AutoCloseable {
         }
     }
 
+    String columnHeader(String id) {
+        return definitions.get(id).header();
+    }
+
     private String headerText(String id) {
-        return definitions.get(id).header()
+        return columnHeader(id)
                 + sortKeys.stream()
                         .filter(k -> k.columnId().equals(id))
                         .map(k -> k.direction() == SortKey.Direction.ASCENDING ? " ↑" : " ↓")
@@ -337,7 +377,8 @@ public final class TableResults<K, T> implements AutoCloseable {
                                     Math.clamp(e.value(), c.minimumWidth(), c.maximumWidth()))
                             : width);
         }
-        var nextHeader = headerNodes(nextOrder, preparedWidths);
+        var visibleOrder = visibleOrder(nextOrder);
+        var nextHeader = headerNodes(visibleOrder, preparedWidths);
         result = List.copyOf(result);
         Set<K> keys = new HashSet<>();
         for (var row : result)
@@ -365,7 +406,7 @@ public final class TableResults<K, T> implements AutoCloseable {
                 next.add(new Entry<>(row, view, click, key));
                 validateRow(view);
                 view.root().getStyleClass().add("result-row");
-                layoutRow(view, nextOrder, preparedWidths);
+                layoutRow(view, visibleOrder, preparedWidths);
                 view.root().addEventHandler(MouseEvent.MOUSE_CLICKED, click);
                 view.root().setFocusTraversable(true);
                 view.root().addEventHandler(KeyEvent.KEY_PRESSED, key);
@@ -379,7 +420,7 @@ public final class TableResults<K, T> implements AutoCloseable {
         order = nextOrder;
         widths.clear();
         widths.putAll(preparedWidths);
-        header.getChildren().setAll(nextHeader);
+        replaceHeader(nextHeader);
         captured = nextCaptured;
         groupTree = nextTree;
         grouping = nextGrouping.columns();
@@ -396,8 +437,7 @@ public final class TableResults<K, T> implements AutoCloseable {
         validateOrder(ids);
         order = ids;
         drawHeader();
-        entries.forEach(e -> layoutRow(e.view()));
-        resizeGroupHeadings();
+        applyWidths(widths);
         layoutCommitted.run();
     }
 
@@ -455,7 +495,15 @@ public final class TableResults<K, T> implements AutoCloseable {
     }
 
     private void drawHeader() {
-        header.getChildren().setAll(headerNodes(order, widths));
+        replaceHeader(headerNodes(visibleOrder(order), widths));
+    }
+
+    private void replaceHeader(List<Node> cells) {
+        if (headerMenu != null) {
+            headerMenu.hide();
+            headerMenu = null;
+        }
+        header.getChildren().setAll(cells);
     }
 
     private List<Node> headerNodes(List<String> ordering, Map<String, ColumnWidth> sizes) {
@@ -501,6 +549,14 @@ public final class TableResults<K, T> implements AutoCloseable {
             if (columnSeparators && !id.equals(ordering.getLast()))
                 cell.getChildren().add(ResultColumnSeparators.forHeader(cell));
             gestures.header(cell, label, handle, id, () -> sortRequest.accept(id));
+            cell.setOnContextMenuRequested(event -> {
+                if (headerMenuFactory == null) return;
+                if (headerMenu != null) headerMenu.hide();
+                headerMenu = headerMenuFactory.apply(id, cell);
+                if (event.isKeyboardTrigger()) headerMenu.show(cell, Side.BOTTOM, 0, 0);
+                else headerMenu.show(cell, event.getScreenX(), event.getScreenY());
+                event.consume();
+            });
             size(cell, width(id, sizes));
             nodes.add(cell);
         }
@@ -511,10 +567,6 @@ public final class TableResults<K, T> implements AutoCloseable {
         region.setMinWidth(width);
         region.setPrefWidth(width);
         region.setMaxWidth(width);
-    }
-
-    private void layoutRow(ResultRow view) {
-        layoutRow(view, order, widths);
     }
 
     private void layoutRow(ResultRow view, List<String> ordering, Map<String, ColumnWidth> sizes) {
@@ -532,7 +584,7 @@ public final class TableResults<K, T> implements AutoCloseable {
             else if (!fields.contains(child)) children.add(child);
         }
         if (columnSeparators) {
-            if (separators == null)
+            if (separators == null || !separators.matchesColumnCount(ordering.size()))
                 separators = new ResultColumnSeparators(view.root(), ordering.size());
             separators.position(ordering.stream().mapToDouble(id -> width(id, sizes)).toArray());
             children.add(separators);
@@ -543,7 +595,10 @@ public final class TableResults<K, T> implements AutoCloseable {
                     view.root().getScene() == null ? null : view.root().getScene().getFocusOwner();
             boolean restore = focus != null && descendant(view.root(), focus);
             view.root().getChildren().setAll(children);
-            if (restore) focus.requestFocus();
+            if (restore) {
+                if (descendant(view.root(), focus)) focus.requestFocus();
+                else view.root().requestFocus();
+            }
         }
     }
 
@@ -762,6 +817,7 @@ public final class TableResults<K, T> implements AutoCloseable {
                             .getChildren()
                             .getFirst()
                             .requestFocus();
+                else if (headerAccessory != null) headerAccessory.requestFocus();
             }
         }
         resizeGroupHeadings();
@@ -862,8 +918,13 @@ public final class TableResults<K, T> implements AutoCloseable {
     }
 
     private void resizeGroupHeadings() {
-        double total = order.stream().mapToDouble(this::width).sum();
-        disclosure.values().forEach(button -> size(button, total));
+        resizeGroupHeadings(visibleOrder(order), widths);
+    }
+
+    private void resizeGroupHeadings(List<String> visible, Map<String, ColumnWidth> sizes) {
+        double total = visible.stream().mapToDouble(id -> width(id, sizes)).sum();
+        disclosure.values().forEach(
+                button -> size(button, visible.isEmpty() ? Region.USE_COMPUTED_SIZE : total));
     }
 
     void previewWidth(String id, ColumnWidth value) {
@@ -875,9 +936,9 @@ public final class TableResults<K, T> implements AutoCloseable {
     private void applyWidths(Map<String, ColumnWidth> sizes) {
         for (Node node : header.getChildren())
             size((Region) node, width((String) node.getUserData(), sizes));
-        entries.forEach(e -> layoutRow(e.view(), order, sizes));
-        double total = order.stream().mapToDouble(id -> width(id, sizes)).sum();
-        disclosure.values().forEach(button -> size(button, total));
+        var visible = visibleOrder(order);
+        entries.forEach(e -> layoutRow(e.view(), visible, sizes));
+        resizeGroupHeadings(visible, sizes);
     }
 
     private void release(List<Entry<K, T>> retired) {
@@ -913,7 +974,7 @@ public final class TableResults<K, T> implements AutoCloseable {
         var old = entries;
         entries = List.of();
         body.getChildren().clear();
-        header.getChildren().clear();
+        replaceHeader(List.of());
         body.setOnMouseClicked(null);
         selectedKey.set(null);
         selectedElement.set(null);
