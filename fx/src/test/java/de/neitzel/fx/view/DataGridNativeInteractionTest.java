@@ -326,7 +326,10 @@ class DataGridNativeInteractionTest {
         ScrollPane scroll = fx(() -> (ScrollPane) grid.lookup(".table-scroll"));
         var original = order();
         begin(fx(() -> label("name")));
-        Bounds viewport = fx(() -> scroll.localToScreen(scroll.getViewportBounds()));
+        Bounds viewport = fx(() -> {
+            var headerScroll = grid.lookup(".table-header-scroll");
+            return headerScroll.localToScreen(headerScroll.getBoundsInLocal());
+        });
         move(new Point2D(viewport.getMaxX() - 10, point(fx(() -> header("type")), .5, .5).getY()));
         waitFor(() -> scroll.getHvalue() > .1, "Native edge hover scrolls");
         capture("edge-scroll");

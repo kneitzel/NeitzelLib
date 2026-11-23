@@ -25,6 +25,10 @@ final class ResultColumnSeparators extends Group {
         return decoration;
     }
 
+    boolean matchesColumnCount(int columns) {
+        return getChildren().size() == Math.max(0, columns - 1);
+    }
+
     void position(double[] widths) {
         double x = 0;
         for (int i = 0; i < getChildren().size(); i++) {

@@ -47,9 +47,22 @@ Drag a column's right boundary to preview a bounded width; release commits that
 column and Escape restores its previous sizing intent. Drag a header label to
 move a column, or into the grouping area to add a chip. Insertion feedback and
 fixed-position constraints apply; invalid/outside drops cancel without sorting.
-Grouped columns remain visible. Drag chips to reorder levels, and use × to remove
-a grouping level. A header click still sorts and the separate filter icon opens
-its editor. The Grid setup menu offers keyboard-operable Column settings.
+Drag chips to reorder grouping levels, and use × to remove a grouping level.
+A header click sorts and the separate filter icon opens its editor. The Grid
+setup menu offers keyboard-operable Column settings.
+
+The arrow at the far right of the header opens a checklist of all columns.
+Select a column to toggle its visibility. A column header's context menu offers
+ascending and descending sorting, clearing that column's sort, filtering and
+grouping where configured, resetting the column width, and hiding the column.
+The arrow remains available when every column is hidden.
+
+Applications can use `setColumnVisible(id, visible)`, `isColumnVisible(id)`,
+and `columnVisibilityRevisionProperty()` to observe changes from either the UI or code.
+Visibility applies to the open grid, including later pages. Hiding a column
+preserves its order, width, filters, sorting, and grouping, and leaves existing
+row components and drafts in place. Saved setups currently store the column
+order and widths.
 
 Each group has a disclosure triangle. Expansion follows the typed ordered path,
 not its label or page number. Parent collapse preserves child choices. Current
