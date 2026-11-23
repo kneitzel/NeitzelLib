@@ -35,7 +35,16 @@
         <java.version>25</java.version>
         <required.maven.version>3.9.11</required.maven.version>
 
+        <!-- other properties -->
+        <pmd.target>pmd</pmd.target>
+        <spotbugs.target>spotbugs</spotbugs.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+
         <!-- Dependency versions -->
+        <h2.version>2.5.252</h2.version>
         <jakarta-inject-api>2.0.1</jakarta-inject-api>
         <javafx.version>27.0.1</javafx.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
@@ -45,10 +54,11 @@
         <reflections.version>0.10.2</reflections.version>
         <slf4j.version>2.0.20</slf4j.version>
 
-        <!-- Plugin dependencies -->
+        <!-- Plugin versions -->
         <codehaus.version.plugin>2.25.2</codehaus.version.plugin>
         <javafx.maven.plugin>0.0.8</javafx.maven.plugin>
         <jpackage.maven.plugin>0.1.5</jpackage.maven.plugin>
+        <lombok.maven.plugin>1.18.20.0</lombok.maven.plugin>
         <maven.clean.plugin>3.5.0</maven.clean.plugin>
         <maven.compiler.plugin>3.16.0</maven.compiler.plugin>
         <maven.dependency.plugin>3.11.0</maven.dependency.plugin>
@@ -57,23 +67,14 @@
         <maven.install.plugin>3.2.0</maven.install.plugin>
         <maven.jar.plugin>3.5.1</maven.jar.plugin>
         <maven.javadoc.plugin>3.12.0</maven.javadoc.plugin>
+        <maven.pmd.plugin>3.28.0</maven.pmd.plugin>
         <maven.project.info.reports.plugin>3.9.0</maven.project.info.reports.plugin>
         <maven.resources.plugin>3.5.0</maven.resources.plugin>
         <maven.shade.plugin>3.5.3</maven.shade.plugin>
         <maven.site.plugin>4.0.0-M16</maven.site.plugin>
         <maven.surfire.plugin>3.6.1</maven.surfire.plugin>
         <moditect.maven.plugin>1.0.0.RC2</moditect.maven.plugin>
-        <maven.pmd.plugin>3.28.0</maven.pmd.plugin>
         <spotbugs.maven.plugin>4.10.5.0</spotbugs.maven.plugin>
-
-        <!-- other properties -->
-        <pmd.target>pmd</pmd.target>
-        <spotbugs.target>spotbugs</spotbugs.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-
     </properties>
 
     <dependencyManagement>
@@ -280,7 +281,7 @@
             <plugin>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok-maven-plugin</artifactId>
-                <version>1.18.20.0</version>
+                <version>${lombok.maven.plugin}</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.projectlombok</groupId>
