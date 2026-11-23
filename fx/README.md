@@ -298,6 +298,61 @@ availability as the condition for disabling these controls. The managed View det
 both bindings on close. For dynamically created menu items, keep the registration from
 `CommandBindings.bind(item, command)` and close it when discarding the item.
 
+### Asynchronous Commands
+
+Use `AsyncCommand<T>` when a Command starts a JavaFX `Task<T>`. The application supplies
+an executor and a factory for a fresh Task on each execution. Use `getCommand()` from the
+ViewModel's public getter, or from a keyboard handler or a dynamic menu. Availability combines
+the application rule with the state of the current execution. The worker slot is occupied before
+the executor receives the Task. Failures from the factory, executor, and worker appear in
+`stateProperty()` alongside progress and the Task message. A terminal observation has
+`running() == false`, so a completion listener can retry or close the host.
+
+Pass `true` as the last constructor argument for a Task that supports cancellation. Call
+`cancel()` to cancel it and let the worker finish any cooperative cleanup. The worker slot
+becomes available again when the worker exits. Closing an `AsyncCommand` detaches its Task
+listeners and disables future invocations. Call `cancel()` before closing if the View explicitly
+owns the work and should cancel it.
+
+A dialog's generated button has its own standard close handler. In the following example,
+`valid` is the form's observable validity, `executor` runs background tasks, and
+`createSaveTask` supplies a fresh `Task<Void>`. Filter the action, and close the dialog only
+after success. In the failure branch, the user can correct the form and retry.
+
+```java
+var dialog = new Dialog<Boolean>();
+var save = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+dialog.getDialogPane().getButtonTypes().setAll(save, ButtonType.CANCEL);
+dialog.setResultConverter(button -> false);
+var saveButton = dialog.getDialogPane().lookupButton(save);
+try (var saving = new AsyncCommand<Void>(valid, executor, createSaveTask)) {
+    saveButton.disableProperty().bind(Bindings.not(saving.getCommand().getCanExecute()));
+    EventHandler<ActionEvent> saveAction = event -> {
+        event.consume();
+        saving.getCommand().execute();
+    };
+    saveButton.addEventFilter(ActionEvent.ACTION, saveAction);
+    dialog.setOnCloseRequest(event -> {
+        if (saving.getState().running()) event.consume();
+    });
+    try {
+        saving.stateProperty().addListener((source, previous, state) -> {
+            if (state.phase() == AsyncCommand.Phase.SUCCEEDED) {
+                dialog.setResult(true);
+                dialog.close();
+            } else if (state.phase() == AsyncCommand.Phase.FAILED) {
+                dialog.getDialogPane().setHeaderText(state.error().getMessage());
+            }
+        });
+        dialog.showAndWait();
+    } finally {
+        saveButton.removeEventFilter(ActionEvent.ACTION, saveAction);
+        saveButton.disableProperty().unbind();
+        dialog.setOnCloseRequest(null);
+    }
+}
+```
+
 ## Controller
 
 Name the class on the root with `fx:controller`. The container creates it with `getComponent`, so it is the cached singleton. `@FXML` fields are filled during load, before the bindings run.
