@@ -20,6 +20,8 @@
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
 
         <!-- Dependency Versions -->
+
+        <!-- Dependency versions -->
         <gson.version>2.15.0</gson.version>
     </properties>
 
