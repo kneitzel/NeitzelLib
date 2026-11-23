@@ -246,13 +246,26 @@ public class Table extends VBox {
      */
     public <K, T> TableResults<K, T> openResults(List<ResultColumn> definitions,
             java.util.function.Function<T, ResultRow> factory) {
+        return openResults(definitions, factory, null);
+    }
+
+    <K, T> TableResults<K, T> openResults(List<ResultColumn> definitions,
+            java.util.function.Function<T, ResultRow> factory, Region headerAccessory) {
         if (!javafx.application.Platform.isFxApplicationThread()) {
             throw new IllegalStateException("Use the JavaFX application thread");
         }
         if (opened || resultMode) {
             throw new IllegalStateException("Table is already open");
         }
-        TableResults<K, T> renderer = new TableResults<>(header, body, List.copyOf(definitions), factory, headerScroll, scroll);
+        TableResults<K, T> renderer = new TableResults<>(
+                header, body, List.copyOf(definitions), factory, headerScroll, scroll, headerAccessory);
+        if (headerAccessory != null) {
+            getChildren().remove(headerScroll);
+            headerScroll.setMinWidth(0);
+            HBox.setHgrow(headerScroll, Priority.ALWAYS);
+            headerAccessory.setMaxHeight(Double.MAX_VALUE);
+            getChildren().addFirst(new HBox(headerScroll, headerAccessory));
+        }
         // DataGrid grows this Table; let its viewport consume that height as well.
         VBox.setVgrow(scroll, Priority.ALWAYS);
         resultMode = true;

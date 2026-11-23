@@ -2,6 +2,9 @@
 .grouping-chip { -fx-padding: 4 8; -fx-alignment: center-left; -fx-background-color: #e8eff7; -fx-border-color: #8a9eb5; -fx-cursor: open-hand; }
 .data-grid .column-cell { -fx-alignment: center-left; -fx-min-height: 32; }
 .data-grid .column-header { -fx-padding: 5 6; }
+.data-grid .data-grid-column-menu, .data-grid .data-grid-column-menu > .label { -fx-padding: 0; }
+.data-grid .data-grid-column-menu > .arrow-button { -fx-padding: 0 8; }
+.neitzel-theme .data-grid .data-grid-column-menu:focused { -fx-border-color: -nl-focus; }
 .data-grid .column-resize:hover { -fx-background-color: #3776b6; }
 .group-heading { -fx-background-color: #e8eff7; -fx-text-fill: #182b3b; -fx-border-color: transparent transparent #b4c4d5 transparent; -fx-background-radius: 0; -fx-alignment: center-left; }
 .group-heading:focused { -fx-border-color: #3776b6; -fx-border-width: 2; }

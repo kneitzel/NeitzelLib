@@ -5,9 +5,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import de.neitzel.grid.*;
 
 import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.layout.*;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 
 import org.junit.jupiter.api.*;
 
@@ -93,6 +97,137 @@ class DataGridGroupingTest {
 
     static GroupPath path(String type) {
         return new GroupPath(List.of(new GroupPath.Segment("type", new FilterValue.Text(type))));
+    }
+
+    @Test
+    void headerMenusChangeVisibilityWithoutReplacingRowsOrLosingLayout() throws Exception {
+        var reads = new AtomicInteger();
+        var disposed = new AtomicInteger();
+        Map<Long, TextField> fields = new HashMap<>();
+        var grid = fx(() -> grid(reads, disposed, fields));
+        var stage = fx(Stage::new);
+        try {
+            fx(grid::loadAsync).toCompletableFuture().get(5, TimeUnit.SECONDS);
+            fx(() -> {
+                stage.setScene(grid.getScene());
+                stage.show();
+                grid.setExpanded(path("A"), true);
+                grid.setColumnOrder(List.of("status", "type"));
+                grid.setColumnWidth("type", new ColumnWidth.Explicit(235));
+                var editor = fields.get(1L);
+                editor.setText("unfinished draft");
+                var row = (HBox) editor.getParent();
+                assertSame(editor, row.getChildren().get(1));
+                var menu = (MenuButton) grid.lookup(".data-grid-column-menu");
+                var header = (HBox) grid.lookup(".column-header-row");
+                long visibility = grid.columnVisibilityRevisionProperty().get();
+                var context = showColumnContextMenu(header.getChildren().get(1), false);
+                context.getItems().getLast().fire();
+                assertEquals(++visibility, grid.columnVisibilityRevisionProperty().get());
+                grid.setColumnVisible("type", false);
+                assertEquals(visibility, grid.columnVisibilityRevisionProperty().get());
+                assertFalse(context.isShowing());
+                assertFalse(grid.isColumnVisible("type"));
+                assertNull(editor.getParent());
+                assertEquals(1, header.getChildren().size());
+                assertEquals(List.of("type"), grid.groupingColumns());
+
+                menu.show();
+                assertTrue(menu.isShowing());
+                var status = (CheckMenuItem) menu.getItems().getFirst();
+                var type = (CheckMenuItem) menu.getItems().getLast();
+                assertEquals("Status", status.getText());
+                assertTrue(status.isSelected());
+                assertEquals("Type", type.getText());
+                assertFalse(type.isSelected());
+                status.setSelected(false);
+                status.fire();
+                menu.hide();
+                assertTrue(header.getChildren().isEmpty());
+                assertTrue(menu.isVisible());
+                menu.show();
+                type = (CheckMenuItem) menu.getItems().getLast();
+                type.setSelected(true);
+                type.fire();
+                menu.hide();
+                assertEquals(visibility + 2, grid.columnVisibilityRevisionProperty().get());
+                assertSame(editor, row.getChildren().getFirst());
+                assertEquals(235, editor.getPrefWidth());
+                assertEquals("unfinished draft", editor.getText());
+                assertEquals(0, disposed.get());
+                assertEquals(1, reads.get());
+                return null;
+            });
+            fx(() -> {
+                var header = (HBox) grid.lookup(".column-header-row");
+                var context = showColumnContextMenu(header.getChildren().getFirst(), true);
+                context.getItems().stream()
+                        .filter(item -> "Sort descending".equals(item.getText()))
+                        .findFirst().orElseThrow().fire();
+                context.hide();
+                return null;
+            });
+            DataGridTest.drain();
+            fx(() -> {
+                assertEquals(List.of(new SortKey("type", SortKey.Direction.DESCENDING)),
+                        grid.stateProperty().get().displayed().sort());
+                assertFalse(grid.isColumnVisible("status"));
+                assertTrue(grid.isColumnVisible("type"));
+                assertEquals(1, ((HBox) grid.lookup(".column-header-row")).getChildren().size());
+                assertEquals(2, reads.get());
+                return null;
+            });
+        } finally {
+            fx(() -> {
+                grid.close();
+                stage.close();
+                return null;
+            });
+        }
+    }
+
+    private static ContextMenu showColumnContextMenu(Node cell, boolean fromKeyboard) {
+        var point = cell.localToScreen(0, 0);
+        cell.fireEvent(new ContextMenuEvent(ContextMenuEvent.CONTEXT_MENU_REQUESTED,
+                0, 0, point.getX(), point.getY(), fromKeyboard, null));
+        return Window.getWindows().stream()
+                .filter(ContextMenu.class::isInstance).map(ContextMenu.class::cast)
+                .filter(ContextMenu::isShowing).findFirst().orElseThrow();
+    }
+
+    @Test
+    void selectorStaysFixedAndHeadersAlignAtTheRightScrollEdge() throws Exception {
+        var fields = new HashMap<Long, TextField>();
+        var grid = fx(() -> grid(new AtomicInteger(), new AtomicInteger(), fields));
+        try {
+            fx(grid::loadAsync).toCompletableFuture().get(5, TimeUnit.SECONDS);
+            fx(() -> {
+                grid.setExpanded(path("A"), true);
+                grid.setColumnWidth("type", new ColumnWidth.Explicit(400));
+                grid.setColumnWidth("status", new ColumnWidth.Explicit(400));
+                var root = grid.getScene().getRoot();
+                root.resize(640, 500);
+                root.layout();
+                var menu = grid.lookup(".data-grid-column-menu");
+                double menuX = menu.localToScene(0, 0).getX();
+                var scroll = (ScrollPane) grid.lookup(".table-scroll");
+                var header = (HBox) grid.lookup(".column-header-row");
+                scroll.setHvalue(1);
+                root.layout();
+                assertEquals(menuX, menu.localToScene(0, 0).getX(), .5);
+                var type = fields.get(1L);
+                assertEquals(type.localToScene(0, 0).getX(),
+                        header.getChildren().getFirst().localToScene(0, 0).getX(), 1);
+                var last = header.getChildren().getLast();
+                assertEquals(menuX, last.localToScene(last.getBoundsInLocal()).getMaxX(), 1);
+                return null;
+            });
+        } finally {
+            fx(() -> {
+                grid.close();
+                return null;
+            });
+        }
     }
 
     @Test

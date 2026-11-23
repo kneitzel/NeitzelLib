@@ -343,13 +343,10 @@ final class ResultHeaderGestures implements AutoCloseable {
                                 headerViewport = pane;
                                 break;
                             }
-                        if (scroll == null
-                                || headerViewport == null
-                                || Double.isNaN(pointerX)
-                                || !headerViewport
-                                        .localToScene(headerViewport.getBoundsInLocal())
-                                        .contains(pointerX, pointerY)) return;
-                        var bounds = scroll.localToScene(scroll.getViewportBounds());
+                        if (scroll == null || headerViewport == null || Double.isNaN(pointerX))
+                            return;
+                        var bounds = headerViewport.localToScene(headerViewport.getBoundsInLocal());
+                        if (!bounds.contains(pointerX, pointerY)) return;
                         double delta =
                                 pointerX < bounds.getMinX() + 30
                                         ? -.012

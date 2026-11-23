@@ -33,8 +33,8 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
             previous = pagingButton("Previous page", "M2 7 L14 0 V14 Z"),
             next = pagingButton("Next page", "M2 0 L14 7 L2 14 Z"),
             last = pagingButton("Last page", "M0 0 L12 7 L0 14 Z M14 0 H16 V14 H14 Z"),
-            retry = new Button("Retry"),
-            refresh = new Button("Refresh");
+            retry = actionButton("Retry", "M2 8 A6 6 0 1 1 5 13 M2 3 V8 H7"),
+            refresh = actionButton("Refresh", "M14 7 A6 6 0 1 0 13 11 M14 2 V7 H9");
     private final ComboBox<String> pageSize = new ComboBox<>();
     private GridQuery initial;
     private List<ResultColumn> columnDefinitions;
@@ -59,6 +59,8 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     private final Label activeFilters = new Label();
     private final Label interactionStatus = new Label();
     private final MenuButton setupMenu = new MenuButton("Grid setup");
+    private final MenuButton columnMenu = new MenuButton();
+    private final ReadOnlyLongWrapper columnVisibilityRevision = new ReadOnlyLongWrapper();
     private final ReadOnlyLongWrapper committedRevision = new ReadOnlyLongWrapper();
     private List<String> defaultGrouping = List.of();
     private GridSetup developerDefaults;
@@ -67,6 +69,12 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     private long restoreSerial, lastRestoredSerial;
     private GridPersistenceAttachment<K, T> attachment;
     private GridColumnSettings<K, T> columnSettings;
+
+    private static Button actionButton(String description, String path) {
+        var button = new Button();
+        de.neitzel.fx.control.ActionIcon.install(button, description, path);
+        return button;
+    }
 
     private static Button pagingButton(String name, String path) {
         var button = new Button();
@@ -272,7 +280,12 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
                         List.of(),
                         new PageRequest.Paged(
                                 0, Math.min(50, source.capabilities().maximumPageSize())));
-        renderer = table.openResults(columns, rowFactory);
+        renderer = table.openResults(columns, rowFactory, columnMenu);
+        columnMenu.getStyleClass().add("data-grid-column-menu");
+        columnMenu.setAccessibleText("Column visibility");
+        columnMenu.setTooltip(new Tooltip("Column visibility"));
+        columnMenu.setOnShowing(event -> updateColumnMenu());
+        renderer.setHeaderMenuFactory(this::headerMenu);
         renderer.setSelectionMode(getSelectionMode());
         selectedKeys.bind(renderer.selectedKeysProperty());
         selectedElements.bind(renderer.selectedElementsProperty());
@@ -343,9 +356,12 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         controls.getChildren().add(setupMenu);
         interactionStatus.setWrapText(true);
         interactionStatus.getStyleClass().add("data-grid-interaction-status");
+        de.neitzel.fx.control.ActionIcon.install(setupMenu, "Grid setup",
+                "M2 4 H14 M2 8 H14 M2 12 H14 M5 2 V6 M11 6 V10 M7 10 V14");
         var css = DataGrid.class.getResource("data-grid.css");
         if (css != null) getStylesheets().add(css.toExternalForm());
-        Button clearActiveFilters = new Button("Clear filters");
+        Button clearActiveFilters = actionButton("Clear filters",
+                "M1 2 H15 L9 8 V14 L6 12 V8 Z M11 10 L15 14 M15 10 L11 14");
         clearActiveFilters.setOnAction(e -> setFilters(List.of()));
         filterSummary.getChildren().addAll(activeFilters, clearActiveFilters);
         filterSummary.setVisible(false);
@@ -415,6 +431,66 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         closeFilter();
         coordinator.cancelRestore();
         renderer.setColumnOrder(ids);
+    }
+
+    /** Returns whether this grid currently displays the column. */
+    public boolean isColumnVisible(String id) {
+        check();
+        return renderer.isColumnVisible(id);
+    }
+
+    /** Shows or hides a column without fetching rows or changing the saved grid setup. */
+    public void setColumnVisible(String id, boolean visible) {
+        if (visible == isColumnVisible(id)) return;
+        closeFilter();
+        renderer.setColumnVisible(id, visible);
+        columnVisibilityRevision.set(columnVisibilityRevision.get() + 1);
+    }
+
+    /** Observes effective visibility changes, which are independent of saved grid setups. */
+    public ReadOnlyLongProperty columnVisibilityRevisionProperty() {
+        return columnVisibilityRevision.getReadOnlyProperty();
+    }
+
+    private void updateColumnMenu() {
+        columnMenu.getItems().setAll(renderer.columnOrder().stream().map(id -> {
+            CheckMenuItem item = new CheckMenuItem(renderer.columnHeader(id));
+            item.setSelected(isColumnVisible(id));
+            item.setOnAction(e -> setColumnVisible(id, item.isSelected()));
+            return item;
+        }).toList());
+    }
+
+    private ContextMenu headerMenu(String id, HBox cell) {
+        var menu = new ContextMenu(
+                menuItem("Sort ascending", () -> setSort(new SortKey(id, SortKey.Direction.ASCENDING))),
+                menuItem("Sort descending", () -> setSort(new SortKey(id, SortKey.Direction.DESCENDING))));
+        if (query().sort().stream().anyMatch(key -> key.columnId().equals(id)))
+            menu.getItems().add(menuItem("Clear sort", () -> setSort(null)));
+        if (filterColumns.containsKey(id)) {
+            var filterButton = cell.lookup(".filter-button");
+            menu.getItems().add(menuItem("Filter…", () -> openFilter(id, filterButton)));
+        }
+        if (renderer.canGroup(id)) {
+            boolean grouped = renderer.groupingColumns().contains(id);
+            menu.getItems().add(menuItem(grouped ? "Remove grouping" : "Group by column", () -> {
+                var nextGroups = new ArrayList<>(renderer.groupingColumns());
+                if (grouped) nextGroups.remove(id);
+                else if (!nextGroups.contains(id)) nextGroups.add(id);
+                setGroupingColumns(nextGroups);
+            }));
+        }
+        menu.getItems().addAll(
+                menuItem("Reset column width", () -> setColumnWidth(id, new ColumnWidth.Default())),
+                new SeparatorMenuItem(),
+                menuItem("Hide column", () -> setColumnVisible(id, false)));
+        return menu;
+    }
+
+    private static MenuItem menuItem(String text, Runnable action) {
+        var item = new MenuItem(text);
+        item.setOnAction(e -> action.run());
+        return item;
     }
 
     public double setColumnWidth(String id, ColumnWidth width) {
@@ -1252,6 +1328,7 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         }
         if (attachment != null) attachment.close();
         closed = true;
+        columnMenu.hide();
         closeFilter();
         declaration.close();
         if (coordinator != null) coordinator.close();
