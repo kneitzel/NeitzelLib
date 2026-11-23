@@ -6,7 +6,9 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import javafx.beans.property.Property;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
+import javafx.fxml.FXMLLoader;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -41,7 +43,11 @@ final class DirectBindingApplier {
             return;
         }
         Property<?> controlProperty = controlProperty(control, binding.getProperty());
-        Property<?> attribute = resolved.attribute;
+        if (!resolved.writable) {
+            alignReadOnly(namespace, controlProperty, resolved, binding, context);
+            return;
+        }
+        Property<?> attribute = (Property<?>) resolved.attribute;
         if (resolved.complex) {
             switch (binding.getDirection()) {
                 case "both" -> alignBothComplex(controlProperty, attribute);
@@ -69,6 +75,23 @@ final class DirectBindingApplier {
             case "model" -> alignConverted(
                     controlProperty, attribute, converter, resolved.owner, resolved.name, false, true);
             default -> throw new IllegalArgumentException("Not a direction: " + binding.getDirection());
+        }
+    }
+
+    /** Connects a named observable to the View when its accessor exposes no writable property. */
+    private static void alignReadOnly(Map<String, Object> namespace, Property<?> control, Resolved resolved,
+                                      DirectBinding binding, ApplicationContext context) {
+        if (!"view".equals(binding.getDirection())) {
+            throw new IllegalArgumentException("Read-only source for path \"" + binding.getPath()
+                    + "\" requires direction=\"view\" on " + binding.getControl() + "." + binding.getProperty()
+                    + " in " + namespace.get(FXMLLoader.LOCATION_KEY));
+        }
+        String converterName = binding.getConverter();
+        if (converterName == null || converterName.isEmpty()) {
+            alignTowardView(control, resolved.attribute);
+        } else {
+            alignConverted(control, resolved.attribute, converter(context, converterName),
+                    resolved.owner, resolved.name, true, false);
         }
     }
 
@@ -100,7 +123,10 @@ final class DirectBindingApplier {
         /**
          * The Attribute the Path names.
          */
-        private final Property<?> attribute;
+        private final ObservableValue<?> attribute;
+
+        /** Whether the Attribute resolves to a writable endpoint. */
+        private final boolean writable;
 
         /**
          * Whether that Attribute is complex.
@@ -153,13 +179,16 @@ final class DirectBindingApplier {
             current = child;
         }
         String last = names[names.length - 1];
-        Property<?> attribute = propertyOf(current, last);
-        if (attribute == null) {
+        Property<?> property = propertyOf(current, last);
+        ViewModel owner = current instanceof ViewModel model ? model : null;
+        if (property != null) {
+            return new Resolved(property, true, owner != null && owner.isComplex(last), owner, last);
+        }
+        ObservableValue<?> source = NamedProperties.getReadOnly(current, last);
+        if (source == null) {
             throw missing(path);
         }
-        boolean complex = current instanceof ViewModel stepped && stepped.isComplex(last);
-        ViewModel owner = current instanceof ViewModel model ? model : null;
-        return new Resolved(attribute, complex, owner, last);
+        return new Resolved(source, false, false, owner, last);
     }
 
     /**
@@ -279,10 +308,9 @@ final class DirectBindingApplier {
      * which is the last name of the Path.
      */
     @SuppressWarnings("unchecked")
-    private static void alignConverted(Property<?> controlProperty, Property<?> attribute, Converter converter,
+    private static void alignConverted(Property<?> controlProperty, ObservableValue<?> source, Converter converter,
                                        ViewModel owner, String sourceName, boolean towardView, boolean towardModel) {
         Property<Object> control = (Property<Object>) controlProperty;
-        Property<Object> source = (Property<Object>) attribute;
         Link link = new Link();
         pushControl(control, source, converter, owner, sourceName, link);
         if (towardView) {
@@ -293,9 +321,10 @@ final class DirectBindingApplier {
             });
         }
         if (towardModel) {
+            Property<Object> target = (Property<Object>) source;
             control.addListener((observable, oldValue, newValue) -> {
                 if (!link.applying) {
-                    pushAttribute(control, source, converter, owner, sourceName, link);
+                    pushAttribute(control, target, converter, owner, sourceName, link);
                 }
             });
         }
@@ -311,7 +340,7 @@ final class DirectBindingApplier {
      * @param source    the Attribute name used as the failure source
      * @param link      the guard against hearing this write
      */
-    private static void pushControl(Property<Object> control, Property<Object> attribute, Converter converter,
+    private static void pushControl(Property<Object> control, ObservableValue<?> attribute, Converter converter,
                                     ViewModel owner, String source, Link link) {
         try {
             Object shown = converter.toControlValue(attribute.getValue());
@@ -321,8 +350,13 @@ final class DirectBindingApplier {
             } finally {
                 link.applying = false;
             }
-            owner.clearBindingFailure(source);
+            if (owner != null) {
+                owner.clearBindingFailure(source);
+            }
         } catch (RuntimeException failure) {
+            if (owner == null) {
+                throw failure;
+            }
             owner.reportBindingFailure(source, failureText(failure));
         }
     }
@@ -505,11 +539,10 @@ final class DirectBindingApplier {
      * @param attribute       the Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignTowardView(Property<?> controlProperty, Property<?> attribute) {
+    private static void alignTowardView(Property<?> controlProperty, ObservableValue<?> attribute) {
         Property<Object> control = (Property<Object>) controlProperty;
-        Property<Object> source = (Property<Object>) attribute;
-        control.setValue(source.getValue());
-        source.addListener((observable, oldValue, newValue) -> control.setValue(newValue));
+        control.setValue(attribute.getValue());
+        attribute.addListener((observable, oldValue, newValue) -> control.setValue(newValue));
     }
 
     /**
