@@ -18,7 +18,7 @@ import java.util.Set;
 final class LoadSession {
 
     /**
-     * The sessions open on this thread. The last one is the outermost load.
+     * The sessions open on this thread, with the current session first.
      */
     private static final ThreadLocal<Deque<LoadSession>> STACK = new ThreadLocal<>();
 
@@ -32,23 +32,31 @@ final class LoadSession {
      */
     private final Set<Class<?>> built = new HashSet<>();
 
+    private Throwable bindingFailure;
+
+    // JavaFX reports exceptions from a property listener to the thread's uncaught handler.
+    // Keep a synchronous Component failure with the load that triggered that property change.
+    static boolean recordFailure(Throwable failure) {
+        Deque<LoadSession> stack = STACK.get();
+        if (stack == null) return false;
+        LoadSession session = stack.peek();
+        if (session.bindingFailure == null) {
+            session.bindingFailure = failure;
+        } else if (session.bindingFailure != failure) {
+            session.bindingFailure.addSuppressed(failure);
+        }
+        return true;
+    }
+
+    void checkFailure() {
+        if (bindingFailure instanceof RuntimeException runtime) throw runtime;
+        if (bindingFailure instanceof Error error) throw error;
+    }
+
     /**
      * Prevents instantiation from outside this class.
      */
     private LoadSession() {
-    }
-
-    /**
-     * Starts a session on this thread.
-     *
-     * @return the open session
-     */
-    static LoadSession open() {
-        Deque<LoadSession> stack = new ArrayDeque<>();
-        LoadSession session = new LoadSession();
-        stack.push(session);
-        STACK.set(stack);
-        return session;
     }
 
     /**
@@ -82,13 +90,6 @@ final class LoadSession {
         if (stack.isEmpty()) {
             STACK.remove();
         }
-    }
-
-    /**
-     * Drops the session for this thread.
-     */
-    static void close() {
-        STACK.remove();
     }
 
     /**

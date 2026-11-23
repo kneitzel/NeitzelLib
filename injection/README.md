@@ -8,13 +8,13 @@ The worked example is the person desk in `fx-example`, package `de.neitzel.fx.ex
 
 ## Quick start
 
-Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The parent artifact is `de.neitzel.lib:neitzellib:1.0.3`. Java 25.
+Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The parent artifact is `de.neitzel.lib:neitzellib:1.0.5`. Java 25.
 
 ```xml
 <dependency>
     <groupId>de.neitzel.lib</groupId>
     <artifactId>injection</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
 </dependency>
 ```
 

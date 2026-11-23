@@ -36,6 +36,27 @@ Use `de.neitzel.grid` for shared models/source types and `de.neitzel.fx.view` fo
 - A successfully replaced source clears all selection. `confirmedDeleted(key)` removes only that key and refreshes; absence from a page alone does not imply deletion. Collapsed groups retain their keys but expose no actionable elements for hidden rows.
 - Empty results disable navigation. Unknown totals are displayed as unknown and disable Last. A disappeared page receives one bounded correction; subsequent invalidation becomes an error with Retry.
 
+## Selection in a ViewModel
+
+Use `grid.observeSelection()` for a single read-only property containing both selected keys and available elements. The initial snapshot reflects the current grid. Each subsequent snapshot captures both lists after selection or row availability changes. Keys follow selection order and elements follow display order. A selected key can remain present while its row is unavailable. An action that needs every selected row can compare the two list sizes in one snapshot before capturing that snapshot for confirmation.
+
+For example, a ViewModel can derive a label from the adapter.
+
+```java
+var selection = grid.observeSelection();
+var summary = selection.selectionProperty().map(state ->
+        state.selectedKeys().size() + " selected, "
+                + state.selectedElements().size() + " visible");
+```
+
+Expose the result through a public `ObservableValue<String> summaryProperty()` on the ViewModel and declare the label binding.
+
+```xml
+<DirectBinding control="summary" property="text" path="summary" direction="view"/>
+```
+
+Restore keys explicitly with `selection.selectKeys(savedKeys)` or restore one with `selection.select(key)`. The adapter delegates to the grid and respects its selection mode. The owner closes the adapter on the JavaFX thread when the ViewModel stops observing. Closing detaches the adapter and freezes its last snapshot while the grid and other observers continue to work independently. See the [FXML integration test](../src/test/java/de/neitzel/fx/view/ObserveGridSelectionTest.java).
+
 ## Guards, warnings and supersession
 
 `setEditGuard(query -> CompletionStage<Boolean>)` lets the application save/discard/block unfinished edits. `setAllConfirmation((query, count) -> CompletionStage<Boolean>)` can replace the default nonblocking Continue/Cancel alert. Neither dialog handling nor guard completion runs inside a source transaction. Superseded answers cannot publish or restart old requests.

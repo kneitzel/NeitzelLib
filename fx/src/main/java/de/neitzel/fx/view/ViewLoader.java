@@ -77,14 +77,33 @@ public final class ViewLoader {
      * @throws IllegalArgumentException when a Direct binding names a path that is not a read-write Attribute
      */
     public static LoadedView load(URL fxml, Object model, ApplicationContext context) {
-        Class<?> controllerType = FxmlControllers.controllerClass(fxml);
-        Class<?> viewModelClass = ViewModels.namedOn(controllerType);
-        Object viewModel = ViewModels.of(model, viewModelClass);
-        LoadSession session = LoadSession.open();
+        return load(fxml, model, context, new ViewLifetime(ViewModels.LEGACY));
+    }
+
+    /**
+     * Loads a View with a fresh Controller and Components in an explicitly owned Model context.
+     * Close the result when its UI is removed, or close the Model context to close all its Views.
+     *
+     * @param fxml the FXML document
+     * @param model the Model instance
+     * @param context the container for Controllers and services
+     * @param models the Model context shared by this View and related Views
+     * @return the loaded View
+     */
+    public static LoadedView load(URL fxml, Object model, ApplicationContext context, ViewModelContext models) {
+        return load(fxml, model, context, models.openView());
+    }
+
+    private static LoadedView load(URL fxml, Object model, ApplicationContext context, ViewLifetime lifetime) {
+        LoadSession session = LoadSession.nest();
         try {
+            Class<?> controllerType = FxmlControllers.controllerClass(fxml);
+            Class<?> viewModelClass = ViewModels.namedOn(controllerType);
+            Object viewModel = ViewModels.of(lifetime.models(), model, viewModelClass);
             FXMLLoader loader = new FXMLLoader(fxml, resources(context, fxml, controllerType));
-            loader.setControllerFactory(type -> controller(context, type));
-            loader.setBuilderFactory(type -> Components.builder(type, context));
+            FxmlHandlers.observe(loader, lifetime);
+            loader.setControllerFactory(type -> createController(context, type, lifetime));
+            loader.setBuilderFactory(type -> Components.builder(type, context, lifetime));
             Object loaded = loader.load();
             if (!(loaded instanceof Parent root)) {
                 throw new IllegalArgumentException("View root must be a parent");
@@ -96,16 +115,29 @@ public final class ViewLoader {
             if (controller instanceof HasViewModel hasViewModel && viewModel instanceof ViewModel bound) {
                 hasViewModel.setViewModel(bound);
             }
+            CommandBindingApplier.validate(session.bindingLists(), loader.getNamespace());
             for (BindingList bindingList : session.bindingLists()) {
-                bindingList.apply(loader.getNamespace(), viewModel, controller, root, context);
+                bindingList.apply(loader.getNamespace(), viewModel, controller, root, context, lifetime);
             }
-            Table.openAll(root, viewModel, context);
-            return new LoadedView(root, viewModel);
+            Table.openAll(root, viewModel, context, lifetime);
+            session.checkFailure();
+            return new LoadedView(root, viewModel, lifetime);
         } catch (IOException failure) {
+            lifetime.rollback(failure);
             throw new IllegalStateException("Could not load view " + fxml, failure);
+        } catch (RuntimeException | Error failure) {
+            lifetime.rollback(failure);
+            throw failure;
         } finally {
-            LoadSession.close();
+            LoadSession.unnest();
         }
+    }
+
+    static Object createController(ApplicationContext context, Class<?> type, ViewLifetime lifetime) {
+        if (!lifetime.managed()) return context.getComponent(type);
+        Object controller = context.createComponent(type);
+        lifetime.ownController(controller);
+        return controller;
     }
 
     static Messages resources(ApplicationContext context, URL fxml, Class<?> type) {
@@ -118,14 +150,4 @@ public final class ViewLoader {
         return languages.forView(fxml, type);
     }
 
-    /**
-     * Asks the container for the Controller class named by the document.
-     *
-     * @param context the container
-     * @param type    the Controller class
-     * @return the Controller
-     */
-    private static Object controller(ApplicationContext context, Class<?> type) {
-        return context.getComponent(type.asSubclass(Object.class));
-    }
 }

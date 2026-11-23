@@ -41,6 +41,8 @@ public final class TableResults<K, T> implements AutoCloseable {
     private List<String> order;
     private final Set<String> hiddenColumns = new HashSet<>();
     private List<Entry<K, T>> entries = List.of();
+    private final ReadOnlyObjectWrapper<GridSelection<K, T>> selection =
+            new ReadOnlyObjectWrapper<>(GridSelection.empty());
     private final ReadOnlyObjectWrapper<K> selectedKey = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<T> selectedElement = new ReadOnlyObjectWrapper<>();
     private final ObservableList<K> selectedKeys = FXCollections.observableArrayList();
@@ -130,6 +132,10 @@ public final class TableResults<K, T> implements AutoCloseable {
 
     /** Only selected models currently visible and interactive are actionable. */
     public ReadOnlyListProperty<T> selectedElementsProperty() { return elementsView.getReadOnlyProperty(); }
+
+    ReadOnlyObjectProperty<GridSelection<K, T>> selectionProperty() {
+        return selection.getReadOnlyProperty();
+    }
 
     public RowSelectionMode getSelectionMode() { return selectionMode; }
 
@@ -623,6 +629,10 @@ public final class TableResults<K, T> implements AutoCloseable {
         }
         selectedElement.set(rowsInteractive ? loaded : null);
         selectedElements.setAll(actionable);
+
+        GridSelection<K, T> snapshot = new GridSelection<>(
+                selectedKeys, selectedElements, selectedKey.get(), selectedElement.get());
+        if (!snapshot.sameSelection(selection.get())) selection.set(snapshot);
     }
 
     public void setOnLayoutCommitted(Runnable handler) {
@@ -980,6 +990,7 @@ public final class TableResults<K, T> implements AutoCloseable {
         selectedElement.set(null);
         selectedKeys.clear();
         selectedElements.clear();
+        selection.set(GridSelection.empty());
         anchor = null;
         captured = GroupProjection.capture(List.of(), List.of());
         groupTree = List.of();

@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
  * The scene-graph root and ViewModel produced by loading a View for a Model instance.
  */
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
-public final class LoadedView {
+public final class LoadedView implements AutoCloseable {
 
     /**
      * The scene-graph root of the loaded View.
@@ -22,6 +22,17 @@ public final class LoadedView {
      * The ViewModel the View is bound to, or a replacement that exposes JavaFX properties by name.
      */
     private final Object viewModel;
+
+    private final ViewLifetime lifetime;
+
+    /**
+     * Releases the resources owned by a managed View. Calling this twice is harmless.
+     * Use the ViewLoader overload taking a ViewModelContext to opt into managed lifetimes.
+     */
+    @Override
+    public void close() {
+        lifetime.close();
+    }
 
     /**
      * Returns the ViewModel the View is bound to.

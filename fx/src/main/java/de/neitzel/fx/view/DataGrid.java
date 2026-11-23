@@ -94,6 +94,8 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     }
 
     private final DataGridDeclaration<K, T> declaration = new DataGridDeclaration<>(this);
+    private final ReadOnlyObjectWrapper<GridSelection<K, T>> selection =
+            new ReadOnlyObjectWrapper<>(GridSelection.empty());
     private final ReadOnlyObjectWrapper<K> selectedKey = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyObjectWrapper<T> selectedElement = new ReadOnlyObjectWrapper<>();
     private final ReadOnlyListWrapper<K> selectedKeys = new ReadOnlyListWrapper<>(
@@ -292,6 +294,7 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         renderer.enableColumnSeparators();
         selectedKey.bind(renderer.selectedKeyProperty());
         selectedElement.bind(renderer.selectedElementProperty());
+        selection.bind(renderer.selectionProperty());
         coordinator =
                 new GridCoordinator<>(
                         source, Platform::runLater, this::changed, result -> publishRows(result));
@@ -394,6 +397,18 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
     public ReadOnlyListProperty<K> selectedKeysProperty() { return selectedKeys.getReadOnlyProperty(); }
 
     public ReadOnlyListProperty<T> selectedElementsProperty() { return selectedElements.getReadOnlyProperty(); }
+
+    /**
+     * Observes selection as one snapshot from the current state, including before the first load.
+     * The caller owns the adapter and closes it when the observing ViewModel stops using it.
+     *
+     * @return an independently closeable selection adapter for this grid
+     */
+    public DataGridSelection<K, T> observeSelection() {
+        requireFx();
+        if (closed) throw new IllegalStateException("Grid is closed");
+        return new DataGridSelection<>(this, selection.getReadOnlyProperty());
+    }
 
     public void selectKeys(Collection<? extends K> keys) {
         check();
@@ -1339,6 +1354,7 @@ public final class DataGrid<K, T> extends VBox implements AutoCloseable {
         if (renderer != null) renderer.close();
         selectedKey.unbind();
         selectedElement.unbind();
+        selection.unbind();
         selectedKeys.unbind();
         selectedElements.unbind();
         selectedKeys.set(FXCollections.emptyObservableList());

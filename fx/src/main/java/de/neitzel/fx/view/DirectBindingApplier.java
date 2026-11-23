@@ -6,7 +6,9 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import javafx.beans.property.Property;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
+import javafx.fxml.FXMLLoader;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -30,45 +32,66 @@ final class DirectBindingApplier {
      * @param context   the container that creates a named Converter
      */
     static void apply(Map<String, Object> namespace, Object viewModel, DirectBinding binding,
-                      ApplicationContext context) {
+                      ApplicationContext context, ViewLifetime lifetime) {
         Object control = namespace.get(binding.getControl());
         if (control == null) {
             throw new IllegalArgumentException("No control \"" + binding.getControl() + "\"");
         }
-        selectComponentViewModel(control, viewModel, binding);
+        selectComponentViewModel(control, viewModel, binding, lifetime);
         Resolved resolved = resolve(viewModel, binding.getPath());
         if (resolved == null) {
             return;
         }
         Property<?> controlProperty = controlProperty(control, binding.getProperty());
-        Property<?> attribute = resolved.attribute;
+        if (!resolved.writable) {
+            alignReadOnly(namespace, controlProperty, resolved, binding, context, lifetime);
+            return;
+        }
+        Property<?> attribute = (Property<?>) resolved.attribute;
         if (resolved.complex) {
             switch (binding.getDirection()) {
-                case "both" -> alignBothComplex(controlProperty, attribute);
-                case "view" -> alignTowardViewComplex(controlProperty, attribute);
-                case "model" -> alignTowardModelComplex(controlProperty, attribute);
+                case "both" -> alignBothComplex(controlProperty, attribute, lifetime);
+                case "view" -> alignTowardViewComplex(controlProperty, attribute, lifetime);
+                case "model" -> alignTowardModelComplex(controlProperty, attribute, lifetime);
                 default -> throw new IllegalArgumentException("Not a direction: " + binding.getDirection());
             }
             return;
         }
         if (attribute.getValue() instanceof ObservableList<?> values) {
-            assignList(controlProperty, values);
+            assignList(controlProperty, values, lifetime);
             return;
         }
         String converterName = binding.getConverter();
         if (converterName == null || converterName.isEmpty()) {
-            alignPlain(controlProperty, attribute, binding.getDirection());
+            alignPlain(controlProperty, attribute, binding.getDirection(), lifetime);
             return;
         }
         Converter converter = converter(context, converterName);
         switch (binding.getDirection()) {
             case "both" -> alignConverted(
-                    controlProperty, attribute, converter, resolved.owner, resolved.name, true, true);
+                    controlProperty, attribute, converter, resolved.owner, resolved.name, true, true, lifetime);
             case "view" -> alignConverted(
-                    controlProperty, attribute, converter, resolved.owner, resolved.name, true, false);
+                    controlProperty, attribute, converter, resolved.owner, resolved.name, true, false, lifetime);
             case "model" -> alignConverted(
-                    controlProperty, attribute, converter, resolved.owner, resolved.name, false, true);
+                    controlProperty, attribute, converter, resolved.owner, resolved.name, false, true, lifetime);
             default -> throw new IllegalArgumentException("Not a direction: " + binding.getDirection());
+        }
+    }
+
+    /** Connects a named observable to the View when its accessor exposes no writable property. */
+    private static void alignReadOnly(Map<String, Object> namespace, Property<?> control, Resolved resolved,
+                                      DirectBinding binding, ApplicationContext context, ViewLifetime lifetime) {
+        if (!"view".equals(binding.getDirection())) {
+            throw new IllegalArgumentException("Read-only source for path \"" + binding.getPath()
+                    + "\" requires direction=\"view\" on " + binding.getControl() + "." + binding.getProperty()
+                    + " in " + namespace.get(FXMLLoader.LOCATION_KEY));
+        }
+        String converterName = binding.getConverter();
+        if (converterName == null || converterName.isEmpty()) {
+            alignTowardView(control, resolved.attribute, lifetime);
+        } else {
+            alignConverted(control, resolved.attribute, converter(context, converterName),
+                    resolved.owner, resolved.name, true, false, lifetime);
         }
     }
 
@@ -79,11 +102,11 @@ final class DirectBindingApplier {
      * @param attribute       the Attribute
      * @param direction       {@code view}, {@code model}, or {@code both}
      */
-    private static void alignPlain(Property<?> controlProperty, Property<?> attribute, String direction) {
+    private static void alignPlain(Property<?> controlProperty, Property<?> attribute, String direction, ViewLifetime lifetime) {
         switch (direction) {
-            case "both" -> alignBoth(controlProperty, attribute);
-            case "view" -> alignTowardView(controlProperty, attribute);
-            case "model" -> alignTowardModel(controlProperty, attribute);
+            case "both" -> alignBoth(controlProperty, attribute, lifetime);
+            case "view" -> alignTowardView(controlProperty, attribute, lifetime);
+            case "model" -> alignTowardModel(controlProperty, attribute, lifetime);
             default -> throw new IllegalArgumentException("Not a direction: " + direction);
         }
     }
@@ -100,7 +123,10 @@ final class DirectBindingApplier {
         /**
          * The Attribute the Path names.
          */
-        private final Property<?> attribute;
+        private final ObservableValue<?> attribute;
+
+        /** Whether the Attribute resolves to a writable endpoint. */
+        private final boolean writable;
 
         /**
          * Whether that Attribute is complex.
@@ -153,13 +179,16 @@ final class DirectBindingApplier {
             current = child;
         }
         String last = names[names.length - 1];
-        Property<?> attribute = propertyOf(current, last);
-        if (attribute == null) {
+        Property<?> property = propertyOf(current, last);
+        ViewModel owner = current instanceof ViewModel model ? model : null;
+        if (property != null) {
+            return new Resolved(property, true, owner != null && owner.isComplex(last), owner, last);
+        }
+        ObservableValue<?> source = NamedProperties.getReadOnly(current, last);
+        if (source == null) {
             throw missing(path);
         }
-        boolean complex = current instanceof ViewModel stepped && stepped.isComplex(last);
-        ViewModel owner = current instanceof ViewModel model ? model : null;
-        return new Resolved(attribute, complex, owner, last);
+        return new Resolved(source, false, false, owner, last);
     }
 
     /**
@@ -172,7 +201,7 @@ final class DirectBindingApplier {
      * @param viewModel the ViewModel for this View
      * @param binding   the declaration
      */
-    private static void selectComponentViewModel(Object control, Object viewModel, DirectBinding binding) {
+    private static void selectComponentViewModel(Object control, Object viewModel, DirectBinding binding, ViewLifetime lifetime) {
         if (!"model".equals(binding.getProperty())) {
             return;
         }
@@ -184,7 +213,7 @@ final class DirectBindingApplier {
         if (instance == null) {
             return;
         }
-        ViewModels.of(instance, requested);
+        ViewModels.of(lifetime.models(), instance, requested);
     }
 
     /**
@@ -279,23 +308,24 @@ final class DirectBindingApplier {
      * which is the last name of the Path.
      */
     @SuppressWarnings("unchecked")
-    private static void alignConverted(Property<?> controlProperty, Property<?> attribute, Converter converter,
-                                       ViewModel owner, String sourceName, boolean towardView, boolean towardModel) {
+    private static void alignConverted(Property<?> controlProperty, ObservableValue<?> source, Converter converter,
+                                       ViewModel owner, String sourceName, boolean towardView, boolean towardModel,
+                                       ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
-        Property<Object> source = (Property<Object>) attribute;
         Link link = new Link();
         pushControl(control, source, converter, owner, sourceName, link);
         if (towardView) {
-            source.addListener((observable, oldValue, newValue) -> {
+            lifetime.listen(source, (observable, oldValue, newValue) -> {
                 if (!link.applying) {
                     pushControl(control, source, converter, owner, sourceName, link);
                 }
             });
         }
         if (towardModel) {
-            control.addListener((observable, oldValue, newValue) -> {
+            Property<Object> target = (Property<Object>) source;
+            lifetime.listen(control, (observable, oldValue, newValue) -> {
                 if (!link.applying) {
-                    pushAttribute(control, source, converter, owner, sourceName, link);
+                    pushAttribute(control, target, converter, owner, sourceName, link);
                 }
             });
         }
@@ -311,7 +341,7 @@ final class DirectBindingApplier {
      * @param source    the Attribute name used as the failure source
      * @param link      the guard against hearing this write
      */
-    private static void pushControl(Property<Object> control, Property<Object> attribute, Converter converter,
+    private static void pushControl(Property<Object> control, ObservableValue<?> attribute, Converter converter,
                                     ViewModel owner, String source, Link link) {
         try {
             Object shown = converter.toControlValue(attribute.getValue());
@@ -321,8 +351,13 @@ final class DirectBindingApplier {
             } finally {
                 link.applying = false;
             }
-            owner.clearBindingFailure(source);
+            if (owner != null) {
+                owner.clearBindingFailure(source);
+            }
         } catch (RuntimeException failure) {
+            if (owner == null) {
+                throw failure;
+            }
             owner.reportBindingFailure(source, failureText(failure));
         }
     }
@@ -412,21 +447,21 @@ final class DirectBindingApplier {
      * @param attribute       the complex Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignBothComplex(Property<?> controlProperty, Property<?> attribute) {
+    private static void alignBothComplex(Property<?> controlProperty, Property<?> attribute, ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
         Property<Object> source = (Property<Object>) attribute;
         control.setValue(modelBehind(source.getValue()));
-        source.addListener((observable, oldValue, newValue) -> {
+        lifetime.listen(source, (observable, oldValue, newValue) -> {
             Object model = modelBehind(newValue);
             if (control.getValue() != model) {
                 control.setValue(model);
             }
         });
-        control.addListener((observable, oldValue, newValue) -> {
+        lifetime.listen(control, (observable, oldValue, newValue) -> {
             if (modelBehind(source.getValue()) == newValue) {
                 return;
             }
-            source.setValue(newValue == null ? null : ViewModels.of(newValue));
+            source.setValue(newValue == null ? null : ViewModels.of(lifetime.models(), newValue, null));
         });
     }
 
@@ -437,11 +472,11 @@ final class DirectBindingApplier {
      * @param attribute       the complex Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignTowardViewComplex(Property<?> controlProperty, Property<?> attribute) {
+    private static void alignTowardViewComplex(Property<?> controlProperty, Property<?> attribute, ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
         Property<Object> source = (Property<Object>) attribute;
         control.setValue(modelBehind(source.getValue()));
-        source.addListener((observable, oldValue, newValue) -> control.setValue(modelBehind(newValue)));
+        lifetime.listen(source, (observable, oldValue, newValue) -> control.setValue(modelBehind(newValue)));
     }
 
     /**
@@ -451,15 +486,15 @@ final class DirectBindingApplier {
      * @param attribute       the complex Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignTowardModelComplex(Property<?> controlProperty, Property<?> attribute) {
+    private static void alignTowardModelComplex(Property<?> controlProperty, Property<?> attribute, ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
         Property<Object> source = (Property<Object>) attribute;
         control.setValue(modelBehind(source.getValue()));
-        control.addListener((observable, oldValue, newValue) -> {
+        lifetime.listen(control, (observable, oldValue, newValue) -> {
             if (modelBehind(source.getValue()) == newValue) {
                 return;
             }
-            source.setValue(newValue == null ? null : ViewModels.of(newValue));
+            source.setValue(newValue == null ? null : ViewModels.of(lifetime.models(), newValue, null));
         });
     }
 
@@ -483,8 +518,13 @@ final class DirectBindingApplier {
      * @param values          the list the ViewModel and the Model share
      */
     @SuppressWarnings("unchecked")
-    private static void assignList(Property<?> controlProperty, ObservableList<?> values) {
-        ((Property<Object>) controlProperty).setValue(values);
+    private static void assignList(Property<?> controlProperty, ObservableList<?> values, ViewLifetime lifetime) {
+        Property<Object> target = (Property<Object>) controlProperty;
+        Object previous = target.getValue();
+        target.setValue(values);
+        lifetime.own(() -> {
+            if (target.getValue() == values) target.setValue(previous);
+        });
     }
 
     /**
@@ -494,8 +534,11 @@ final class DirectBindingApplier {
      * @param attribute       the Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignBoth(Property<?> controlProperty, Property<?> attribute) {
-        ((Property<Object>) controlProperty).bindBidirectional((Property<Object>) attribute);
+    private static void alignBoth(Property<?> controlProperty, Property<?> attribute, ViewLifetime lifetime) {
+        Property<Object> control = (Property<Object>) controlProperty;
+        Property<Object> source = (Property<Object>) attribute;
+        control.bindBidirectional(source);
+        lifetime.own(() -> control.unbindBidirectional(source));
     }
 
     /**
@@ -505,11 +548,11 @@ final class DirectBindingApplier {
      * @param attribute       the Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignTowardView(Property<?> controlProperty, Property<?> attribute) {
+    private static void alignTowardView(Property<?> controlProperty, ObservableValue<?> attribute,
+                                        ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
-        Property<Object> source = (Property<Object>) attribute;
-        control.setValue(source.getValue());
-        source.addListener((observable, oldValue, newValue) -> control.setValue(newValue));
+        control.setValue(attribute.getValue());
+        lifetime.listen(attribute, (observable, oldValue, newValue) -> control.setValue(newValue));
     }
 
     /**
@@ -519,10 +562,10 @@ final class DirectBindingApplier {
      * @param attribute       the Attribute
      */
     @SuppressWarnings("unchecked")
-    private static void alignTowardModel(Property<?> controlProperty, Property<?> attribute) {
+    private static void alignTowardModel(Property<?> controlProperty, Property<?> attribute, ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
         Property<Object> target = (Property<Object>) attribute;
         control.setValue(target.getValue());
-        control.addListener((observable, oldValue, newValue) -> target.setValue(newValue));
+        lifetime.listen(control, (observable, oldValue, newValue) -> target.setValue(newValue));
     }
 }

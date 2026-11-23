@@ -41,7 +41,7 @@ final class ComputedBindingApplier {
             Object viewModel,
             Object controller,
             Parent root,
-            ComputedBinding binding) {
+            ComputedBinding binding, ViewLifetime lifetime) {
         Object control = namespace.get(binding.getControl());
         if (control == null) {
             throw new IllegalArgumentException("No control \"" + binding.getControl() + "\"");
@@ -49,9 +49,9 @@ final class ComputedBindingApplier {
         Property<Object> target = controlProperty(control, binding.getProperty());
         Runnable refresh = refresh(controller, binding.getMethod(), target);
         refresh.run();
-        watchControls(root, target, refresh);
+        watchNode(root, target, refresh, lifetime);
         if (viewModel instanceof ViewModel model) {
-            model.addAttributeListener((observable, oldValue, newValue) -> refresh.run());
+            model.addAttributeListener(lifetime, (observable, oldValue, newValue) -> refresh.run());
         }
     }
 
@@ -81,30 +81,19 @@ final class ComputedBindingApplier {
     }
 
     /**
-     * Watches JavaFX properties on controls under {@code root}, other than {@code target}.
-     *
-     * @param root    the scene-graph root
-     * @param target  the property the method writes, which is not watched
-     * @param refresh the refresh to run when a watched property changes
-     */
-    private static void watchControls(Parent root, Property<?> target, Runnable refresh) {
-        watchNode(root, target, refresh);
-    }
-
-    /**
      * Watches one control and walks its children.
      *
      * @param node    the node
      * @param target  the property the method writes, which is not watched
      * @param refresh the refresh to run when a watched property changes
      */
-    private static void watchNode(Node node, Property<?> target, Runnable refresh) {
+    private static void watchNode(Node node, Property<?> target, Runnable refresh, ViewLifetime lifetime) {
         if (node instanceof Control control) {
-            watchProperties(control, target, refresh);
+            watchProperties(control, target, refresh, lifetime);
         }
         if (node instanceof Parent parent) {
             for (Node child : parent.getChildrenUnmodifiable()) {
-                watchNode(child, target, refresh);
+                watchNode(child, target, refresh, lifetime);
             }
         }
     }
@@ -117,7 +106,7 @@ final class ComputedBindingApplier {
      * @param refresh the refresh to run when a watched property changes
      */
     @SuppressWarnings("unchecked")
-    private static void watchProperties(Object bean, Property<?> target, Runnable refresh) {
+    private static void watchProperties(Object bean, Property<?> target, Runnable refresh, ViewLifetime lifetime) {
         ChangeListener<Object> listener = (observable, oldValue, newValue) -> refresh.run();
         for (Method method : bean.getClass().getMethods()) {
             if (method.getParameterCount() != 0 || !method.getName().endsWith("Property")) {
@@ -128,7 +117,7 @@ final class ComputedBindingApplier {
             }
             Object value = readProperty(bean, method);
             if (value instanceof ObservableValue<?> observable && observable != target) {
-                ((ObservableValue<Object>) observable).addListener(listener);
+                lifetime.listen((ObservableValue<Object>) observable, listener);
             }
         }
     }

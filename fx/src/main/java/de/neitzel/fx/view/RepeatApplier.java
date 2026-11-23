@@ -2,11 +2,12 @@ package de.neitzel.fx.view;
 
 import de.neitzel.injection.ApplicationContext;
 import javafx.beans.property.Property;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.layout.Pane;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,7 +35,7 @@ final class RepeatApplier {
      * @param context   the container that creates each Component
      */
     static void apply(Map<String, Object> namespace, Object viewModel, Repeat repeat,
-                      ApplicationContext context) {
+                      ApplicationContext context, ViewLifetime lifetime) {
         Object named = namespace.get(repeat.getPane());
         if (!(named instanceof Pane pane)) {
             throw new IllegalArgumentException("No pane \"" + repeat.getPane() + "\"");
@@ -44,10 +45,15 @@ final class RepeatApplier {
             throw new IllegalArgumentException("No collection \"" + repeat.getCollection() + "\"");
         }
         Class<?> type = componentType(repeat.getComponent());
+        int offset = pane.getChildren().size();
+        List<RepeatedChild> children = new ArrayList<>();
+        lifetime.own(() -> pane.getChildren().removeAll(children.stream().map(RepeatedChild::node).toList()));
         for (Object element : values) {
-            pane.getChildren().add(child(type, context, element));
+            RepeatedChild child = child(type, context, element, lifetime);
+            children.add(child);
+            pane.getChildren().add(child.node());
         }
-        listen(pane, type, context, values);
+        listen(pane, type, context, values, lifetime, offset, children);
     }
 
     /**
@@ -76,20 +82,24 @@ final class RepeatApplier {
      * @param values  the collection
      */
     @SuppressWarnings("unchecked")
-    private static void listen(Pane pane, Class<?> type, ApplicationContext context, ObservableList<?> values) {
+    private static void listen(Pane pane, Class<?> type, ApplicationContext context, ObservableList<?> values,
+                               ViewLifetime lifetime, int offset, List<RepeatedChild> children) {
         ObservableList<Object> elements = (ObservableList<Object>) values;
-        elements.addListener((ListChangeListener<Object>) change -> {
+        lifetime.listen(elements, change -> {
             while (change.next()) {
                 if (change.wasPermutated() || change.wasUpdated()) {
                     continue;
                 }
-                if (change.getRemovedSize() > 0) {
-                    pane.getChildren().remove(change.getFrom(), change.getFrom() + change.getRemovedSize());
+                for (int removed = 0; removed < change.getRemovedSize(); removed++) {
+                    RepeatedChild child = children.remove(change.getFrom());
+                    pane.getChildren().remove(child.node());
+                    child.lifetime().close();
                 }
                 for (int index = 0; index < change.getAddedSize(); index++) {
-                    pane.getChildren().add(
-                            change.getFrom() + index,
-                            child(type, context, change.getAddedSubList().get(index)));
+                    RepeatedChild child = child(type, context, change.getAddedSubList().get(index), lifetime);
+                    int position = change.getFrom() + index;
+                    children.add(position, child);
+                    pane.getChildren().add(offset + position, child.node());
                 }
             }
         });
@@ -103,11 +113,20 @@ final class RepeatApplier {
      * @param element the Model instance
      * @return the loaded Component
      */
-    private static Node child(Class<?> type, ApplicationContext context, Object element) {
-        Object component = Components.fresh(type, context);
-        Components.setModel(component, element);
-        return (Node) component;
+    private static RepeatedChild child(Class<?> type, ApplicationContext context, Object element,
+                                       ViewLifetime owner) {
+        ViewLifetime lifetime = owner.child();
+        try {
+            Object component = Components.fresh(type, context, lifetime);
+            Components.setModel(component, element, lifetime);
+            return new RepeatedChild((Node) component, lifetime);
+        } catch (RuntimeException | Error failure) {
+            lifetime.rollback(failure);
+            throw failure;
+        }
     }
+
+    private record RepeatedChild(Node node, ViewLifetime lifetime) {}
 
     /**
      * Returns the Component class named by the repeat.

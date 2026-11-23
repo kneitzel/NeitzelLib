@@ -5,7 +5,7 @@
 After the reactor `verify` or `package` build, from the repository root (no local artifact install required):
 
 ```sh
-java -cp 'fx-example/target/fx-example-1.0.3.jar:fx-example/target/libs/*' \
+java -cp 'fx-example/target/fx-example-1.0.5.jar:fx-example/target/libs/*' \
   de.neitzel.fx.example.theme.ThemeGalleryMain
 ```
 

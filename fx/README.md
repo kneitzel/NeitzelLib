@@ -56,7 +56,7 @@ These are the versions configured by this source snapshot, not a promise of comp
 | --- | --- | --- |
 | JDK | Java 25 | Select a matching JDK for compilation and launch |
 | Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
-| Library | `de.neitzel.lib:fx:1.0.3` | Use the Gitea Maven registry or install the local reactor |
+| Library | `de.neitzel.lib:fx:1.0.5` | Use the Gitea Maven registry or install the local reactor |
 | Internal modules | `fx` directly depends on `core`, `injection` and toolkit-independent `data-grid` | Resolved transitively through Maven |
 | JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
 | Saved HTML | jsoup 1.23.2, ph-css 8.2.3, TwelveMonkeys WebP 3.15.3 | Resolved transitively by `fx`; no separate application setup |
@@ -171,7 +171,7 @@ A direct binding names a control by `fx:id`, a JavaFX property of that control, 
 
 For `both` and `model`, the write happens when the JavaFX property changes, including each change of a text property. There is no separate save. `view` does not write the attribute.
 
-`BindingList` is the element that holds direct bindings, computed bindings, and repeats. Its default property is `elements`, so the children in FXML are the list. An unknown child fails the load with `Not a binding element:`. The children that apply are a direct binding, a computed binding, and a repeat.
+`BindingList` is the element that holds direct bindings, computed bindings, command bindings, and repeats. Its default property is `elements`, so the children in FXML are the list. An unknown child fails the load with `Not a binding element:`. Command bindings require a managed View.
 
 When the attribute value is already an `ObservableList`, the control property is set to that same list. Direction and converter are not consulted. The tag binding names `direction="view"` and still shares the list. See [A list of simple values](#a-list-of-simple-values).
 
@@ -185,6 +185,21 @@ A binding that names no such control fails with `No control "` and the id. A mis
 | `view` | Shows the attribute and follows later changes of the JavaFX property. Edits to the control stay on the control. |
 | `model` | Shows the current value, writes the attribute when the control changes, and leaves the control where it is when the attribute changes later. |
 
+For `view`, a public `xxxProperty()` accessor on the ViewModel or its replacement can
+return an `ObservableValue`, such as a `ReadOnlyStringProperty` or a `BooleanBinding`.
+The value is read once at load and then followed as the observable changes. For a computed
+value, declare its dependencies in JavaFX. The example connects the derived
+`saveDisabledProperty()` to a button.
+
+```xml
+<DirectBinding control="save" property="disable" path="saveDisabled" direction="view"/>
+```
+
+`both` and `model` require an accessor that exposes a writable `Property`. The error for
+a read-only source gives the path, target control and property, and FXML resource.
+`ViewModel.property(name)` and `LoadedView.property(name)` continue to look up writable
+properties.
+
 The desk puts all three on `name`. The name field is `both`. Shown name (`nameEcho`) is `view`: typing there leaves `Person.name` and the name field unchanged, and typing in the name field updates the echo. Name draft (`nameDraft`) is `model`: it opens as `Ada Lovelace`, stays there while the name field changes, and typing in the draft writes `Person.name` and updates the name field and the echo.
 
 Always specify `direction`: it has no default. A non-null value other than `view`, `model`, or `both` fails the load with `Not a direction:`. Omitting it can currently fail with a `NullPointerException` during binding application. The ObservableList shortcut described above bypasses direction handling; do not rely on that shortcut to omit the declaration.
@@ -193,7 +208,7 @@ For a complex last segment the control receives the model instance behind the vi
 
 ## Paths
 
-A path is attribute names separated by `.`. One name is an attribute of this view's view model, or `latestMessage`, or a `nameProperty()` on the view model. Earlier names must be complex attributes. The direction applies to the last name.
+A path is attribute names separated by `.`. The last name resolves to an attribute, `latestMessage`, or a `nameProperty()` accessor. Earlier names must be complex attributes. The direction applies to the last name.
 
 `home.street` on the home street label steps through the home view model, and `view` applies to `street`. When a complex attribute along the path is null, that binding is left unapplied and both sides keep their current values. The load still succeeds.
 
@@ -201,7 +216,7 @@ The path is resolved when the binding is applied. A binding whose last segment i
 
 A list is not indexed in a path. Repeat a component, place a table, or hand a list of simple values to a control.
 
-A path that is not a read-write attribute fails the load with `No read-write attribute for path "` and the path. `Object.getClass` is not an attribute, and a getter without a setter is not one either.
+An unresolved path fails the load with `No read-write attribute for path "` and the path. `Object.getClass` is not an attribute, and a getter without a setter is not one either.
 
 ## Converter
 
@@ -250,6 +265,93 @@ The library calls `greeting` when the binding is applied, and again when a JavaF
 A missing method fails the load with `No computed method "` and the method value. No controller fails with `No controller for`. A method that throws fails with `Could not call`.
 
 An `onAction="#method"` handler is ordinary FXML. `addVisit`, `addTag`, `leaveNote`, `leaveWarning`, and `leaveFatal` are handlers. They are separate from the computed binding.
+
+## Commands
+
+A `Command` combines an availability observable and an action. The ViewModel returns one
+stable instance from a public getter. A keyboard shortcut can call `execute()` directly.
+The command checks the current availability on every invocation.
+
+```java
+private final Command clear = new Command(documentOpen, editor::clear);
+
+public Command getClear() {
+    return clear;
+}
+
+void clearFromKeyboard() {
+    clear.execute();
+}
+```
+
+Load the FXML with a `ViewModelContext`. Inside its `BindingList`, add one declaration per
+button or menu item. Here both controls use the same `getClear()` command.
+
+```xml
+<CommandBinding control="clearButton" path="clear"/>
+<CommandBinding control="clearMenuItem" path="clear"/>
+```
+
+Import `de.neitzel.fx.view.CommandBinding` and give both controls the corresponding `fx:id`.
+The binding owns the control's `disable` and `onAction` properties. Use the command's
+availability as the condition for disabling these controls. The managed View detaches
+both bindings on close. For dynamically created menu items, keep the registration from
+`CommandBindings.bind(item, command)` and close it when discarding the item.
+
+### Asynchronous Commands
+
+Use `AsyncCommand<T>` when a Command starts a JavaFX `Task<T>`. The application supplies
+an executor and a factory for a fresh Task on each execution. Use `getCommand()` from the
+ViewModel's public getter, or from a keyboard handler or a dynamic menu. Availability combines
+the application rule with the state of the current execution. The worker slot is occupied before
+the executor receives the Task. Failures from the factory, executor, and worker appear in
+`stateProperty()` alongside progress and the Task message. A terminal observation has
+`running() == false`, so a completion listener can retry or close the host.
+
+Pass `true` as the last constructor argument for a Task that supports cancellation. Call
+`cancel()` to cancel it and let the worker finish any cooperative cleanup. The worker slot
+becomes available again when the worker exits. Closing an `AsyncCommand` detaches its Task
+listeners and disables future invocations. Call `cancel()` before closing if the View explicitly
+owns the work and should cancel it.
+
+A dialog's generated button has its own standard close handler. In the following example,
+`valid` is the form's observable validity, `executor` runs background tasks, and
+`createSaveTask` supplies a fresh `Task<Void>`. Filter the action, and close the dialog only
+after success. In the failure branch, the user can correct the form and retry.
+
+```java
+var dialog = new Dialog<Boolean>();
+var save = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+dialog.getDialogPane().getButtonTypes().setAll(save, ButtonType.CANCEL);
+dialog.setResultConverter(button -> false);
+var saveButton = dialog.getDialogPane().lookupButton(save);
+try (var saving = new AsyncCommand<Void>(valid, executor, createSaveTask)) {
+    saveButton.disableProperty().bind(Bindings.not(saving.getCommand().getCanExecute()));
+    EventHandler<ActionEvent> saveAction = event -> {
+        event.consume();
+        saving.getCommand().execute();
+    };
+    saveButton.addEventFilter(ActionEvent.ACTION, saveAction);
+    dialog.setOnCloseRequest(event -> {
+        if (saving.getState().running()) event.consume();
+    });
+    try {
+        saving.stateProperty().addListener((source, previous, state) -> {
+            if (state.phase() == AsyncCommand.Phase.SUCCEEDED) {
+                dialog.setResult(true);
+                dialog.close();
+            } else if (state.phase() == AsyncCommand.Phase.FAILED) {
+                dialog.getDialogPane().setHeaderText(state.error().getMessage());
+            }
+        });
+        dialog.showAndWait();
+    } finally {
+        saveButton.removeEventFilter(ActionEvent.ACTION, saveAction);
+        saveButton.disableProperty().unbind();
+        dialog.setOnCloseRequest(null);
+    }
+}
+```
 
 ## Controller
 
@@ -433,6 +535,32 @@ Other load failures, all `IllegalArgumentException`:
 
 These style classes are on the nodes: `table`, `column-header-row`, `table-scroll`, `table-header-scroll`, `column-header`, `column-cell`, `column-resize`, `column-opener`, `sort-mark`, `selected`, `column-popup`, `column-search`, `column-select-all`, `column-comparison-operator`, `column-comparison-value`, and `filtered` on an opener whose column has an active filter.
 
+### Managed Views and Model contexts
+
+Use the four-argument loader when a window, dialog or dockable owns a View:
+
+```java
+try (var models = new ViewModelContext();
+     var loaded = ViewLoader.load(fxml, model, application, models)) {
+    // Use loaded.getRoot() while this View is open.
+}
+```
+
+In a GUI host, retain the handles until the real close event. A drag between docking groups
+keeps the same View open. Close an individual `LoadedView` to remove its bindings, including
+those on components and collection rows. Close its `ViewModelContext` once the owning
+window or archive ends. The context closes remaining Views and releases the Model-to-ViewModel
+registrations. Views of the same model instance in one context share a ViewModel.
+
+The managed loader creates a fresh injected Controller or Component for each instance.
+Dependencies still come from the application context. Controllers and Components can
+implement `AutoCloseable` to release additional resources such as programmatic event handlers
+or subscriptions to application services. The library also closes these resources if FXML or
+binding setup throws. Use these handles on the FX application thread.
+
+The three-argument loader keeps its existing shared cache and Controller behavior. Manage a
+View with the four-argument loader if it needs deterministic cleanup.
+
 ### Column width
 
 A column with no `width` shares the table width with the other open columns. A `width` is the starting width, and not below the header text. The text minimum is the header text's layout width, rounded up, plus 8. The desk's Street column opens at 300 and Visited at 120. City names no width, so it receives what remains of the table's 496, which is 76.
@@ -541,7 +669,8 @@ These are the `IllegalArgumentException` messages a document can produce. The vi
 | `No control "` | `fx:id` is missing |
 | `No property ` | the control has no such JavaFX property |
 | `Not a direction:` | an explicitly supplied direction is not `view`, `model`, or `both`; an omitted direction can instead cause `NullPointerException` |
-| `No read-write attribute for path "` | the path is not an attribute |
+| `No read-write attribute for path "` | the path did not resolve to an attribute or a named observable |
+| `Read-only source for path` | use `view` to read an observable source |
 | `Not a binding element:` | a child of `BindingList` is not a direct binding, a computed binding, or a repeat |
 | `No converter ` / `Not a converter:` | the converter class is missing or does not implement `Converter` |
 | `No controller for ` / `No computed method "` | a computed binding has no controller or no such method |
