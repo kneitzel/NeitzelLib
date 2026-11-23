@@ -1,6 +1,7 @@
 package de.neitzel.fx.view;
 
 import javafx.beans.property.Property;
+import javafx.beans.value.ObservableValue;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,17 +27,31 @@ final class NamedProperties {
      * @return the property, or {@code null} when {@code bean} declares none of that name
      */
     static Property<?> get(Object bean, String name) {
+        Object value = read(bean, name, true);
+        return value instanceof Property<?> property ? property : null;
+    }
+
+    /**
+     * Returns a named observable whose accessor exposes a read-only source.
+     *
+     * @param bean the object that declares the source
+     * @param name the source name
+     * @return the source or {@code null} when there is no such accessor or it returns {@code null}
+     */
+    static ObservableValue<?> getReadOnly(Object bean, String name) {
+        Object value = read(bean, name, false);
+        return value instanceof ObservableValue<?> source ? source : null;
+    }
+
+    private static Object read(Object bean, String name, boolean writable) {
         String methodName = name + "Property";
         try {
             Method method = bean.getClass().getMethod(methodName);
-            if (!Property.class.isAssignableFrom(method.getReturnType())) {
+            Class<?> type = method.getReturnType();
+            if (!ObservableValue.class.isAssignableFrom(type) || writable != Property.class.isAssignableFrom(type)) {
                 return null;
             }
-            Object value = method.invoke(bean);
-            if (value instanceof Property<?> property) {
-                return property;
-            }
-            return null;
+            return method.invoke(bean);
         } catch (NoSuchMethodException notDeclared) {
             return null;
         } catch (IllegalAccessException | InvocationTargetException failure) {

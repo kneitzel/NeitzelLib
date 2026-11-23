@@ -185,6 +185,21 @@ A binding that names no such control fails with `No control "` and the id. A mis
 | `view` | Shows the attribute and follows later changes of the JavaFX property. Edits to the control stay on the control. |
 | `model` | Shows the current value, writes the attribute when the control changes, and leaves the control where it is when the attribute changes later. |
 
+For `view`, a public `xxxProperty()` accessor on the ViewModel or its replacement can
+return an `ObservableValue`, such as a `ReadOnlyStringProperty` or a `BooleanBinding`.
+The value is read once at load and then followed as the observable changes. For a computed
+value, declare its dependencies in JavaFX. The example connects the derived
+`saveDisabledProperty()` to a button.
+
+```xml
+<DirectBinding control="save" property="disable" path="saveDisabled" direction="view"/>
+```
+
+`both` and `model` require an accessor that exposes a writable `Property`. The error for
+a read-only source gives the path, target control and property, and FXML resource.
+`ViewModel.property(name)` and `LoadedView.property(name)` continue to look up writable
+properties.
+
 The desk puts all three on `name`. The name field is `both`. Shown name (`nameEcho`) is `view`: typing there leaves `Person.name` and the name field unchanged, and typing in the name field updates the echo. Name draft (`nameDraft`) is `model`: it opens as `Ada Lovelace`, stays there while the name field changes, and typing in the draft writes `Person.name` and updates the name field and the echo.
 
 Always specify `direction`: it has no default. A non-null value other than `view`, `model`, or `both` fails the load with `Not a direction:`. Omitting it can currently fail with a `NullPointerException` during binding application. The ObservableList shortcut described above bypasses direction handling; do not rely on that shortcut to omit the declaration.
@@ -193,7 +208,7 @@ For a complex last segment the control receives the model instance behind the vi
 
 ## Paths
 
-A path is attribute names separated by `.`. One name is an attribute of this view's view model, or `latestMessage`, or a `nameProperty()` on the view model. Earlier names must be complex attributes. The direction applies to the last name.
+A path is attribute names separated by `.`. The last name resolves to an attribute, `latestMessage`, or a `nameProperty()` accessor. Earlier names must be complex attributes. The direction applies to the last name.
 
 `home.street` on the home street label steps through the home view model, and `view` applies to `street`. When a complex attribute along the path is null, that binding is left unapplied and both sides keep their current values. The load still succeeds.
 
@@ -201,7 +216,7 @@ The path is resolved when the binding is applied. A binding whose last segment i
 
 A list is not indexed in a path. Repeat a component, place a table, or hand a list of simple values to a control.
 
-A path that is not a read-write attribute fails the load with `No read-write attribute for path "` and the path. `Object.getClass` is not an attribute, and a getter without a setter is not one either.
+An unresolved path fails the load with `No read-write attribute for path "` and the path. `Object.getClass` is not an attribute, and a getter without a setter is not one either.
 
 ## Converter
 
@@ -567,7 +582,8 @@ These are the `IllegalArgumentException` messages a document can produce. The vi
 | `No control "` | `fx:id` is missing |
 | `No property ` | the control has no such JavaFX property |
 | `Not a direction:` | an explicitly supplied direction is not `view`, `model`, or `both`; an omitted direction can instead cause `NullPointerException` |
-| `No read-write attribute for path "` | the path is not an attribute |
+| `No read-write attribute for path "` | the path did not resolve to an attribute or a named observable |
+| `Read-only source for path` | use `view` to read an observable source |
 | `Not a binding element:` | a child of `BindingList` is not a direct binding, a computed binding, or a repeat |
 | `No converter ` / `Not a converter:` | the converter class is missing or does not implement `Converter` |
 | `No controller for ` / `No computed method "` | a computed binding has no controller or no such method |
