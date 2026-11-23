@@ -235,6 +235,7 @@ final class Components {
                     hasViewModel.setViewModel(bound);
                 }
                 Parent root = (Parent) component;
+                CommandBindingApplier.validate(lists, namespace);
                 for (BindingList list : lists) {
                     list.apply(namespace, viewModel, component, root, context, lifetime);
                 }

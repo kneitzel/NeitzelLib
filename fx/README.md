@@ -171,7 +171,7 @@ A direct binding names a control by `fx:id`, a JavaFX property of that control, 
 
 For `both` and `model`, the write happens when the JavaFX property changes, including each change of a text property. There is no separate save. `view` does not write the attribute.
 
-`BindingList` is the element that holds direct bindings, computed bindings, and repeats. Its default property is `elements`, so the children in FXML are the list. An unknown child fails the load with `Not a binding element:`. The children that apply are a direct binding, a computed binding, and a repeat.
+`BindingList` is the element that holds direct bindings, computed bindings, command bindings, and repeats. Its default property is `elements`, so the children in FXML are the list. An unknown child fails the load with `Not a binding element:`. Command bindings require a managed View.
 
 When the attribute value is already an `ObservableList`, the control property is set to that same list. Direction and converter are not consulted. The tag binding names `direction="view"` and still shares the list. See [A list of simple values](#a-list-of-simple-values).
 
@@ -265,6 +265,38 @@ The library calls `greeting` when the binding is applied, and again when a JavaF
 A missing method fails the load with `No computed method "` and the method value. No controller fails with `No controller for`. A method that throws fails with `Could not call`.
 
 An `onAction="#method"` handler is ordinary FXML. `addVisit`, `addTag`, `leaveNote`, `leaveWarning`, and `leaveFatal` are handlers. They are separate from the computed binding.
+
+## Commands
+
+A `Command` combines an availability observable and an action. The ViewModel returns one
+stable instance from a public getter. A keyboard shortcut can call `execute()` directly.
+The command checks the current availability on every invocation.
+
+```java
+private final Command clear = new Command(documentOpen, editor::clear);
+
+public Command getClear() {
+    return clear;
+}
+
+void clearFromKeyboard() {
+    clear.execute();
+}
+```
+
+Load the FXML with a `ViewModelContext`. Inside its `BindingList`, add one declaration per
+button or menu item. Here both controls use the same `getClear()` command.
+
+```xml
+<CommandBinding control="clearButton" path="clear"/>
+<CommandBinding control="clearMenuItem" path="clear"/>
+```
+
+Import `de.neitzel.fx.view.CommandBinding` and give both controls the corresponding `fx:id`.
+The binding owns the control's `disable` and `onAction` properties. Use the command's
+availability as the condition for disabling these controls. The managed View detaches
+both bindings on close. For dynamically created menu items, keep the registration from
+`CommandBindings.bind(item, command)` and close it when discarding the item.
 
 ## Controller
 

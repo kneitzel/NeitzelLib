@@ -115,6 +115,7 @@ public final class ViewLoader {
             if (controller instanceof HasViewModel hasViewModel && viewModel instanceof ViewModel bound) {
                 hasViewModel.setViewModel(bound);
             }
+            CommandBindingApplier.validate(session.bindingLists(), loader.getNamespace());
             for (BindingList bindingList : session.bindingLists()) {
                 bindingList.apply(loader.getNamespace(), viewModel, controller, root, context, lifetime);
             }

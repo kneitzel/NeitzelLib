@@ -13,7 +13,7 @@ import java.util.Map;
  * The list of binding elements declared inside {@code fx:define}.
  * <p>
  * The list is not a scene-graph child. FXML adds each {@link DirectBinding},
- * {@link ComputedBinding}, or {@link Repeat} child to {@link #getElements()}.
+ * {@link ComputedBinding}, {@link CommandBinding}, or {@link Repeat} child to {@link #getElements()}.
  */
 @DefaultProperty("elements")
 public class BindingList {
@@ -48,6 +48,8 @@ public class BindingList {
                 DirectBindingApplier.apply(namespace, viewModel, directBinding, context, lifetime);
             } else if (element instanceof ComputedBinding computedBinding) {
                 ComputedBindingApplier.apply(namespace, viewModel, controller, root, computedBinding, lifetime);
+            } else if (element instanceof CommandBinding commandBinding) {
+                CommandBindingApplier.apply(namespace, viewModel, commandBinding, lifetime);
             } else if (element instanceof Repeat repeat) {
                 RepeatApplier.apply(namespace, viewModel, repeat, context, lifetime);
             } else {
