@@ -1,0 +1,8 @@
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import javafx.scene.control.TextField?>
+<TextField xmlns:fx="http://javafx.com/fxml/1" fx:id="field">
+    <fx:define><BindingList>
+        <DirectBinding control="field" property="text" path="name" direction="both"/>
+    </BindingList></fx:define>
+</TextField>

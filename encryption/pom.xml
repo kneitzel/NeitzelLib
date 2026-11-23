@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>neitzellib</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6-SNAPSHOT</version>
     </parent>
 
     <artifactId>encryption</artifactId>
@@ -18,13 +18,16 @@
         <launcher>${project.artifactId}</launcher>
         <appName>${project.artifactId}</appName>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
+
+        <!-- Dependency versions -->
+        <format-preserving-encryption.version>1.0.0</format-preserving-encryption.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.idealista</groupId>
             <artifactId>format-preserving-encryption</artifactId>
-            <version>1.0.0</version>
+            <version>${format-preserving-encryption.version}</version>
         </dependency>
     </dependencies>
 

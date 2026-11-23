@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>neitzellib</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6-SNAPSHOT</version>
     </parent>
 
     <artifactId>fx-example</artifactId>
@@ -18,11 +18,17 @@
         <appName>${project.artifactId}</appName>
         <main.class>de.neitzel.fx.example.Main</main.class>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
+
+        <!-- Dependency versions -->
+        <designer.version>0.1.0-SNAPSHOT</designer.version>
+
+        <!-- Plugin versions -->
+        <build.helper.maven.plugin>3.8.0</build.helper.maven.plugin>
     </properties>
 
     <dependencies>
         <dependency><groupId>de.neitzel.lib</groupId><artifactId>data-grid-jdbc</artifactId><version>${project.version}</version></dependency>
-        <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>2.5.252</version></dependency>
+        <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>${h2.version}</version></dependency>
         <dependency>
             <groupId>de.neitzel.lib</groupId>
             <artifactId>fx</artifactId>
@@ -103,7 +109,7 @@
                 <dependency>
                     <groupId>de.neitzel.fxdesigner</groupId>
                     <artifactId>designer-preview-api</artifactId>
-                    <version>0.1.0-SNAPSHOT</version>
+                    <version>${designer.version}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -112,7 +118,7 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>3.8.0</version>
+                        <version>${build.helper.maven.plugin}</version>
                         <executions>
                             <execution>
                                 <id>designer-preview-sources</id>
@@ -139,7 +145,7 @@
                                 <path>
                                     <groupId>de.neitzel.fxdesigner</groupId>
                                     <artifactId>designer-model-processor</artifactId>
-                                    <version>0.1.0-SNAPSHOT</version>
+                                    <version>${designer.version}</version>
                                 </path>
                             </annotationProcessorPaths>
                             <compilerArgs>

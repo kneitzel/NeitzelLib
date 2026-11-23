@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>neitzellib</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6-SNAPSHOT</version>
     </parent>
 
     <artifactId>quarkus</artifactId>
@@ -19,6 +19,7 @@
         <appName>${project.artifactId}</appName>
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
 
+        <!-- Dependency versions -->
         <quarkus.platform.version>3.40.1.2</quarkus.platform.version>
     </properties>
 
