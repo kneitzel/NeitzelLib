@@ -24,6 +24,7 @@
         <module>data-grid</module>
         <module>data-grid-jdbc</module>
         <module>fx</module>
+        <module>fx-test</module>
         <module>fx-example</module>
         <module>gson</module>
         <module>net</module>
