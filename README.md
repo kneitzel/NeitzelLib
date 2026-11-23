@@ -54,6 +54,12 @@ Optional mapped JDBC DataGrid source, initially qualified with H2. See [data-gri
 
 JavaFX docking, saved HTML/SingleFile viewing, standalone bars and optional MVVM bindings from FXML views to ordinary Java models. Docking works with plain JavaFX and standard FXMLLoader without initializing MVVM. See [fx/README.md](fx/README.md) and the [docking guide](fx/docs/docking.md).
 
+### fx-test
+
+JavaFX fixtures for JUnit Jupiter. Add `de.neitzel.lib:fx-test` at the same version as `fx` with Maven scope `test`. Annotate the class with `@FxTest` and accept an `FxFixture` parameter in each test. Use `fx.run` for actions, `fx.call` for values and `fx.await("dialog closed", () -> !dialog.isShowing())` to wait from the test thread. `fx.load(fxml, model, services)` uses the production ViewLoader and a fresh ViewModelContext per test.
+
+The extension keeps JavaFX running between tests, isolates the class with JUnit's `@Isolated`, hides windows opened by each test, closes its view context and reports unhandled FX callbacks at teardown. Complete background work before the test ends. Select the backend in the test JVM before toolkit startup, for example `-Dglass.platform=Headless`.
+
 ### injection
 
 Package scanner and type-based container used by `fx`. See [injection/README.md](injection/README.md).
