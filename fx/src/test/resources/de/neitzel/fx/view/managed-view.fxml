@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.neitzel.fx.view.managed.ViewController">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="input" property="text" path="name" direction="both"/>
+        </BindingList>
+    </fx:define>
+    <TextField fx:id="input" id="name" onAction="#onAction"/>
+</VBox>

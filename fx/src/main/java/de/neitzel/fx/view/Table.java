@@ -25,6 +25,7 @@ import javafx.beans.property.Property;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
+import javafx.event.EventHandler;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -156,6 +157,8 @@ public class Table extends VBox {
      * One Row per element that has been shown. A hidden element keeps its Row.
      */
     private final Map<Object, Node> rows = new IdentityHashMap<>();
+    private final Map<Object, ViewLifetime> rowLifetimes = new IdentityHashMap<>();
+    private ViewLifetime lifetime;
 
     /**
      * The collection this Table shows.
@@ -360,8 +363,8 @@ public class Table extends VBox {
      * @param viewModel the ViewModel for this View
      * @param context   the container that creates each Row
      */
-    static void openAll(Parent root, Object viewModel, ApplicationContext context) {
-        walk(root, viewModel, context);
+    static void openAll(Parent root, Object viewModel, ApplicationContext context, ViewLifetime lifetime) {
+        walk(root, root, viewModel, context, lifetime);
     }
 
     /**
@@ -370,7 +373,7 @@ public class Table extends VBox {
      * @param viewModel the ViewModel for this View
      * @param context   the container that creates each Row
      */
-    void open(Object viewModel, ApplicationContext context) {
+    void open(Object viewModel, ApplicationContext context, ViewLifetime owner) {
         if (resultMode) {
             return;
         }
@@ -379,6 +382,15 @@ public class Table extends VBox {
         }
         opened = true;
         this.context = context;
+        lifetime = owner.child();
+        lifetime.own(() -> {
+            rowLifetimes.clear();
+            rows.clear();
+            body.getChildren().clear();
+            elements = FXCollections.observableArrayList();
+            selection.set(null);
+            this.context = null;
+        });
         if (columns.isEmpty()) {
             throw new IllegalArgumentException("A table needs a column");
         }
@@ -393,7 +405,7 @@ public class Table extends VBox {
         }
         buildHeader();
         ensureWidths();
-        elements.addListener((ListChangeListener<Object>) this::onCollectionChange);
+        lifetime.listen(elements, this::onCollectionChange);
         refresh();
     }
 
@@ -1182,6 +1194,8 @@ public class Table extends VBox {
             }
             for (Object removed : change.getRemoved()) {
                 rows.remove(removed);
+                ViewLifetime removedRow = rowLifetimes.remove(removed);
+                if (removedRow != null) removedRow.close();
                 if (selection.get() == removed) {
                     selection.set(null);
                 }
@@ -1310,18 +1324,27 @@ public class Table extends VBox {
      * @return the Row
      */
     private Node createRow(Object element) {
-        Object component = Components.fresh(rowType, context);
-        Components.setModel(component, element);
-        if (!(component instanceof Node node)) {
-            throw new IllegalArgumentException("Row is not a node: " + rowType.getName());
-        }
-        node.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
-            if (event.getButton() == MouseButton.PRIMARY) {
-                selection.set(element);
+        ViewLifetime rowLifetime = lifetime.child();
+        try {
+            Object component = Components.fresh(rowType, context, rowLifetime);
+            Components.setModel(component, element, rowLifetime);
+            if (!(component instanceof Node node)) {
+                throw new IllegalArgumentException("Row is not a node: " + rowType.getName());
             }
-        });
-        watchEdits(node);
-        return node;
+            EventHandler<MouseEvent> select = event -> {
+                if (event.getButton() == MouseButton.PRIMARY) {
+                    selection.set(element);
+                }
+            };
+            node.addEventFilter(MouseEvent.MOUSE_CLICKED, select);
+            rowLifetime.own(() -> node.removeEventFilter(MouseEvent.MOUSE_CLICKED, select));
+            watchEdits(node, rowLifetime);
+            if (rowLifetime.managed()) rowLifetimes.put(element, rowLifetime);
+            return node;
+        } catch (RuntimeException | Error failure) {
+            rowLifetime.rollback(failure);
+            throw failure;
+        }
     }
 
     /**
@@ -1329,13 +1352,13 @@ public class Table extends VBox {
      *
      * @param node the Row or one of its fields
      */
-    private void watchEdits(Node node) {
+    private void watchEdits(Node node, ViewLifetime rowLifetime) {
         if (node instanceof javafx.scene.control.TextInputControl input) {
-            input.textProperty().addListener((observable, previous, current) -> refresh());
+            rowLifetime.listen(input.textProperty(), (observable, previous, current) -> refresh());
         }
         if (node instanceof Parent parent) {
             for (Node child : parent.getChildrenUnmodifiable()) {
-                watchEdits(child);
+                watchEdits(child, rowLifetime);
             }
         }
     }
@@ -1543,18 +1566,20 @@ public class Table extends VBox {
      * @param viewModel the ViewModel for this View
      * @param context   the container that creates each Row
      */
-    private static void walk(Node node, Object viewModel, ApplicationContext context) {
+    private static void walk(Node node, Parent root, Object viewModel, ApplicationContext context,
+                             ViewLifetime lifetime) {
+        if (node != root && Components.ownsBindings(node)) return;
         if (node instanceof Table table) {
-            table.open(viewModel, context);
+            table.open(viewModel, context, lifetime);
         }
         if (!(node instanceof Parent parent)) {
             return;
         }
         for (Node child : parent.getChildrenUnmodifiable()) {
-            walk(child, viewModel, context);
+            walk(child, root, viewModel, context, lifetime);
         }
         if (parent instanceof ScrollPane pane && pane.getContent() != null) {
-            walk(pane.getContent(), viewModel, context);
+            walk(pane.getContent(), root, viewModel, context, lifetime);
         }
     }
 

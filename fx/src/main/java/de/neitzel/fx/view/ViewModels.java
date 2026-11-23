@@ -2,7 +2,6 @@ package de.neitzel.fx.view;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
@@ -15,7 +14,10 @@ final class ViewModels {
     /**
      * ViewModels already built, keyed by Model identity.
      */
-    private static final Map<Object, Object> BY_INSTANCE = new IdentityHashMap<>();
+    static final ViewModelContext LEGACY = new ViewModelContext();
+
+    // Preserve the single-argument constructor used by custom and generated ViewModels.
+    private static final ThreadLocal<ViewModelContext> CONSTRUCTING = new ThreadLocal<>();
 
     /**
      * Prevents instantiation.
@@ -23,32 +25,26 @@ final class ViewModels {
     private ViewModels() {
     }
 
-    /**
-     * Returns the ViewModel for a Model instance, building the generic one when none exists yet.
-     *
-     * @param model the Model instance
-     * @return the ViewModel for that instance, or a replacement that exposes JavaFX properties by name
-     */
     static Object of(Object model) {
         return of(model, null);
     }
 
-    /**
-     * Returns the ViewModel for a Model instance.
-     * <p>
-     * Selects a registered default or compatible explicit class before construction. Without
-     * a registered default, a null class or {@link ViewModel} itself uses the generic ViewModel.
-     * An unregistered replacement may expose JavaFX properties by name. The container does not
-     * create it. The first View fixes the instance; later compatible superclass/interface requests
-     * reuse it, while incompatible requests fail. A View naming no class reuses the instance.
-     *
-     * @param model          the Model instance
-     * @param viewModelClass the class named by {@link ViewModelClass}, or {@code null}
-     * @return the ViewModel for that instance, or the replacement
-     */
     static Object of(Object model, Class<?> viewModelClass) {
+        return of(LEGACY, model, viewModelClass);
+    }
+
+    static ViewModelContext constructingContext() {
+        ViewModelContext context = CONSTRUCTING.get();
+        return context == null ? LEGACY : context;
+    }
+
+    /**
+     * Gets or builds the ViewModel for this Model identity in the caller's context.
+     */
+    static Object of(ViewModelContext context, Object model, Class<?> viewModelClass) {
+        Map<Object, Object> instances = context.viewModels();
         Class<?> selected = ViewModelDefaults.select(model.getClass(), viewModelClass, model.getClass().getClassLoader());
-        Object existing = BY_INSTANCE.get(model);
+        Object existing = instances.get(model);
         if (existing != null) {
             if (viewModelClass != null && viewModelClass != ViewModel.class
                     && !selected.isInstance(existing)) {
@@ -58,8 +54,22 @@ final class ViewModels {
             }
             return existing;
         }
-        if (selected == ViewModel.class) return new ViewModel(model);
-        return construct(model, selected);
+        ViewModelContext previous = CONSTRUCTING.get();
+        CONSTRUCTING.set(context);
+        try {
+            Object created = selected == ViewModel.class ? new ViewModel(model) : construct(model, selected);
+            instances.put(model, created);
+            return created;
+        } catch (RuntimeException | Error failure) {
+            instances.remove(model);
+            throw failure;
+        } finally {
+            if (previous == null) {
+                CONSTRUCTING.remove();
+            } else {
+                CONSTRUCTING.set(previous);
+            }
+        }
     }
 
     /**
@@ -83,8 +93,7 @@ final class ViewModels {
     /**
      * Constructs a ViewModel or a replacement with the Model instance.
      * <p>
-     * A result that is not a {@link ViewModel} is registered here. A {@link ViewModel} registers
-     * itself from its constructor, before its Attributes are walked.
+     * A {@link ViewModel} registers itself from its constructor, before its Attributes are walked.
      *
      * @param model          the Model instance
      * @param viewModelClass the class to construct
@@ -94,13 +103,8 @@ final class ViewModels {
         Constructor<?> constructor = constructor(model, viewModelClass);
         constructor.setAccessible(true);
         try {
-            Object created = constructor.newInstance(model);
-            if (!(created instanceof ViewModel)) {
-                register(model, created);
-            }
-            return created;
+            return constructor.newInstance(model);
         } catch (InvocationTargetException failure) {
-            BY_INSTANCE.remove(model);
             if (failure.getCause() instanceof RuntimeException runtime) {
                 throw runtime;
             }
@@ -138,13 +142,4 @@ final class ViewModels {
         return chosen;
     }
 
-    /**
-     * Records a ViewModel before its Attributes are walked, so a cycle reuses it.
-     *
-     * @param model     the Model instance
-     * @param viewModel the ViewModel under construction
-     */
-    static void register(Object model, Object viewModel) {
-        BY_INSTANCE.put(model, viewModel);
-    }
 }

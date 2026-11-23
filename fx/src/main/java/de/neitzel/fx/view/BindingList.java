@@ -42,14 +42,14 @@ public class BindingList {
      * @param context    the container that creates a named Converter
      */
     void apply(Map<String, Object> namespace, Object viewModel, Object controller, Parent root,
-               ApplicationContext context) {
+               ApplicationContext context, ViewLifetime lifetime) {
         for (Object element : elements) {
             if (element instanceof DirectBinding directBinding) {
-                DirectBindingApplier.apply(namespace, viewModel, directBinding, context);
+                DirectBindingApplier.apply(namespace, viewModel, directBinding, context, lifetime);
             } else if (element instanceof ComputedBinding computedBinding) {
-                ComputedBindingApplier.apply(namespace, viewModel, controller, root, computedBinding);
+                ComputedBindingApplier.apply(namespace, viewModel, controller, root, computedBinding, lifetime);
             } else if (element instanceof Repeat repeat) {
-                RepeatApplier.apply(namespace, viewModel, repeat, context);
+                RepeatApplier.apply(namespace, viewModel, repeat, context, lifetime);
             } else {
                 throw new IllegalArgumentException("Not a binding element: " + element);
             }

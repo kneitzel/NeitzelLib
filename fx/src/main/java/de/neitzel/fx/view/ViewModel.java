@@ -80,6 +80,7 @@ public class ViewModel {
      * The Model instance this ViewModel was built for.
      */
     private final Object model;
+    private final ViewModelContext models;
 
     /**
      * JavaFX properties keyed by Attribute name.
@@ -136,7 +137,8 @@ public class ViewModel {
      */
     protected ViewModel(Object model) {
         this.model = model;
-        ViewModels.register(model, this);
+        models = ViewModels.constructingContext();
+        models.viewModels().put(model, this);
         for (PropertyDescriptor descriptor : descriptors(model.getClass())) {
             Method getter = descriptor.getReadMethod();
             Method setter = descriptor.getWriteMethod();
@@ -218,9 +220,9 @@ public class ViewModel {
      * @param listener the listener
      */
     @SuppressWarnings("unchecked")
-    void addAttributeListener(ChangeListener<Object> listener) {
+    void addAttributeListener(ViewLifetime lifetime, ChangeListener<Object> listener) {
         for (Property<?> property : properties.values()) {
-            ((Property<Object>) property).addListener(listener);
+            lifetime.listen((Property<Object>) property, listener);
         }
     }
 
@@ -429,7 +431,7 @@ public class ViewModel {
      * Attaching the change listener reads the value. That read is ignored until
      * {@link #attached()} so a Component annotation can name the class first.
      */
-    private static final class LazyComplex extends SimpleObjectProperty<Object> {
+    private final class LazyComplex extends SimpleObjectProperty<Object> {
 
         /**
          * The Model instance, kept until the nested ViewModel is built.
@@ -464,7 +466,7 @@ public class ViewModel {
         public Object get() {
             if (!attaching && !realized) {
                 realized = true;
-                super.set(current == null ? null : ViewModels.of(current));
+                super.set(current == null ? null : ViewModels.of(models, current, null));
             }
             return super.get();
         }

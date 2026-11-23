@@ -433,6 +433,32 @@ Other load failures, all `IllegalArgumentException`:
 
 These style classes are on the nodes: `table`, `column-header-row`, `table-scroll`, `table-header-scroll`, `column-header`, `column-cell`, `column-resize`, `column-opener`, `sort-mark`, `selected`, `column-popup`, `column-search`, `column-select-all`, `column-comparison-operator`, `column-comparison-value`, and `filtered` on an opener whose column has an active filter.
 
+### Managed Views and Model contexts
+
+Use the four-argument loader when a window, dialog or dockable owns a View:
+
+```java
+try (var models = new ViewModelContext();
+     var loaded = ViewLoader.load(fxml, model, application, models)) {
+    // Use loaded.getRoot() while this View is open.
+}
+```
+
+In a GUI host, retain the handles until the real close event. A drag between docking groups
+keeps the same View open. Close an individual `LoadedView` to remove its bindings, including
+those on components and collection rows. Close its `ViewModelContext` once the owning
+window or archive ends. The context closes remaining Views and releases the Model-to-ViewModel
+registrations. Views of the same model instance in one context share a ViewModel.
+
+The managed loader creates a fresh injected Controller or Component for each instance.
+Dependencies still come from the application context. Controllers and Components can
+implement `AutoCloseable` to release additional resources such as programmatic event handlers
+or subscriptions to application services. The library also closes these resources if FXML or
+binding setup throws. Use these handles on the FX application thread.
+
+The three-argument loader keeps its existing shared cache and Controller behavior. Manage a
+View with the four-argument loader if it needs deterministic cleanup.
+
 ### Column width
 
 A column with no `width` shares the table width with the other open columns. A `width` is the starting width, and not below the header text. The text minimum is the header text's layout width, rounded up, plus 8. The desk's Street column opens at 300 and Visited at 120. City names no width, so it receives what remains of the table's 496, which is 76.
