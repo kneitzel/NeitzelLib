@@ -94,6 +94,32 @@ public final class ViewLoader {
         return load(fxml, model, context, models.openView());
     }
 
+    /**
+     * Opens a Component's own fx:root document with the supplied Model. The Component selects
+     * its ViewModel in the same context as its nested Views. Closing the result detaches its
+     * bindings and releases its controller and children.
+     *
+     * @param type the injected Component class with a sibling ClassName.fxml
+     * @param model the initial non-null Model
+     * @param context the application container
+     * @param models the owner of the View and its Model identity
+     * @return the initialized Component and its effective ViewModel
+     */
+    public static LoadedView loadComponent(Class<? extends Parent> type, Object model,
+                                           ApplicationContext context, ViewModelContext models) {
+        java.util.Objects.requireNonNull(model, "Component Model");
+        ViewLifetime lifetime = models.openView();
+        try {
+            Parent root = type.cast(Components.fresh(type, context, lifetime));
+            Components.setModel(root, model, lifetime);
+            Object viewModel = ViewModels.of(models, model, ViewModels.namedOn(type));
+            return new LoadedView(root, viewModel, lifetime);
+        } catch (RuntimeException | Error failure) {
+            lifetime.rollback(failure);
+            throw failure;
+        }
+    }
+
     private static LoadedView load(URL fxml, Object model, ApplicationContext context, ViewLifetime lifetime) {
         LoadSession session = LoadSession.nest();
         try {

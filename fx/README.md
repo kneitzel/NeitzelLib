@@ -48,6 +48,8 @@ The launch class is `de.neitzel.fx.example.Main`. `Main` does not extend `Applic
 
 Depend on `de.neitzel.lib:fx`. That module depends on `core`, `injection` and on JavaFX base, controls, graphics, fxml, and web. Application types the container constructs use `jakarta.inject.Singleton` or `jakarta.inject.Named`.
 
+Use `ViewLoader.loadComponent(type, model, context, models)` to open a reusable Component directly from its own FXML. It returns a managed `LoadedView` with the same Component, ViewModel selection and binding lifetime as an embedded instance.
+
 ## Dependencies
 
 These are the versions configured by this source snapshot, not a promise of compatibility with every newer release:

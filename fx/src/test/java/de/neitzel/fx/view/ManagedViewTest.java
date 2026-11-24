@@ -94,6 +94,26 @@ class ManagedViewTest {
     }
 
     @Test
+    void opensAComponentDirectlyAndDetachesOnlyItsOwnBindings() throws Exception {
+        FxThread.onFx(() -> {
+            var model = new Address("Main");
+            var services = new ApplicationContext("de.neitzel.fx.view.component");
+            var type = de.neitzel.fx.view.component.AddressForm.class;
+            try (var models = new ViewModelContext()) {
+                var first = ViewLoader.loadComponent(type, model, services, models);
+                var second = ViewLoader.loadComponent(type, model, services, models);
+                assertSame(first.getViewModel(), second.getViewModel());
+                var input = field(first.getRoot(), "#streetField");
+                input.setText("Shared");
+                assertEquals("Shared", field(second.getRoot(), "#streetField").getText());
+                first.close();
+                input.setText("Detached");
+                assertEquals("Shared", model.getStreet());
+            }
+        });
+    }
+
+    @Test
     void removingARepeatChildDetachesItsBindings() throws Exception {
         FxThread.onFx(() -> {
             var person = new Person("Ada");
