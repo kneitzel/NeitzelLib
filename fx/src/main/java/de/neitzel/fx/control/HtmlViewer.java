@@ -34,6 +34,7 @@ public final class HtmlViewer extends BorderPane implements AutoCloseable {
     private final StringProperty mediaReloadText = new SimpleStringProperty(this, "mediaReloadText", "Reload external media");
     private final StringProperty mediaTooltipText = new SimpleStringProperty(this, "mediaTooltipText", "Loads external images for this viewer only and contacts their servers.");
     private final StringProperty noExternalMediaText = new SimpleStringProperty(this, "noExternalMediaText", "No resolvable external image addresses found.");
+    private final StringProperty html = new SimpleStringProperty(this, "html");
     private HtmlDocument document;
     private Task<HtmlDocument> pending;
     private long generation;
@@ -41,6 +42,11 @@ public final class HtmlViewer extends BorderPane implements AutoCloseable {
 
     public HtmlViewer() {
         getStyleClass().add("html-viewer");
+        html.addListener((observable, before, value) -> {
+            if (closed) return;
+            if (value == null || value.isBlank()) clear();
+            else loadHtml(value);
+        });
         browser.setContextMenuEnabled(false);
         browser.getEngine().setJavaScriptEnabled(false);
         loading.bind(preparing.or(browser.getEngine().getLoadWorker().runningProperty()));
@@ -153,6 +159,7 @@ public final class HtmlViewer extends BorderPane implements AutoCloseable {
     @Override public void close() {
         requireFxThread();
         if (closed) return;
+        html.unbind();
         clear();
         closed = true;
     }
@@ -165,6 +172,11 @@ public final class HtmlViewer extends BorderPane implements AutoCloseable {
     private static void requireFxThread() {
         if (!Platform.isFxApplicationThread()) throw new IllegalStateException("HtmlViewer requires the JavaFX application thread.");
     }
+
+    /** Local source text. Imperative display operations do not publish values to this input. */
+    public StringProperty htmlProperty() { return html; }
+    public String getHtml() { return html.get(); }
+    public void setHtml(String value) { requireOpen(); html.set(value); }
 
     public ReadOnlyBooleanProperty loadingProperty() { return loading.getReadOnlyProperty(); }
     public boolean isLoading() { return loading.get(); }

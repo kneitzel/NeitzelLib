@@ -9,8 +9,8 @@ context. The optional `ViewLoader` applies NeitzelLib binding declarations.
 | `de.neitzel.fx.view.DataGrid` | Columns, typed attributes, widths, filters, grouping, page size, `selectionMode` and setup identity | Bind `items` or `source`; explicitly load after configuration, close with the view |
 | `de.neitzel.fx.view.Table` | `collection`, `row`, `Column` declarations | Existing ViewLoader collection/Component rows and `selection` binding |
 | `de.neitzel.fx.control.StatusBar` | `leftItems`, `rightItems` containing ordinary Nodes | Bind the properties of the contained controls |
-| `de.neitzel.fx.control.AutoCompleteTextField` | Standard TextField attributes and a `suggestions` list of strings | Type a prefix, use arrow keys and Enter or select with the mouse. Selecting emits the normal text-field action |
-| `de.neitzel.fx.control.HtmlViewer` | `mediaButtonVisible`, `mediaLoadText`, `mediaReloadText`, `mediaTooltipText`, `noExternalMediaText` | Explicit `load` / `loadHtml` / `display`; call `close()` when disposed. See [HTML viewer](html-viewer.md) |
+| `de.neitzel.fx.control.AutoCompleteTextField` | Standard TextField attributes, fixed `suggestions` and a bindable `suggestionsSource` of type `ObservableList<String>` | Type a prefix, use arrow keys and Enter or select with the mouse. Selecting emits the normal text-field action |
+| `de.neitzel.fx.control.HtmlViewer` | `mediaButtonVisible`, `mediaLoadText`, `mediaReloadText`, `mediaTooltipText`, `noExternalMediaText` | Bind local text to `html` or use `load` / `loadHtml` / `display`; call `close()` when disposed. See [HTML viewer](html-viewer.md) |
 | `de.neitzel.fx.control.TagChip` | `text`, `removable` (false by default), `onRemove` | The action handler owns removing the tag from its model |
 | `de.neitzel.fx.docking.DockPane` | `initialLayout`, `DockLayout`, group/split definitions | Attach a DockingManager to open application-owned content |
 | `de.neitzel.fx.control.NonNegativeIntegerSpinner` | `minimum`, `maximum`, `initialValue` constructor attributes | Bind writable `number`, which shares the value factory's property |
@@ -114,3 +114,13 @@ The original `IntegerSpinners.nonNegative(...)` factory remains available.
 See [bars](bars.md), [docking](docking.md) and the main [FXML reference](../README.md)
 for the existing controls. The host designer needs the updated library on its
 classpath; this feature does not replace a separately pinned Designer runtime.
+
+### Model-driven suggestions
+
+Use `<DirectBinding control="dynamic" property="suggestionsSource" path="tags" direction="view"/>`
+for an observable list of strings. A non-null source (including an empty list) takes precedence over
+the fixed FXML entries in `getSuggestions()`. The popup follows replacements and edits to the active
+list while the field is attached. Choosing a match sets the field text and fires its action.
+Setting the source to null or unbinding `suggestionsSourceProperty()` restores the fixed entries.
+Closing a managed DirectBinding restores its previous list source. Removing the field from its
+scene dismisses the popup and detaches its list listener.
