@@ -1,9 +1,13 @@
 package de.neitzel.fx.control;
 
 import java.util.Locale;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
@@ -16,6 +20,18 @@ import javafx.stage.Popup;
 public final class AutoCompleteTextField extends TextField {
     private static final int ROW_HEIGHT = 26;
     private final ObservableList<String> suggestions = FXCollections.observableArrayList();
+    private final ObjectProperty<ObservableList<String>> suggestionsSource =
+            new SimpleObjectProperty<>(this, "suggestionsSource") {
+                @Override public void unbind() {
+                    if (isBound()) {
+                        super.unbind();
+                        set(null);
+                    }
+                }
+            };
+    private final ListChangeListener<String> contentChanged = change -> updateSuggestions();
+    private final WeakListChangeListener<String> weakContentChanged = new WeakListChangeListener<>(contentChanged);
+    private ObservableList<String> observedSuggestions;
     private final ListView<String> choices = new ListView<>();
     private final Popup popup = new Popup();
     private boolean accepting;
@@ -29,9 +45,12 @@ public final class AutoCompleteTextField extends TextField {
             var value = choices.getSelectionModel().getSelectedItem();
             if (event.getButton() == MouseButton.PRIMARY && value != null) accept(value);
         });
-        suggestions.addListener((ListChangeListener<String>) change -> updateSuggestions());
+        suggestionsSource.addListener((InvalidationListener) ignored -> observeSuggestions());
         textProperty().addListener((property, before, after) -> updateSuggestions());
-        sceneProperty().addListener((property, before, after) -> popup.hide());
+        sceneProperty().addListener((property, before, after) -> {
+            popup.hide();
+            observeSuggestions();
+        });
         disabledProperty().addListener((property, before, disabled) -> {
             if (disabled) popup.hide();
         });
@@ -40,6 +59,21 @@ public final class AutoCompleteTextField extends TextField {
 
     public ObservableList<String> getSuggestions() {
         return suggestions;
+    }
+
+    /** Optional live catalogue. Without a source the fixed FXML suggestions are used. */
+    public ObjectProperty<ObservableList<String>> suggestionsSourceProperty() { return suggestionsSource; }
+    public ObservableList<String> getSuggestionsSource() { return suggestionsSource.get(); }
+    public void setSuggestionsSource(ObservableList<String> value) { suggestionsSource.set(value); }
+
+    private void observeSuggestions() {
+        var source = getSuggestionsSource();
+        var next = getScene() == null ? null : source == null ? suggestions : source;
+        if (observedSuggestions == next) return;
+        if (observedSuggestions != null) observedSuggestions.removeListener(weakContentChanged);
+        observedSuggestions = next;
+        if (next != null) next.addListener(weakContentChanged);
+        updateSuggestions();
     }
 
     private void handleKey(KeyEvent event) {
@@ -67,11 +101,11 @@ public final class AutoCompleteTextField extends TextField {
     }
 
     private void updateSuggestions() {
-        if (accepting || !isFocused() || isDisabled() || getScene() == null
+        if (observedSuggestions == null || accepting || !isFocused() || isDisabled() || getScene() == null
                 || getScene().getWindow() == null || !getScene().getWindow().isShowing()) return;
         String prefix = getText() == null ? "" : getText().strip().toLowerCase(Locale.ROOT);
         var matches = prefix.isEmpty() ? java.util.List.<String>of()
-                : suggestions.stream().filter(value -> value != null && !value.isBlank())
+                : observedSuggestions.stream().filter(value -> value != null && !value.isBlank())
                         .filter(value -> value.toLowerCase(Locale.ROOT).startsWith(prefix)).distinct().limit(10).toList();
         choices.getItems().setAll(matches);
         choices.getSelectionModel().clearSelection();

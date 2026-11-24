@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.Property;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -58,7 +59,8 @@ final class DirectBindingApplier {
             return;
         }
         if (attribute.getValue() instanceof ObservableList<?> values) {
-            assignList(controlProperty, values, lifetime);
+            if ("view".equals(binding.getDirection())) alignTowardView(controlProperty, attribute, lifetime);
+            else assignList(controlProperty, values, lifetime);
             return;
         }
         String converterName = binding.getConverter();
@@ -551,8 +553,17 @@ final class DirectBindingApplier {
     private static void alignTowardView(Property<?> controlProperty, ObservableValue<?> attribute,
                                         ViewLifetime lifetime) {
         Property<Object> control = (Property<Object>) controlProperty;
+        Object previous = control.getValue();
         control.setValue(attribute.getValue());
-        lifetime.listen(attribute, (observable, oldValue, newValue) -> control.setValue(newValue));
+        // ChangeListeners may suppress a new list whose elements equal the previous list.
+        InvalidationListener follow = ignored -> control.setValue(attribute.getValue());
+        attribute.addListener(follow);
+        lifetime.own(() -> {
+            attribute.removeListener(follow);
+            if ((previous instanceof ObservableList<?> || control.getValue() instanceof ObservableList<?>)
+                    && control.getValue() == attribute.getValue())
+                control.setValue(previous);
+        });
     }
 
     /**

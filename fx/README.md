@@ -48,6 +48,8 @@ The launch class is `de.neitzel.fx.example.Main`. `Main` does not extend `Applic
 
 Depend on `de.neitzel.lib:fx`. That module depends on `core`, `injection` and on JavaFX base, controls, graphics, fxml, and web. Application types the container constructs use `jakarta.inject.Singleton` or `jakarta.inject.Named`.
 
+Use `ViewLoader.loadComponent(type, model, context, models)` to open a reusable Component directly from its own FXML. It returns a managed `LoadedView` with the same Component, ViewModel selection and binding lifetime as an embedded instance.
+
 ## Dependencies
 
 These are the versions configured by this source snapshot, not a promise of compatibility with every newer release:
@@ -173,7 +175,7 @@ For `both` and `model`, the write happens when the JavaFX property changes, incl
 
 `BindingList` is the element that holds direct bindings, computed bindings, command bindings, and repeats. Its default property is `elements`, so the children in FXML are the list. An unknown child fails the load with `Not a binding element:`. Command bindings require a managed View.
 
-When the attribute value is already an `ObservableList`, the control property is set to that same list. Direction and converter are not consulted. The tag binding names `direction="view"` and still shares the list. See [A list of simple values](#a-list-of-simple-values).
+When the attribute value is already an `ObservableList`, the control property is set to that same list. With `direction="view"`, the control also follows replacement of the list reference, including a replacement with equal elements. Closing a managed View detaches that observation and restores the previous list if the control still holds the supplied list. Other directions retain their shared-list assignment. The writable observable-list path bypasses converters. See [A list of simple values](#a-list-of-simple-values).
 
 A binding that names no such control fails with `No control "` and the id. A missing `xxxProperty()` method fails with `No property` and the property name. A method that returns something other than a `Property` fails with `did not return a property`.
 

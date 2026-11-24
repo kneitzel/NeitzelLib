@@ -62,6 +62,39 @@ class HtmlViewerTest {
         return (javafx.scene.control.Button) viewer.lookup(".html-viewer-media-load");
     }
 
+    @Test void boundLocalTextReplacesPendingWorkAndDetachesOnClose() throws Exception {
+        var ref = new AtomicReference<HtmlViewer>();
+        var source = new javafx.beans.property.SimpleStringProperty("<p>First</p>");
+        var replacement = new javafx.beans.property.SimpleStringProperty("<p>Second</p>");
+        fx(() -> {
+            var viewer = new HtmlViewer();
+            ref.set(viewer);
+            viewer.htmlProperty().bind(source);
+            viewer.htmlProperty().bind(replacement);
+            source.set("<p>Detached</p>");
+            replacement.set("<p>Third</p>");
+        });
+        var viewer = ref.get();
+        try {
+            await(() -> !viewer.isLoading() && loaded(viewer) && browser(viewer).getEngine().getDocument()
+                    .getDocumentElement().getTextContent().contains("Third"));
+            fx(() -> {
+                viewer.clear();
+                assertEquals("<p>Third</p>", replacement.get());
+                replacement.set(null);
+                replacement.set("   ");
+                assertNull(viewer.getError());
+                assertFalse(viewer.isExternalImagesAllowed());
+                replacement.set("<p>Pending</p>");
+                viewer.close();
+                assertFalse(viewer.htmlProperty().isBound());
+                replacement.set("<p>Too late</p>");
+                assertFalse(viewer.isLoading());
+                assertEquals("<p>Pending</p>", viewer.getHtml());
+            });
+        } finally { fx(viewer::close); }
+    }
+
     @Test void ordinaryFxmlConstructsAnIdleLocalizableControl() throws Exception {
         fx(() -> {
             var loader = new javafx.fxml.FXMLLoader();

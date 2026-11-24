@@ -34,6 +34,18 @@ message are included. New loads cancel pending work and discard stale results.
 `clear()` releases the current content and leaves the viewer reusable. `close()`
 also cancels pending work, is idempotent, and makes future loads fail.
 
+## Model-driven source
+
+Bind a string toward the viewer with a DirectBinding such as
+`<DirectBinding control="article" property="html" path="html" direction="view"/>`.
+For plain JavaFX use `viewer.htmlProperty().bind(source)`. Each changed string uses
+the offline `loadHtml` preparation. A null or blank value clears the document.
+Rapid changes cancel older preparations and revoke earlier media grants.
+The property contains the supplied source. Displaying a prepared document, loading a file,
+granting image access or clearing the viewer changes the display without writing to the model.
+The next change to the bound text takes effect. Unbinding leaves the current display in place.
+Close the viewer on disposal to detach a JavaFX binding and cancel outstanding work.
+
 ## External images
 
 Each displayed document starts offline. The included **Load external media**
