@@ -710,3 +710,8 @@ The reference above covers the FXML declarations and their behavior. These are t
 `property(name)` returns `Property<?>`: cast to the known property type when writing from Java, for example `((StringProperty) loaded.property("name")).set("Grace")`. Generated accessors avoid these casts. `storedProperty` is for subclasses and reads only stored Model Attributes; it does not invoke custom reflective accessors. Internal loaders, appliers and identity-cache helpers are implementation details, not extension APIs.
 
 For threading, strong identity retention, context reuse, the absence of a general disposal API, and JPMS reflection, see [architecture and lifetime](docs/architecture.md). For an independent application POM and runnable files, use the [complete quick start](docs/quick-start.md).
+
+DataGrid columns accept arbitrary string keys for group captions through the attached
+`DataGridColumn.groupLabel` property. For example,
+`<DataGridColumn.groupLabel><javafx.util.Pair key="Post/Eingang West" value="Eingang"/></DataGridColumn.groupLabel>`
+writes the literal key into the same map as `<groupLabels Post="Postfach"/>`.

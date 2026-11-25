@@ -21,6 +21,12 @@ public final class DataGridColumn {
     @Setter(lombok.AccessLevel.NONE)
     private final java.util.Map<String, String> groupLabels = new java.util.LinkedHashMap<>();
 
+    /** Adds one FXML group label whose key can contain spaces, paths or other non-name characters. */
+    public static void setGroupLabel(DataGridColumn column, javafx.util.Pair<String, String> entry) {
+        column.groupLabels.put(java.util.Objects.requireNonNull(entry.getKey(), "group key"),
+                java.util.Objects.requireNonNull(entry.getValue(), "group label"));
+    }
+
     private double width = 150;
     private double minimumWidth = 80;
     private double maximumWidth = 1200;

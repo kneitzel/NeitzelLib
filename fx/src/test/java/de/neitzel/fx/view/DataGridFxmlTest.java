@@ -56,6 +56,22 @@ class DataGridFxmlTest {
             """;
 
     @Test
+    void groupLabelEntriesRetainLiteralKeysAlongsideMapAttributes() throws IOException {
+        String xml = """
+                <?import de.neitzel.fx.view.DataGridColumn?>
+                <DataGridColumn>
+                  <groupLabels Post="Postfach"/>
+                  <DataGridColumn.groupLabel><javafx.util.Pair key="/" value="Wurzel"/></DataGridColumn.groupLabel>
+                  <DataGridColumn.groupLabel><javafx.util.Pair key="Post/Eingang" value="Eingang"/></DataGridColumn.groupLabel>
+                  <DataGridColumn.groupLabel><javafx.util.Pair key="Ohne Endung" value="Sonstige"/></DataGridColumn.groupLabel>
+                </DataGridColumn>
+                """;
+        DataGridColumn column = new FXMLLoader().load(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        assertEquals(Map.of("Post", "Postfach", "/", "Wurzel", "Post/Eingang", "Eingang", "Ohne Endung", "Sonstige"),
+                column.getGroupLabels());
+    }
+
+    @Test
     void loadsReusableTagAndCompletionControls() throws Exception {
         DataGridTest.fx(() -> {
             String xml = """
