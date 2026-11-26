@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.beans.property.Property;
 import javafx.scene.control.Label;
@@ -49,8 +48,8 @@ class ComputeAValueTest {
             person.setAge(36);
             URL fxml = ComputeAValueTest.class.getResource("working-age.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.computed");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label workingAgeLabel = (Label) loaded.getRoot().lookup("#workingAgeLabel");
             assertEquals("initial-age", workingAgeLabel.getText());
             assertEquals("Ada", person.getName());
@@ -67,8 +66,8 @@ class ComputeAValueTest {
             Person person = new Person("Ada");
             URL fxml = ComputeAValueTest.class.getResource("working-age.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.computed");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField nameField = (TextField) loaded.getRoot().lookup("#nameField");
             Label workingAgeLabel = (Label) loaded.getRoot().lookup("#workingAgeLabel");
             nameField.setText("Grace");
@@ -86,8 +85,8 @@ class ComputeAValueTest {
             Person person = new Person("Ada");
             URL fxml = ComputeAValueTest.class.getResource("working-age.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.computed");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label workingAgeLabel = (Label) loaded.getRoot().lookup("#workingAgeLabel");
             @SuppressWarnings("unchecked")
             Property<String> name = (Property<String>) loaded.property("name");
@@ -106,8 +105,8 @@ class ComputeAValueTest {
             Person person = new Person("Ada");
             URL fxml = ComputeAValueTest.class.getResource("working-age.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.computed");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label workingAgeLabel = (Label) loaded.getRoot().lookup("#workingAgeLabel");
             assertEquals("initial-age", workingAgeLabel.getText());
             workingAgeLabel.setText("sentinel");

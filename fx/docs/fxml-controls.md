@@ -48,7 +48,7 @@ objects, rather than controls to insert in a scene graph.
 ```
 
 Initialize the model's `List<Person> people` before loading. Bean and Java record
-rows are supported. After `ViewLoader.load`, call the injected grid's `load()` or
+rows are supported. After loading with `ViewLoader.loadWithDependencies`, call the grid's `load()` or
 `loadAsync()` on the FX thread. The data binding shares the model's observable
 list. Add, remove, replace, permute or use an extractor update on that list to
 request a refresh immediately, invalidating older pending results. The existing

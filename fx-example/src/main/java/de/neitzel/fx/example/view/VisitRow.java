@@ -21,9 +21,9 @@ import lombok.RequiredArgsConstructor;
 public class VisitRow extends HBox {
 
     /**
-     * The desk controller that removes a visit from the person.
+     * The shared action that removes a visit from the person.
      */
-    private final DeskController desk;
+    private final VisitActions visits;
 
     /**
      * The visit this row edits. The table sets it once.
@@ -63,7 +63,7 @@ public class VisitRow extends HBox {
     @FXML
     public void remove() {
         if (getModel() instanceof Address address) {
-            desk.removeVisit(address);
+            visits.remove(address);
         }
     }
 }

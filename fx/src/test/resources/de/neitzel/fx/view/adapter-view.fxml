@@ -1,0 +1,6 @@
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.neitzel.fx.view.managed.ViewController">
+    <TextField fx:id="input" id="parent"/>
+    <fx:include source="adapter-include.fxml"/>
+</VBox>

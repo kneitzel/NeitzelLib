@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.VBox;
@@ -51,8 +50,8 @@ class ShowAListOfSimpleValuesTest {
             person.setTags(new ArrayList<>(List.of("red", "blue")));
             URL fxml = ShowAListOfSimpleValuesTest.class.getResource("tags-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             VBox root = (VBox) loaded.getRoot();
             assertEquals(1, root.getChildren().size());
             @SuppressWarnings("unchecked")

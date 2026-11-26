@@ -6,7 +6,6 @@ import de.neitzel.fx.control.NonNegativeIntegerSpinner;
 import de.neitzel.fx.control.StatusBar;
 import de.neitzel.fx.docking.DockPane;
 import de.neitzel.grid.*;
-import de.neitzel.injection.ApplicationContext;
 
 import javafx.collections.*;
 import javafx.fxml.FXMLLoader;
@@ -241,10 +240,10 @@ class DataGridFxmlTest {
         DataGridTest.fx(() -> {
             try {
                 var view =
-                        ViewLoader.load(
+                        TestViews.load(
                                 document.toUri().toURL(),
                                 model,
-                                new ApplicationContext("de.neitzel.fx.view.fixture"));
+                                new TestViews());
                 @SuppressWarnings("unchecked")
                 var grid = (DataGrid<Long, Item>) view.getRoot().lookup("#grid");
                 ref.set(grid);

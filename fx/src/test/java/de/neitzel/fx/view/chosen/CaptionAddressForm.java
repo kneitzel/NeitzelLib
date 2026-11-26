@@ -1,7 +1,6 @@
 package de.neitzel.fx.view.chosen;
 
 import de.neitzel.fx.view.ViewModelClass;
-import jakarta.inject.Singleton;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.layout.VBox;
@@ -9,7 +8,7 @@ import javafx.scene.layout.VBox;
 /**
  * Component that names {@link StreetTitleViewModel} for the address it shows.
  */
-@Singleton
+
 @ViewModelClass(StreetTitleViewModel.class)
 public class CaptionAddressForm extends VBox {
 

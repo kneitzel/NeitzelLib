@@ -20,7 +20,7 @@ final class FxmlHandlers implements LoadListener {
     }
 
     static void observe(FXMLLoader loader, ViewLifetime lifetime) {
-        if (lifetime.managed()) loader.setLoadListener(new FxmlHandlers(lifetime));
+        loader.setLoadListener(new FxmlHandlers(lifetime));
     }
 
     @Override

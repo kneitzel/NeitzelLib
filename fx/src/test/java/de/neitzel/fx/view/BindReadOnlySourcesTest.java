@@ -2,7 +2,6 @@ package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Person;
 import de.neitzel.fx.view.readable.ReadableSourcesController.Sources;
-import de.neitzel.injection.ApplicationContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -34,7 +33,7 @@ class BindReadOnlySourcesTest {
     @Test
     void followsOnlyDependenciesOfTheViewModelSource() throws Exception {
         FxThread.onFx(() -> {
-            LoadedView view = ViewLoader.load(DOCUMENT, new Person("Ada"), context());
+            LoadedView view = TestViews.load(DOCUMENT, new Person("Ada"), context());
             Sources sources = (Sources) view.getViewModel();
             Button commit = (Button) view.getRoot().lookup("#commit");
             Label title = (Label) view.getRoot().lookup("#title");
@@ -77,8 +76,8 @@ class BindReadOnlySourcesTest {
         Files.writeString(invalid, fxml.replace("path=\"observableTitle\" direction=\"view\"",
                 "path=\"observableTitle\" direction=\"" + direction + "\""));
         FxThread.onFx(() -> {
-            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> ViewLoader.load(invalid.toUri().toURL(), new Person("Ada"), context()));
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> TestViews.load(invalid.toUri().toURL(), new Person("Ada"), context()));
             assertTrue(failure.getMessage().contains("Read-only source"), failure.getMessage());
             assertTrue(failure.getMessage().contains("observableTitle"), failure.getMessage());
             assertTrue(failure.getMessage().contains("caption.text"), failure.getMessage());
@@ -86,7 +85,7 @@ class BindReadOnlySourcesTest {
         });
     }
 
-    private static ApplicationContext context() {
-        return new ApplicationContext("de.neitzel.fx.view.readable");
+    private static TestViews context() {
+        return new TestViews();
     }
 }

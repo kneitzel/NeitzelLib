@@ -3,7 +3,9 @@ package de.neitzel.fx.example.preview;
 import static org.junit.jupiter.api.Assertions.*;
 
 import de.neitzel.fx.example.view.DeskController;
+import de.neitzel.fx.example.view.VisitRow;
 import de.neitzel.fx.view.ViewLoader;
+import de.neitzel.fx.view.ViewModelContext;
 
 import javafx.application.Platform;
 
@@ -48,12 +50,12 @@ class PreviewProvidersTest {
                     assertNotSame(first.model(), second.model());
                     assertNotSame(first.model().getHome(), second.model().getHome());
                     assertNotSame(first.context(), second.context());
-                    var view =
-                            ViewLoader.load(
-                                    DeskController.class.getResource("Desk.fxml"),
-                                    first.model(),
-                                    first.context());
-                    assertNotNull(view.getRoot().lookup("#nameField"));
+                    try (var models = new ViewModelContext()) {
+                        var view = ViewLoader.loadWithDependencies(
+                                DeskController.class.getResource("Desk.fxml"),
+                                first.model(), first.context(), models);
+                        assertNotNull(view.getRoot().lookup("#nameField"));
+                    }
                     assertEquals("Ada Lovelace", first.model().getName());
                     assertTrue(first.ready().toCompletableFuture().isDone());
                     assertThrows(IllegalArgumentException.class, () -> provider.open("unknown"));
@@ -70,11 +72,11 @@ class PreviewProvidersTest {
                     var visit = addresses.open("visit");
                     assertNotNull(visit.model().getVisitedOn());
                     var row = addresses.open("row");
-                    assertDoesNotThrow(
-                            () ->
-                                    row.context()
-                                            .getComponent(DeskController.class)
-                                            .removeVisit(row.model()));
+                    try (var models = new ViewModelContext()) {
+                        var view = ViewLoader.loadComponentWithDependencies(
+                                VisitRow.class, row.model(), row.context(), models);
+                        assertDoesNotThrow(((VisitRow) view.getRoot())::remove);
+                    }
                     var note = new NotePreviewProvider().open("note");
                     assertEquals("Kept at home", note.model().getText());
                     assertThrows(IllegalArgumentException.class, () -> addresses.open("desk"));

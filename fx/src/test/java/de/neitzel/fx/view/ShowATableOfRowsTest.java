@@ -4,7 +4,6 @@ import de.neitzel.fx.view.component.CityFirstRow;
 import de.neitzel.fx.view.component.VisitRow;
 import de.neitzel.fx.view.fixture.Host;
 import de.neitzel.fx.view.fixture.Visit;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.Parent;
@@ -191,7 +190,7 @@ class ShowATableOfRowsTest {
     void aTableWithNoColumnFailsToLoad() throws Exception {
         onFx(() -> {
             Host host = host(new Visit("Main", "Berlin"));
-            assertThrows(IllegalArgumentException.class, () -> load("show-visits-no-column.fxml", host));
+            assertThrows(IllegalStateException.class, () -> load("show-visits-no-column.fxml", host));
         });
     }
 
@@ -202,7 +201,7 @@ class ShowATableOfRowsTest {
     void aRepeatedAttributeFailsToLoad() throws Exception {
         onFx(() -> {
             Host host = host(new Visit("Main", "Berlin"));
-            assertThrows(IllegalArgumentException.class, () -> load("show-visits-duplicate.fxml", host));
+            assertThrows(IllegalStateException.class, () -> load("show-visits-duplicate.fxml", host));
         });
     }
 
@@ -213,7 +212,7 @@ class ShowATableOfRowsTest {
     void aComplexAttributeFailsToLoad() throws Exception {
         onFx(() -> {
             Host host = host(new Visit("Main", "Berlin"));
-            assertThrows(IllegalArgumentException.class, () -> load("show-visits-complex.fxml", host));
+            assertThrows(IllegalStateException.class, () -> load("show-visits-complex.fxml", host));
         });
     }
 
@@ -227,8 +226,8 @@ class ShowATableOfRowsTest {
     private static LoadedView load(String name, Host host) {
         URL fxml = ShowATableOfRowsTest.class.getResource(name);
         assertNotNull(fxml);
-        ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-        return ViewLoader.load(fxml, host, context);
+        TestViews context = new TestViews();
+        return TestViews.load(fxml, host, context);
     }
 
     /**

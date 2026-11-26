@@ -1,9 +1,9 @@
 package de.neitzel.fx.test;
 
 import de.neitzel.fx.view.LoadedView;
+import de.neitzel.fx.view.ViewDependencies;
 import de.neitzel.fx.view.ViewLoader;
 import de.neitzel.fx.view.ViewModelContext;
-import de.neitzel.injection.ApplicationContext;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,15 +105,15 @@ public final class FxFixture {
     }
 
     /**
-     * Loads production FXML on the FX thread in the test's automatically closed model context.
+     * Loads managed FXML with application-supplied dependencies on the FX thread.
      * @param fxml view resource
      * @param model model for the view
-     * @param services controller and service container
+     * @param dependencies adapter for View objects and services
      * @return managed view
      * @throws Exception if the view cannot be loaded or the wait is interrupted or times out
      */
-    public LoadedView load(URL fxml, Object model, ApplicationContext services) throws Exception {
-        return call(() -> ViewLoader.load(fxml, model, services, models));
+    public LoadedView loadWithDependencies(URL fxml, Object model, ViewDependencies dependencies) throws Exception {
+        return call(() -> ViewLoader.loadWithDependencies(fxml, model, dependencies, models));
     }
 
     void finish() throws Exception {

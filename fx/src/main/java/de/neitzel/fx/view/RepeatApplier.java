@@ -1,6 +1,5 @@
 package de.neitzel.fx.view;
 
-import de.neitzel.injection.ApplicationContext;
 import javafx.beans.property.Property;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
@@ -24,10 +23,10 @@ final class RepeatApplier {
     /**
      * Fills the named pane with one new Component for each element, in list order.
      * <p>
-     * Each Component is a new injected instance. The cached singleton of that class is left
-     * in place. The child's model property is the element. Adding or removing an element
-     * adds or removes the matching child. The list is the one the entity holds, so a change
-     * on either side is visible in the pane.
+     * The adapter creates a fresh Component for each occurrence. Its model property is the
+     * element. Adding an element loads a child. Removing one releases that child's View.
+     * The list is the one the entity holds, so a change on either side is visible in the pane.
+     * The parent's View lifetime also owns the remaining children.
      *
      * @param namespace objects addressed by {@code fx:id}
      * @param viewModel the ViewModel for this View, or a replacement that exposes the collection by name
@@ -35,7 +34,7 @@ final class RepeatApplier {
      * @param context   the container that creates each Component
      */
     static void apply(Map<String, Object> namespace, Object viewModel, Repeat repeat,
-                      ApplicationContext context, ViewLifetime lifetime) {
+                      ViewInstances context, ViewLifetime lifetime) {
         Object named = namespace.get(repeat.getPane());
         if (!(named instanceof Pane pane)) {
             throw new IllegalArgumentException("No pane \"" + repeat.getPane() + "\"");
@@ -82,7 +81,7 @@ final class RepeatApplier {
      * @param values  the collection
      */
     @SuppressWarnings("unchecked")
-    private static void listen(Pane pane, Class<?> type, ApplicationContext context, ObservableList<?> values,
+    private static void listen(Pane pane, Class<?> type, ViewInstances context, ObservableList<?> values,
                                ViewLifetime lifetime, int offset, List<RepeatedChild> children) {
         ObservableList<Object> elements = (ObservableList<Object>) values;
         lifetime.listen(elements, change -> {
@@ -113,7 +112,7 @@ final class RepeatApplier {
      * @param element the Model instance
      * @return the loaded Component
      */
-    private static RepeatedChild child(Class<?> type, ApplicationContext context, Object element,
+    private static RepeatedChild child(Class<?> type, ViewInstances context, Object element,
                                        ViewLifetime owner) {
         ViewLifetime lifetime = owner.child();
         try {

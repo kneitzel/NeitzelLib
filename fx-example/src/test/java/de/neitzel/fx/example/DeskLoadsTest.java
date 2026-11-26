@@ -9,7 +9,8 @@ import de.neitzel.fx.example.view.VisitForm;
 import de.neitzel.fx.example.view.VisitRow;
 import de.neitzel.fx.view.LoadedView;
 import de.neitzel.fx.view.ViewLoader;
-import de.neitzel.injection.ApplicationContext;
+import de.neitzel.fx.view.ViewDependencies;
+import de.neitzel.fx.view.ViewModelContext;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -122,16 +123,13 @@ class DeskLoadsTest {
 
     /**
      * A second view of the same person reuses the view model, so a name edit shows on both.
-     * <p>
-     * The second document is only a name field. Loading the desk again would rebuild the home
-     * address form, and that form is the cached singleton already showing.
      */
     @Test
     void secondViewReusesTheViewModel() throws Exception {
         onFx(() -> {
             Loaded first = load();
-            LoadedView second = ViewLoader.load(
-                    DeskLoadsTest.class.getResource("NameLine.fxml"), first.person(), first.context());
+            LoadedView second = ViewLoader.loadWithDependencies(
+                    DeskLoadsTest.class.getResource("NameLine.fxml"), first.person(), first.context(), first.models());
             assertSame(first.view().getViewModel(), second.getViewModel());
             textField(first.root(), "nameField").setText("Grace");
             assertEquals("Grace", first.person().getName());
@@ -261,16 +259,15 @@ class DeskLoadsTest {
         onFx(() -> {
             Loaded loaded = load();
             Parent root = loaded.root();
-            DeskController desk = loaded.context().getComponent(DeskController.class);
-            desk.leaveNote();
+            fire(root, "Leave a note");
             assertEquals(de.neitzel.fx.view.Message.Severity.INFO,
                     loaded.view().getViewModel().getLatestMessage().getSeverity());
             assertEquals("The model already has the name Ada Lovelace.", text(root, "noticeLabel"));
-            desk.leaveWarning();
+            fire(root, "Leave a warning");
             assertEquals(de.neitzel.fx.view.Message.Severity.WARN,
                     loaded.view().getViewModel().getLatestMessage().getSeverity());
             assertEquals("Check the age before leaving the desk.", text(root, "noticeLabel"));
-            desk.leaveFatal();
+            fire(root, "Leave a fatal notice");
             assertEquals(de.neitzel.fx.view.Message.Severity.FATAL,
                     loaded.view().getViewModel().getLatestMessage().getSeverity());
             assertEquals("The desk cannot store this person.", text(root, "noticeLabel"));
@@ -300,9 +297,10 @@ class DeskLoadsTest {
      *
      * @param person  the model
      * @param view    the loaded view
-     * @param context the container
+     * @param context the adapter
+     * @param models the ViewModel context
      */
-    private record Loaded(Person person, LoadedView view, ApplicationContext context) {
+    private record Loaded(Person person, LoadedView view, ViewDependencies context, ViewModelContext models) {
 
         /**
          * Returns the scene-graph root.
@@ -321,9 +319,16 @@ class DeskLoadsTest {
      */
     private static Loaded load() {
         Person person = DeskApp.sample();
-        ApplicationContext context = new ApplicationContext(DeskApp.class);
-        LoadedView view = ViewLoader.load(DeskController.class.getResource("Desk.fxml"), person, context);
-        return new Loaded(person, view, context);
+        var context = DeskApp.dependencies(person);
+        var models = new ViewModelContext();
+        var view = ViewLoader.loadWithDependencies(
+                DeskController.class.getResource("Desk.fxml"), person, context, models);
+        return new Loaded(person, view, context, models);
+    }
+
+    private static void fire(Parent root, String text) {
+        root.lookupAll(".button").stream().filter(Button.class::isInstance).map(Button.class::cast)
+                .filter(button -> text.equals(button.getText())).findFirst().orElseThrow().fire();
     }
 
     /**

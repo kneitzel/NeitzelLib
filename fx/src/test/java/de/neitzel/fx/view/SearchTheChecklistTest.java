@@ -2,7 +2,6 @@ package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Host;
 import de.neitzel.fx.view.fixture.Visit;
-import de.neitzel.injection.ApplicationContext;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -110,7 +109,7 @@ class SearchTheChecklistTest {
     private static LoadedView load(Host host) {
         URL fxml = SearchTheChecklistTest.class.getResource("show-visits.fxml");
         assertNotNull(fxml);
-        return ViewLoader.load(fxml, host, new ApplicationContext("de.neitzel.fx.view.component"));
+        return TestViews.load(fxml, host, new TestViews());
     }
 
     /**

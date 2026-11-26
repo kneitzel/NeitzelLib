@@ -1,7 +1,5 @@
 package de.neitzel.fx.view.component;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.layout.HBox;
@@ -9,7 +7,7 @@ import javafx.scene.layout.HBox;
 /**
  * A Row with street and city fields and a control after them.
  */
-@Singleton
+
 public class ActionRow extends HBox {
 
     /**
@@ -20,7 +18,7 @@ public class ActionRow extends HBox {
     /**
      * Creates a row.
      */
-    @Inject
+
     public ActionRow() {
     }
 

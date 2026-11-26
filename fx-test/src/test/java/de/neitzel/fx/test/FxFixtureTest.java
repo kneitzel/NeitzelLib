@@ -1,6 +1,8 @@
 package de.neitzel.fx.test;
 
-import de.neitzel.injection.ApplicationContext;
+import de.neitzel.fx.view.ViewDependencies;
+import de.neitzel.fx.view.ViewObject;
+import java.util.Optional;
 import java.io.IOException;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -24,7 +26,13 @@ public class FxFixtureTest {
         var nested = new FxFixture();
         var problem = new IllegalStateException("callback failed");
         nested.start();
-        var view = nested.load(getClass().getResource("name.fxml"), person, new ApplicationContext(Person.class));
+        var view = nested.loadWithDependencies(getClass().getResource("name.fxml"), person, new ViewDependencies() {
+            public boolean isComponent(Class<?> type) { return false; }
+            public <T> Optional<T> findService(Class<T> type) { return Optional.empty(); }
+            public <T> ViewObject<T> createViewObject(Class<T> type) {
+                throw new AssertionError("Unexpected view type: " + type);
+            }
+        });
         var field = nested.call(() -> (TextField) view.getRoot());
         var stage = nested.call(() -> {
             assertEquals("Ada", field.getText());

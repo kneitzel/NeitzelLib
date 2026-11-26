@@ -96,18 +96,6 @@ public class DeskController implements HasViewModel {
     }
 
     /**
-     * Removes a visit from the list the table and Repeat are watching.
-     *
-     * @param visit the visit
-     */
-    public void removeVisit(Address visit) {
-        if (visit == null) {
-            return;
-        }
-        visits().remove(visit);
-    }
-
-    /**
      * Adds the tag field's text to the tag list and clears the field.
      */
     @FXML

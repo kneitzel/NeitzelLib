@@ -3,12 +3,11 @@ package de.neitzel.fx.view.command;
 import de.neitzel.fx.view.Command;
 import de.neitzel.fx.view.ViewModel;
 import de.neitzel.fx.view.ViewModelClass;
-import jakarta.inject.Named;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import lombok.Getter;
 
-@Named
+
 @ViewModelClass(CommandController.Model.class)
 public final class CommandController {
 

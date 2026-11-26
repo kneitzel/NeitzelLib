@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.command.CommandController;
-import de.neitzel.injection.ApplicationContext;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javafx.scene.control.Button;
@@ -35,7 +34,7 @@ class BindCommandTest {
                 """);
         FxThread.onFx(() -> {
             try (var models = new ViewModelContext()) {
-                var view = ViewLoader.load(url, new CommandController.Subject(), services(), models);
+                var view = ViewLoader.loadWithDependencies(url, new CommandController.Subject(), services(), models);
                 var model = (CommandController.Model) view.getViewModel();
                 var button = (Button) view.getRoot().lookup("#button");
                 var menu = ((MenuBar) view.getRoot().lookup("#menu")).getMenus().getFirst();
@@ -83,8 +82,8 @@ class BindCommandTest {
             var url = view("invalid-command.fxml", scenario[0]);
             FxThread.onFx(() -> {
                 try (var models = new ViewModelContext()) {
-                    var failure = assertThrows(IllegalArgumentException.class,
-                            () -> ViewLoader.load(url, new CommandController.Subject(), services(), models));
+                    var failure = assertThrows(IllegalStateException.class,
+                            () -> ViewLoader.loadWithDependencies(url, new CommandController.Subject(), services(), models));
                     assertTrue(failure.getMessage().contains("invalid-command.fxml"));
                     assertTrue(failure.getMessage().contains(scenario[1]));
                 }
@@ -92,8 +91,8 @@ class BindCommandTest {
         }
     }
 
-    private ApplicationContext services() {
-        return new ApplicationContext("de.neitzel.fx.view.command");
+    private TestViews services() {
+        return new TestViews();
     }
 
     private java.net.URL view(String name, String bindings) throws Exception {

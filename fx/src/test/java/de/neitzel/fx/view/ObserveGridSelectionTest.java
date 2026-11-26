@@ -2,7 +2,6 @@ package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.DataGridTest.Item;
 import de.neitzel.grid.TextFilter;
-import de.neitzel.injection.ApplicationContext;
 import javafx.scene.control.Label;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -39,10 +38,10 @@ class ObserveGridSelectionTest {
                 var control = grid.get();
                 control.select(1L);
                 var document = getClass().getResource("grid-selection-summary.fxml");
-                var context = new ApplicationContext("de.neitzel.fx.view.selection");
+                var context = new TestViews();
                 try (var selection = control.observeSelection();
                      var models = new ViewModelContext();
-                     var view = ViewLoader.load(document, selection, context, models)) {
+                     var view = ViewLoader.loadWithDependencies(document, selection, context, models)) {
                     var initial = selection.getSelection();
                     var summary = (Label) view.getRoot().lookup("#summary");
                     assertEquals(List.of(1L), initial.selectedKeys());

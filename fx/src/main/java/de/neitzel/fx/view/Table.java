@@ -1,6 +1,5 @@
 package de.neitzel.fx.view;
 
-import de.neitzel.injection.ApplicationContext;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -232,7 +231,7 @@ public class Table extends VBox {
     /**
      * The container that creates Rows.
      */
-    private ApplicationContext context;
+    private ViewInstances context;
 
     /**
      * The Row class.
@@ -363,7 +362,7 @@ public class Table extends VBox {
      * @param viewModel the ViewModel for this View
      * @param context   the container that creates each Row
      */
-    static void openAll(Parent root, Object viewModel, ApplicationContext context, ViewLifetime lifetime) {
+    static void openAll(Parent root, Object viewModel, ViewInstances context, ViewLifetime lifetime) {
         walk(root, root, viewModel, context, lifetime);
     }
 
@@ -373,7 +372,7 @@ public class Table extends VBox {
      * @param viewModel the ViewModel for this View
      * @param context   the container that creates each Row
      */
-    void open(Object viewModel, ApplicationContext context, ViewLifetime owner) {
+    void open(Object viewModel, ViewInstances context, ViewLifetime owner) {
         if (resultMode) {
             return;
         }
@@ -1339,7 +1338,7 @@ public class Table extends VBox {
             node.addEventFilter(MouseEvent.MOUSE_CLICKED, select);
             rowLifetime.own(() -> node.removeEventFilter(MouseEvent.MOUSE_CLICKED, select));
             watchEdits(node, rowLifetime);
-            if (rowLifetime.managed()) rowLifetimes.put(element, rowLifetime);
+            rowLifetimes.put(element, rowLifetime);
             return node;
         } catch (RuntimeException | Error failure) {
             rowLifetime.rollback(failure);
@@ -1566,7 +1565,7 @@ public class Table extends VBox {
      * @param viewModel the ViewModel for this View
      * @param context   the container that creates each Row
      */
-    private static void walk(Node node, Parent root, Object viewModel, ApplicationContext context,
+    private static void walk(Node node, Parent root, Object viewModel, ViewInstances context,
                              ViewLifetime lifetime) {
         if (node != root && Components.ownsBindings(node)) return;
         if (node instanceof Table table) {

@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.scene.control.Label;
@@ -51,8 +50,8 @@ class ShowAndEditOneAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ShowAndEditOneAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField nameField = (TextField) loaded.getRoot().lookup("#nameField");
             assertEquals("Ada", nameField.getText());
             nameField.setText("Grace");
@@ -69,8 +68,8 @@ class ShowAndEditOneAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ShowAndEditOneAttributeTest.class.getResource("name-both-and-view.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField nameField = (TextField) loaded.getRoot().lookup("#nameField");
             Label nameLabel = (Label) loaded.getRoot().lookup("#nameLabel");
             assertEquals("Ada", nameLabel.getText());
@@ -91,8 +90,8 @@ class ShowAndEditOneAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ShowAndEditOneAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             person.setName("Grace");
             TextField nameField = (TextField) loaded.getRoot().lookup("#nameField");
             assertEquals("Ada", nameField.getText());
@@ -108,9 +107,9 @@ class ShowAndEditOneAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ShowAndEditOneAttributeTest.class.getResource("read-only-title.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> ViewLoader.load(fxml, person, context));
+            TestViews context = new TestViews();
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> TestViews.load(fxml, person, context));
             assertTrue(failure.getMessage().contains("title"));
         });
     }
@@ -124,9 +123,9 @@ class ShowAndEditOneAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ShowAndEditOneAttributeTest.class.getResource("object-class.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> ViewLoader.load(fxml, person, context));
+            TestViews context = new TestViews();
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> TestViews.load(fxml, person, context));
             assertTrue(failure.getMessage().contains("class"));
         });
     }
@@ -140,8 +139,8 @@ class ShowAndEditOneAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ShowAndEditOneAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertInstanceOf(IntegerProperty.class, loaded.property("age"));
         });
     }

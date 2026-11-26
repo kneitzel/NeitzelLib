@@ -2,6 +2,10 @@
 
 This walkthrough creates a complete Maven project with one editable name and a label that follows it. It uses Java 25, JavaFX 27.0.1 and NeitzelLib 1.0.6. The source build below uses the matching release tag.
 
+For the separated development artifacts and the managed loader, see
+[FX loading](../README.md#load-a-view) and the
+[optional Neitzel adapter](../../fx-injection/README.md).
+
 ## Prepare the library
 
 Install a JDK 25. Use the library's Maven wrapper (3.9.11), or a separate Maven installation version 3.9.11 or newer. Check `java -version` and `./mvnw -version` before building; on macOS, select the JDK with `export JAVA_HOME=$(/usr/libexec/java_home -v 25)` if necessary.
@@ -33,7 +37,7 @@ print(f'{len(reports)} test suites passed')
 PYTHON
 ```
 
-Use a clean build when qualifying a change so stale reports cannot stand in for tests that did not run.
+Use a clean build when qualifying a change so stale reports cannot stand in for tests that did not run. The standalone POM below can also resolve the published 1.0.6 artifacts directly.
 
 ## Create the application
 
@@ -62,6 +66,12 @@ hello-fx/
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <repositories>
+    <repository>
+      <id>gitea-neitzellib</id>
+      <url>https://gitea.neitzel.de/api/packages/konrad/maven</url>
+    </repository>
+  </repositories>
   <dependencies>
     <dependency>
       <groupId>de.neitzel.lib</groupId>

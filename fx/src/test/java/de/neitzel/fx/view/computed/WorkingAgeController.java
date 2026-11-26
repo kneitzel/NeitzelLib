@@ -1,13 +1,12 @@
 package de.neitzel.fx.view.computed;
 
-import jakarta.inject.Singleton;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 
 /**
  * Controller that derives a label from the name field and does not write the model.
  */
-@Singleton
+
 public class WorkingAgeController {
 
     /**

@@ -4,7 +4,6 @@ import de.neitzel.fx.view.fixture.Address;
 import de.neitzel.fx.view.fixture.ObjectHolder;
 import de.neitzel.fx.view.fixture.Person;
 import de.neitzel.fx.view.fixture.Role;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Label;
@@ -62,8 +61,8 @@ class ReachNestedAttributeTest {
             person.setAddress(new Address("Main"));
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Object addressValue = loaded.property("address").getValue();
             assertInstanceOf(ViewModel.class, addressValue);
             assertEquals("Main", ((ViewModel) addressValue).property("street").getValue());
@@ -81,8 +80,8 @@ class ReachNestedAttributeTest {
             person.setAddress(address);
             URL fxml = ReachNestedAttributeTest.class.getResource("address-street-both.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             assertEquals("Main", streetField.getText());
             streetField.setText("Oak");
@@ -101,8 +100,8 @@ class ReachNestedAttributeTest {
             person.setAddress(address);
             URL fxml = ReachNestedAttributeTest.class.getResource("address-street-both-and-view.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             Label streetLabel = (Label) loaded.getRoot().lookup("#streetLabel");
             assertEquals("Main", streetLabel.getText());
@@ -125,8 +124,8 @@ class ReachNestedAttributeTest {
             person.setAddress(address);
             URL fxml = ReachNestedAttributeTest.class.getResource("address-object.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             ObjectHolder addressHolder = (ObjectHolder) loaded.getRoot().lookup("#addressHolder");
             assertSame(address, addressHolder.getValue());
             Address moved = new Address("Oak");
@@ -144,8 +143,8 @@ class ReachNestedAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ReachNestedAttributeTest.class.getResource("address-object.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             ObjectHolder addressHolder = (ObjectHolder) loaded.getRoot().lookup("#addressHolder");
             assertNull(addressHolder.getValue());
             assertNull(person.getAddress());
@@ -167,8 +166,8 @@ class ReachNestedAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ReachNestedAttributeTest.class.getResource("address-street-kept.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             assertEquals("kept", streetField.getText());
             assertNull(person.getAddress());
@@ -184,8 +183,8 @@ class ReachNestedAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertNull(loaded.property("address").getValue());
         });
     }
@@ -202,8 +201,8 @@ class ReachNestedAttributeTest {
             person.setWork(shared);
             URL fxml = ReachNestedAttributeTest.class.getResource("home-work-street.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertSame(loaded.property("home").getValue(), loaded.property("work").getValue());
             TextField homeField = (TextField) loaded.getRoot().lookup("#homeField");
             TextField workField = (TextField) loaded.getRoot().lookup("#workField");
@@ -227,8 +226,8 @@ class ReachNestedAttributeTest {
             person.setWork(work);
             URL fxml = ReachNestedAttributeTest.class.getResource("home-work-street.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertNotSame(loaded.property("home").getValue(), loaded.property("work").getValue());
             TextField homeField = (TextField) loaded.getRoot().lookup("#homeField");
             TextField workField = (TextField) loaded.getRoot().lookup("#workField");
@@ -249,8 +248,8 @@ class ReachNestedAttributeTest {
             person.setFriend(person);
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertSame(loaded.getViewModel(), loaded.property("friend").getValue());
         });
     }
@@ -267,8 +266,8 @@ class ReachNestedAttributeTest {
             grace.setFriend(ada);
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, ada, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, ada, context);
             ViewModel graceModel = (ViewModel) loaded.property("friend").getValue();
             assertEquals("Grace", graceModel.property("name").getValue());
             assertSame(loaded.getViewModel(), graceModel.property("friend").getValue());
@@ -292,8 +291,8 @@ class ReachNestedAttributeTest {
             person.setHired(hired);
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertEquals(true, loaded.property("active").getValue());
             assertSame(Role.ADMIN, loaded.property("role").getValue());
             assertEquals(born, loaded.property("born").getValue());
@@ -314,8 +313,8 @@ class ReachNestedAttributeTest {
             person.setTags(tags);
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertInstanceOf(ObservableList.class, loaded.property("tags").getValue());
             @SuppressWarnings("unchecked")
             ObservableList<String> shown = (ObservableList<String>) loaded.property("tags").getValue();
@@ -335,9 +334,9 @@ class ReachNestedAttributeTest {
             Person person = new Person("Ada");
             URL fxml = ReachNestedAttributeTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView first = ViewLoader.load(fxml, person, context);
-            LoadedView second = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView first = TestViews.load(fxml, person, context);
+            LoadedView second = TestViews.load(fxml, person, context);
             assertSame(first.getViewModel(), second.getViewModel());
             TextField firstName = (TextField) first.getRoot().lookup("#nameField");
             TextField secondName = (TextField) second.getRoot().lookup("#nameField");

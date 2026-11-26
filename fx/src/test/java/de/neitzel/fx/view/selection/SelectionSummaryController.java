@@ -2,11 +2,10 @@ package de.neitzel.fx.view.selection;
 
 import de.neitzel.fx.view.DataGridSelection;
 import de.neitzel.fx.view.ViewModelClass;
-import jakarta.inject.Singleton;
 import javafx.beans.value.ObservableValue;
 
 /** Supplies a read-only summary of the selected keys and available rows. */
-@Singleton
+
 @ViewModelClass(SelectionSummaryController.Summary.class)
 public class SelectionSummaryController {
 

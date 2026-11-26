@@ -5,7 +5,6 @@ import de.neitzel.fx.view.fixture.Host;
 import de.neitzel.fx.view.fixture.Person;
 import de.neitzel.fx.view.fixture.Visit;
 import de.neitzel.fx.view.managed.ViewController;
-import de.neitzel.injection.ApplicationContext;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,11 +31,11 @@ class ManagedViewTest {
     void sharesViewModelWithinContextAndClosesOnlyTheRequestedView() throws Exception {
         FxThread.onFx(() -> {
             var model = new Person("Ada");
-            var injection = new ApplicationContext("de.neitzel.fx.view.managed");
+            var injection = new TestViews();
             try (var models = new ViewModelContext(); var otherModels = new ViewModelContext()) {
-                var first = ViewLoader.load(fxml("managed-view.fxml"), model, injection, models);
-                var second = ViewLoader.load(fxml("managed-view.fxml"), model, injection, models);
-                var other = ViewLoader.load(fxml("managed-view.fxml"), model, injection, otherModels);
+                var first = ViewLoader.loadWithDependencies(fxml("managed-view.fxml"), model, injection, models);
+                var second = ViewLoader.loadWithDependencies(fxml("managed-view.fxml"), model, injection, models);
+                var other = ViewLoader.loadWithDependencies(fxml("managed-view.fxml"), model, injection, otherModels);
                 assertSame(first.getViewModel(), second.getViewModel());
                 assertNotSame(first.getViewModel(), other.getViewModel());
 
@@ -65,7 +64,7 @@ class ManagedViewTest {
                 assertEquals("Lin", model.getName());
                 assertEquals(1, secondController.getCloseCount());
                 assertThrows(IllegalStateException.class,
-                        () -> ViewLoader.load(fxml("managed-view.fxml"), model, injection, models));
+                        () -> ViewLoader.loadWithDependencies(fxml("managed-view.fxml"), model, injection, models));
             }
         });
     }
@@ -74,18 +73,18 @@ class ManagedViewTest {
     void failedBindingClosesControllerAndRollsBackEarlierBinding() throws Exception {
         FxThread.onFx(() -> {
             var model = new Person("Ada");
-            var injection = new ApplicationContext("de.neitzel.fx.view.managed");
+            var injection = new TestViews();
             try (var models = new ViewModelContext()) {
-                var registry = injection.getComponent(ViewController.Registry.class);
-                assertThrows(IllegalArgumentException.class,
-                        () -> ViewLoader.load(fxml("managed-invalid.fxml"), model, injection, models));
+                var registry = injection.findService(ViewController.Registry.class).orElseThrow();
+                assertThrows(IllegalStateException.class,
+                        () -> ViewLoader.loadWithDependencies(fxml("managed-invalid.fxml"), model, injection, models));
                 var abandoned = registry.getLastCreated();
                 assertEquals(1, abandoned.getCloseCount());
                 assertNull(abandoned.getInput().getOnAction());
                 abandoned.getInput().setText("Detached");
                 assertEquals("Ada", model.getName());
 
-                var loaded = ViewLoader.load(fxml("managed-view.fxml"), model, injection, models);
+                var loaded = ViewLoader.loadWithDependencies(fxml("managed-view.fxml"), model, injection, models);
                 field(loaded.getRoot(), "#name").setText("Working");
                 assertEquals("Detached", abandoned.getInput().getText());
                 assertEquals("Working", model.getName());
@@ -97,11 +96,11 @@ class ManagedViewTest {
     void opensAComponentDirectlyAndDetachesOnlyItsOwnBindings() throws Exception {
         FxThread.onFx(() -> {
             var model = new Address("Main");
-            var services = new ApplicationContext("de.neitzel.fx.view.component");
+            var services = new TestViews();
             var type = de.neitzel.fx.view.component.AddressForm.class;
             try (var models = new ViewModelContext()) {
-                var first = ViewLoader.loadComponent(type, model, services, models);
-                var second = ViewLoader.loadComponent(type, model, services, models);
+                var first = ViewLoader.loadComponentWithDependencies(type, model, services, models);
+                var second = ViewLoader.loadComponentWithDependencies(type, model, services, models);
                 assertSame(first.getViewModel(), second.getViewModel());
                 var input = field(first.getRoot(), "#streetField");
                 input.setText("Shared");
@@ -121,8 +120,8 @@ class ManagedViewTest {
             var second = new Address("Water");
             person.setAddresses(new ArrayList<>(List.of(first, second)));
             try (var models = new ViewModelContext()) {
-                var context = new ApplicationContext("de.neitzel.fx.view.component");
-                var loaded = ViewLoader.load(fxml("repeat-addresses.fxml"), person, context, models);
+                var context = new TestViews();
+                var loaded = ViewLoader.loadWithDependencies(fxml("repeat-addresses.fxml"), person, context, models);
                 var pane = (VBox) loaded.getRoot().lookup("#addressPane");
                 var detached = field(pane.getChildren().getFirst(), "#streetField");
                 var active = field(pane.getChildren().getLast(), "#streetField");
@@ -148,8 +147,8 @@ class ManagedViewTest {
             var visit = new Visit("Main", "Darmstadt");
             host.setVisits(new ArrayList<>(List.of(visit)));
             try (var models = new ViewModelContext()) {
-                var context = new ApplicationContext("de.neitzel.fx.view.component");
-                var loaded = ViewLoader.load(fxml("show-visits.fxml"), host, context, models);
+                var context = new TestViews();
+                var loaded = ViewLoader.loadWithDependencies(fxml("show-visits.fxml"), host, context, models);
                 var table = (Table) loaded.getRoot().lookup("#visitsTable");
                 var scroll = (ScrollPane) table.lookup("." + Table.SCROLL_STYLE);
                 var input = field(scroll.getContent(), "#streetField");

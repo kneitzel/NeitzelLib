@@ -3,9 +3,7 @@ package de.neitzel.fx.view;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Holds the binding lists instantiated while one View is loading.
@@ -26,11 +24,6 @@ final class LoadSession {
      * Binding lists created while this session is the current one, in document order.
      */
     private final List<BindingList> bindingLists = new ArrayList<>();
-
-    /**
-     * Component classes already built during the outermost load.
-     */
-    private final Set<Class<?>> built = new HashSet<>();
 
     private Throwable bindingFailure;
 
@@ -103,23 +96,6 @@ final class LoadSession {
             return;
         }
         stack.peek().bindingLists.add(bindingList);
-    }
-
-    /**
-     * Records the first Component of {@code type} built during this load.
-     * <p>
-     * Nested documents share the outermost session, so a second Component of the same class
-     * anywhere in the load is not the first.
-     *
-     * @param type the Component class
-     * @return {@code true} when this is the first time that class is built during the load
-     */
-    static boolean claimFirst(Class<?> type) {
-        Deque<LoadSession> stack = STACK.get();
-        if (stack == null || stack.isEmpty()) {
-            return true;
-        }
-        return stack.peekLast().built.add(type);
     }
 
     /**

@@ -1,0 +1,23 @@
+<?import de.neitzel.fx.view.BindingList?>
+<?import de.neitzel.fx.view.Column?>
+<?import de.neitzel.fx.view.DirectBinding?>
+<?import de.neitzel.fx.view.Repeat?>
+<?import de.neitzel.fx.view.Table?>
+<?import de.neitzel.fx.injection.fixture.Card?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.neitzel.fx.injection.fixture.Controller">
+    <fx:define>
+        <BindingList>
+            <DirectBinding control="caption" property="text" path="name" direction="view"
+                           converter="de.neitzel.fx.injection.fixture.FormatName"/>
+            <Repeat pane="repeat" collection="entries" component="de.neitzel.fx.injection.fixture.Card"/>
+        </BindingList>
+    </fx:define>
+    <Label fx:id="caption" accessibleText="%view.caption"/>
+    <Card fx:id="card"/>
+    <VBox fx:id="repeat"/>
+    <Table fx:id="table" collection="entries" row="de.neitzel.fx.injection.fixture.Card">
+        <Column header="Name" attribute="name"/>
+    </Table>
+</VBox>

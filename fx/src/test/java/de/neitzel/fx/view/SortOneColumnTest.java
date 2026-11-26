@@ -4,7 +4,6 @@ import de.neitzel.fx.view.component.VisitRow;
 import de.neitzel.fx.view.fixture.Host;
 import de.neitzel.fx.view.fixture.Role;
 import de.neitzel.fx.view.fixture.Visit;
-import de.neitzel.injection.ApplicationContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -148,7 +147,7 @@ class SortOneColumnTest {
     private static LoadedView load(String name, Host host) {
         URL fxml = SortOneColumnTest.class.getResource(name);
         assertNotNull(fxml);
-        return ViewLoader.load(fxml, host, new ApplicationContext("de.neitzel.fx.view.component"));
+        return TestViews.load(fxml, host, new TestViews());
     }
 
     /**

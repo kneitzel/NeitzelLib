@@ -1,12 +1,10 @@
 package de.neitzel.fx.view.chosen;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * Controller that shows a greeting supplied by an injected service.
  */
-@Singleton
+
 public class DeskController {
 
     /**
@@ -19,7 +17,7 @@ public class DeskController {
      *
      * @param greeting the service that supplies the greeting
      */
-    @Inject
+
     public DeskController(DeskGreeting greeting) {
         this.greeting = greeting;
     }

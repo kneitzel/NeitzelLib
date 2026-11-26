@@ -1,6 +1,5 @@
 package de.neitzel.fx.view;
 
-import de.neitzel.injection.ApplicationContext;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -33,7 +32,7 @@ final class DirectBindingApplier {
      * @param context   the container that creates a named Converter
      */
     static void apply(Map<String, Object> namespace, Object viewModel, DirectBinding binding,
-                      ApplicationContext context, ViewLifetime lifetime) {
+                      ViewInstances context, ViewLifetime lifetime) {
         Object control = namespace.get(binding.getControl());
         if (control == null) {
             throw new IllegalArgumentException("No control \"" + binding.getControl() + "\"");
@@ -82,7 +81,7 @@ final class DirectBindingApplier {
 
     /** Connects a named observable to the View when its accessor exposes no writable property. */
     private static void alignReadOnly(Map<String, Object> namespace, Property<?> control, Resolved resolved,
-                                      DirectBinding binding, ApplicationContext context, ViewLifetime lifetime) {
+                                      DirectBinding binding, ViewInstances context, ViewLifetime lifetime) {
         if (!"view".equals(binding.getDirection())) {
             throw new IllegalArgumentException("Read-only source for path \"" + binding.getPath()
                     + "\" requires direction=\"view\" on " + binding.getControl() + "." + binding.getProperty()
@@ -292,10 +291,10 @@ final class DirectBindingApplier {
      * @param className the Converter class name
      * @return the Converter
      */
-    private static Converter converter(ApplicationContext context, String className) {
+    private static Converter converter(ViewInstances context, String className) {
         try {
             Class<?> type = Class.forName(className);
-            Object instance = context.getComponent(type.asSubclass(Object.class));
+            Object instance = context.requiredService(type);
             if (!(instance instanceof Converter created)) {
                 throw new IllegalArgumentException("Not a converter: " + className);
             }

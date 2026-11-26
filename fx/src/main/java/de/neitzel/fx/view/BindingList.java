@@ -1,6 +1,5 @@
 package de.neitzel.fx.view;
 
-import de.neitzel.injection.ApplicationContext;
 import javafx.beans.DefaultProperty;
 import javafx.scene.Parent;
 import lombok.Getter;
@@ -42,7 +41,7 @@ public class BindingList {
      * @param context    the container that creates a named Converter
      */
     void apply(Map<String, Object> namespace, Object viewModel, Object controller, Parent root,
-               ApplicationContext context, ViewLifetime lifetime) {
+               ViewInstances context, ViewLifetime lifetime) {
         for (Object element : elements) {
             if (element instanceof DirectBinding directBinding) {
                 DirectBindingApplier.apply(namespace, viewModel, directBinding, context, lifetime);
