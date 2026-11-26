@@ -1,13 +1,13 @@
 # Your first JavaFX application
 
-This walkthrough creates a complete Maven project with one editable name and a label that follows it. It uses Java 25, JavaFX 27.0.1 and NeitzelLib 1.0.5. The source build below uses the matching release tag.
+This walkthrough creates a complete Maven project with one editable name and a label that follows it. It uses Java 25, JavaFX 27.0.1 and NeitzelLib 1.0.6. The source build below uses the matching release tag.
 
 ## Prepare the library
 
 Install a JDK 25. Use the library's Maven wrapper (3.9.11), or a separate Maven installation version 3.9.11 or newer. Check `java -version` and `./mvnw -version` before building; on macOS, select the JDK with `export JAVA_HOME=$(/usr/libexec/java_home -v 25)` if necessary.
 
 ```bash
-git clone --branch v1.0.5 https://gitea.neitzel.de/konrad/NeitzelLib.git
+git clone --branch v1.0.6 https://gitea.neitzel.de/konrad/NeitzelLib.git
 cd NeitzelLib
 ./mvnw -pl fx-example -am install
 ./mvnw -f fx-example/pom.xml javafx:run
@@ -66,7 +66,7 @@ hello-fx/
     <dependency>
       <groupId>de.neitzel.lib</groupId>
       <artifactId>fx</artifactId>
-      <version>1.0.5</version>
+      <version>1.0.6</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -190,7 +190,7 @@ For a named-module application, see the [module and lifecycle notes](architectur
 
 | Symptom | Check |
 | --- | --- |
-| Maven cannot resolve `de.neitzel.lib:fx:1.0.5` or its parent | Install the library reactor first; use the same Maven local repository for both projects. For direct downloads, see the [Maven repository setup](../../README.md#use-a-release-from-maven). |
+| Maven cannot resolve `de.neitzel.lib:fx:1.0.6` or its parent | Install the library reactor first; use the same Maven local repository for both projects. For direct downloads, see the [Maven repository setup](../../README.md#use-a-release-from-maven). |
 | `No plugin found for prefix 'javafx'` | Invoke the example POM directly, or use the complete application POM above. Do not invoke the goal on the library reactor parent. |
 | JavaFX runtime/native library failure | Check the JDK version, architecture and JavaFX dependencies actually resolved; avoid mixing native artifacts from different platforms or JavaFX versions. |
 | `getResource(...)` returns null | The FXML belongs under `src/main/resources` in the matching package; verify it was copied to `target/classes`. Resource names are case-sensitive. |

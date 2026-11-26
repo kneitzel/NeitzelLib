@@ -90,6 +90,12 @@ The [complete quick start](fx/docs/quick-start.md) includes local installation, 
 
 Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Surefire fails the build if tests fail.
 
+## Changes in 1.0.6
+
+- Load managed FXML Components independently and bind read-only observables, HTML and replaceable suggestion lists toward the view.
+- Use the new `fx-test` module for JavaFX and managed FXML tests with JUnit Jupiter.
+- Use literal DataGrid group-label keys in FXML, including file types and paths with spaces.
+
 ## Changes in 1.0.5
 
 - Show or hide DataGrid columns from the header checklist or context menu while retaining column order and widths.
@@ -105,7 +111,7 @@ Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 
 
 ## Use a release from Maven
 
-To use release `1.0.5`, add the Gitea registry to the consuming project's POM and use the release
+To use release `1.0.6`, add the Gitea registry to the consuming project's POM and use the release
 version for the module you need:
 
 ```xml
@@ -120,7 +126,7 @@ version for the module you need:
     <dependency>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>fx</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6</version>
     </dependency>
 </dependencies>
 ```

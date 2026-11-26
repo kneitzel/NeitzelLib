@@ -8,13 +8,13 @@ The worked example is the person desk in `fx-example`, package `de.neitzel.fx.ex
 
 ## Quick start
 
-Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The parent artifact is `de.neitzel.lib:neitzellib:1.0.5`. Java 25.
+Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The parent artifact is `de.neitzel.lib:neitzellib:1.0.6`. Java 25.
 
 ```xml
 <dependency>
     <groupId>de.neitzel.lib</groupId>
     <artifactId>injection</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
 </dependency>
 ```
 
@@ -175,7 +175,7 @@ It does not match qualifiers, read `@Named` values, inject by name, bind configu
 
 ## A standalone service example
 
-Injection does not require a JavaFX application or toolkit. After installing the local snapshot as described in the [complete Maven quick start](../fx/docs/quick-start.md), use the dependency above and put these public types in separate files in the same `example.services` package:
+Injection does not require a JavaFX application or toolkit. After installing the library as described in the [complete Maven quick start](../fx/docs/quick-start.md), use the dependency above and put these public types in separate files in the same `example.services` package:
 
 ```java
 package example.services;

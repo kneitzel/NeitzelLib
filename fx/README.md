@@ -58,7 +58,7 @@ These are the versions configured by this source snapshot, not a promise of comp
 | --- | --- | --- |
 | JDK | Java 25 | Select a matching JDK for compilation and launch |
 | Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
-| Library | `de.neitzel.lib:fx:1.0.5` | Use the Gitea Maven registry or install the local reactor |
+| Library | `de.neitzel.lib:fx:1.0.6` | Use the Gitea Maven registry or install the local reactor |
 | Internal modules | `fx` directly depends on `core`, `injection` and toolkit-independent `data-grid` | Resolved transitively through Maven |
 | JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
 | Saved HTML | jsoup 1.23.2, ph-css 8.2.3, TwelveMonkeys WebP 3.15.3 | Resolved transitively by `fx`; no separate application setup |
