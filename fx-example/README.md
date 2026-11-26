@@ -35,7 +35,7 @@ The first command installs the checkout’s Maven artifacts; the second runs onl
 The packaged alternative, after `package` or `install`, is:
 
 ```bash
-java -jar fx-example/target/fx-example-1.0.7.jar
+java -jar fx-example/target/fx-example-1.0.8-SNAPSHOT.jar
 ```
 
 Keep the adjacent `target/libs` directory with the JAR: the manifest refers to those copied runtime dependencies. A desktop session is required. This example has no `module-info.java`; it is a classpath application.
