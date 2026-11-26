@@ -2,7 +2,7 @@
 
 This walkthrough creates a complete Maven project with one editable name and a label that follows it. It uses Java 25, JavaFX 27.0.1 and NeitzelLib 1.0.6. The source build below uses the matching release tag.
 
-For the separated development artifacts and the managed loader, see
+For the separated FX runtime introduced in 1.0.7 and its managed loader, see
 [FX loading](../README.md#load-a-view) and the
 [optional Neitzel adapter](../../fx-injection/README.md).
 

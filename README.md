@@ -62,7 +62,7 @@ The extension keeps JavaFX running between tests, isolates the class with JUnit'
 
 ### fx-injection
 
-Optional adapter in the separated `1.0.7-SNAPSHOT` for applications using Neitzel's `ApplicationContext`.
+Optional adapter since FX 1.0.7 for applications using Neitzel's `ApplicationContext`.
 It brings in `fx` and `injection`. See [adapter setup and migration](fx-injection/README.md).
 
 ### injection
@@ -95,7 +95,7 @@ The [complete quick start](fx/docs/quick-start.md) includes local installation, 
 
 Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Surefire fails the build if tests fail.
 
-## Changes in 1.0.7-SNAPSHOT
+## Changes in 1.0.7
 
 - Use `fx` and `fx-test` with an application-supplied `ViewDependencies` adapter.
 - Add `fx-injection` to keep using Neitzel's `ApplicationContext` from the new loaders. See [migration](fx-injection/README.md#migrate-an-existing-fx-application).
@@ -121,7 +121,7 @@ Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 
 
 ## Use a release from Maven
 
-To use release `1.0.6`, add the Gitea registry to the consuming project's POM and use the release
+To use release `1.0.7`, add the Gitea registry to the consuming project's POM and use the release
 version for the module you need:
 
 ```xml
@@ -136,7 +136,7 @@ version for the module you need:
     <dependency>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>fx</artifactId>
-        <version>1.0.6</version>
+        <version>1.0.7</version>
     </dependency>
 </dependencies>
 ```

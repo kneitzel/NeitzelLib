@@ -1,15 +1,15 @@
 # Neitzel DI adapter for FX
 
-The adapter is available in the separated `1.0.7-SNAPSHOT` development
-checkout. Install it with `./mvnw -pl fx-injection -am install` from the
-NeitzelLib root, using JDK 25 and the same local Maven repository as your
-application.
+The adapter is available from NeitzelLib 1.0.7. See the
+[Maven repository setup](../README.md#use-a-release-from-maven). For a
+local source build, run `./mvnw -pl fx-injection -am install` from the
+NeitzelLib root with JDK 25 and the application’s Maven repository.
 
 ```xml
 <dependency>
     <groupId>de.neitzel.lib</groupId>
     <artifactId>fx-injection</artifactId>
-    <version>1.0.7-SNAPSHOT</version>
+    <version>1.0.7</version>
 </dependency>
 ```
 

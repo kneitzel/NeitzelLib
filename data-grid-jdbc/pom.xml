@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-<modelVersion>4.0.0</modelVersion><parent><groupId>de.neitzel.lib</groupId><artifactId>neitzellib</artifactId><version>1.0.7-SNAPSHOT</version></parent>
+<modelVersion>4.0.0</modelVersion><parent><groupId>de.neitzel.lib</groupId><artifactId>neitzellib</artifactId><version>1.0.7</version></parent>
 <artifactId>data-grid-jdbc</artifactId><description>Optional mapped JDBC grid source</description>
 <dependencies><dependency><groupId>de.neitzel.lib</groupId><artifactId>data-grid</artifactId><version>${project.version}</version></dependency>
 <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>${h2.version}</version><scope>test</scope></dependency></dependencies></project>

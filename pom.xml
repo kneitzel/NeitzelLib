@@ -6,7 +6,7 @@
 
     <groupId>de.neitzel.lib</groupId>
     <artifactId>neitzellib</artifactId>
-    <version>1.0.7-SNAPSHOT</version>
+    <version>1.0.7</version>
 
     <packaging>pom</packaging>
 
