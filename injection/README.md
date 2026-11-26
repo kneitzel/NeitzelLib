@@ -8,7 +8,7 @@ The worked example is the person desk in `fx-example`, package `de.neitzel.fx.ex
 
 ## Quick start
 
-Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The parent artifact is `de.neitzel.lib:neitzellib:1.0.6`. Java 25.
+Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.1 (plus shared logging dependencies). The published example below uses `de.neitzel.lib:injection:1.0.6` and Java 25. A source build uses the version declared in the checkout's parent POM.
 
 ```xml
 <dependency>
@@ -20,13 +20,20 @@ Depend on the module. It brings Reflections 0.10.2 and `jakarta.inject-api` 2.0.
 
 Mark a class with `jakarta.inject.Singleton` or `jakarta.inject.Named`, and take dependencies with `jakarta.inject.Inject`. Open a context on the package that contains those classes.
 
-The desk does it this way. `DeskApp` names the scan root and opens the context. `ViewLoader` then asks that context for the controller, the forms, and the converters. `AgeSuffix` is a `@Named` service. `AgeConverter` takes that service in its constructor.
+In the current Person Desk, `DeskApp` names the scan root and its
+`dependencies(person)` method creates the context and configures the optional
+FX adapter. That adapter supplies the Controller, forms and Converters.
+`AgeSuffix` is a `@Named` service that `AgeConverter` receives in its constructor.
+See the [FX adapter setup](../fx-injection/README.md).
 
 ```java
-ApplicationContext context = new ApplicationContext(DeskApp.class);
-LoadedView loaded = ViewLoader.load(
-        DeskController.class.getResource("Desk.fxml"), DeskApp.sample(), context);
+var person = DeskApp.sample();
+var models = new ViewModelContext();
+var loaded = ViewLoader.loadWithDependencies(
+        DeskController.class.getResource("Desk.fxml"), person, DeskApp.dependencies(person), models);
 ```
+
+The example closes the Model context when its window is hidden.
 
 `DeskApp.start` is that load, then the scene. The class carries `@Config(basePackage = "de.neitzel.fx.example")`.
 
@@ -74,13 +81,13 @@ The desk uses all three places:
 | Place | Desk class | What is injected |
 | --- | --- | --- |
 | Constructor | `AgeConverter` | `AgeSuffix` |
-| Constructor | `VisitRow` | `DeskController` |
+| Constructor | `VisitRow` | `VisitActions` |
 | Field | `StreetConverter` | `StreetPolicy`, on a private field, after the no-arg constructor |
 | Setter | `AddressForm.setHeading` | `FormHeading` |
 
 `AddressForm.initialize` runs later, when FXML loads the form, and copies `heading.text()` onto the label. The setter has already run by then. The home form shows the word `Address`.
 
-`VisitRow` is created again for every table row. Each row receives the same `DeskController`, because the controller is a singleton and dependencies are loaded with `getComponent`.
+Each table row has a fresh `VisitRow`. The rows receive the shared `VisitActions` service configured for the current Person.
 
 ## Ask for an instance
 
@@ -92,9 +99,9 @@ public <T> void addSingleton(Class<? extends T> type, T instance)
 
 `getComponent` returns the cached instance. The first call creates it and stores it. Later calls return that object.
 
-`createComponent` always builds a new instance and does not store it. Dependencies of that instance still come from `getComponent`, so they are the shared singletons. `fx` uses this for a second component of the same class in one load, and for every repeated row and table row. The home `AddressForm` is the cached instance. Each `VisitForm` and each `VisitRow` is a new instance, and each of them still sees the one `DeskController` and the one `StreetConverter`.
+`createComponent` always builds a new instance and does not store it. Dependencies of that instance still come from `getComponent`, so they are the shared singletons. The optional FX adapter calls `createComponent` for every Controller and Component, including the home form and each Repeat or Table row. It resolves shared Converters and the optional Localizer with `getComponent`.
 
-A type the context does not know produces `IllegalArgumentException` with the message `No component found for type:` and the class name. A failure while calling the constructor or writing a member is wrapped as `RuntimeException` whose message starts with `Fehler beim Erstellen der Instanz für`, with the original failure as the cause.
+An unknown type produces `IllegalArgumentException` with the message `No component found for type:` and the class name. In the separated development build, the concrete exception is `MissingComponentException`, a subclass of `IllegalArgumentException` that exposes the missing type. A failure while calling the constructor or writing a member is wrapped as `RuntimeException` whose message starts with `Fehler beim Erstellen der Instanz für`, with the original failure as the cause.
 
 The context is a plain map. It is not safe to share across threads without external locking. There is no shutdown and no list-all method.
 
@@ -162,7 +169,7 @@ A class with a single `String` constructor and no `@Inject` takes that construct
 
 `createComponent` on a manually added type has no injection constructor and fails.
 
-The desk does not call `addSingleton`. Its services are the scanned classes.
+The desk uses scanned services. Its bootstrap configures the shared `VisitActions` with the current Person before loading FXML.
 
 ## Scope
 

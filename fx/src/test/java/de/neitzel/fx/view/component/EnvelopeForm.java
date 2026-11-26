@@ -1,6 +1,5 @@
 package de.neitzel.fx.view.component;
 
-import jakarta.inject.Singleton;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.layout.VBox;
@@ -8,7 +7,7 @@ import javafx.scene.layout.VBox;
 /**
  * Component that shows one envelope and the address component inside it.
  */
-@Singleton
+
 public class EnvelopeForm extends VBox {
 
     /**

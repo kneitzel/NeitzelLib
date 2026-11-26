@@ -1,13 +1,11 @@
 package de.neitzel.fx.view.fixture;
 
 import de.neitzel.fx.view.Converter;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 /**
  * Converts an age using the prefix from {@link AgeUnit}.
  */
-@Singleton
+
 public class PrefixedAgeConverter implements Converter {
 
     /**
@@ -20,7 +18,7 @@ public class PrefixedAgeConverter implements Converter {
      *
      * @param ageUnit the service that supplies the prefix
      */
-    @Inject
+
     public PrefixedAgeConverter(AgeUnit ageUnit) {
         this.ageUnit = ageUnit;
     }

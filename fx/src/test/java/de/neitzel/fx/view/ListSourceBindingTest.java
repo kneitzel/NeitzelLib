@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.control.AutoCompleteTextField;
-import de.neitzel.injection.ApplicationContext;
 import java.util.Map;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleListProperty;
@@ -31,7 +30,8 @@ class ListSourceBindingTest {
             binding.setPath("tags");
             binding.setDirection("view");
             try (var models = new ViewModelContext(); var lifetime = new ViewLifetime(models)) {
-                DirectBindingApplier.apply(Map.of("combo", combo), model, binding, new ApplicationContext(Tags.class), lifetime);
+                DirectBindingApplier.apply(Map.of("combo", combo), model, binding,
+                        new ViewInstances(new TestViews()), lifetime);
                 assertSame(model.tags.get(), combo.getItems());
                 var replacement = FXCollections.observableArrayList("First");
                 model.tags.set(replacement);

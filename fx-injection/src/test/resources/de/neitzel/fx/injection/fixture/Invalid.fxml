@@ -1,0 +1,7 @@
+<?import de.neitzel.fx.injection.fixture.Card?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.neitzel.fx.injection.fixture.Controller">
+    <Label fx:id="caption"/>
+    <Card unknownProperty="fails after acquisition"/>
+</VBox>

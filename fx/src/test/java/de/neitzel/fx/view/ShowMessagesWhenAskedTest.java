@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -60,8 +59,8 @@ class ShowMessagesWhenAskedTest {
             Person person = new Person("Ada");
             URL fxml = ShowMessagesWhenAskedTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Parent root = loaded.getRoot();
             Set<Node> nodesBefore = new HashSet<>(root.lookupAll("*"));
             Set<Window> windowsBefore = snapshotWindows();
@@ -82,8 +81,8 @@ class ShowMessagesWhenAskedTest {
             Person person = new Person("Ada");
             URL fxml = ShowMessagesWhenAskedTest.class.getResource("latest-message.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label messageLabel = (Label) loaded.getRoot().lookup("#messageLabel");
             loaded.getViewModel().addMessage(
                     new Message(Message.Severity.INFO, "saved the person", "form"));
@@ -103,8 +102,8 @@ class ShowMessagesWhenAskedTest {
             Person person = new Person("Ada");
             URL fxml = ShowMessagesWhenAskedTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Set<Window> windowsBefore = snapshotWindows();
             MessagePopup.showNewMessages(loaded.getViewModel());
             assertEquals(windowsBefore, snapshotWindows());
@@ -129,8 +128,8 @@ class ShowMessagesWhenAskedTest {
             person.setAge(42);
             URL fxml = ShowMessagesWhenAskedTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             Set<Window> windowsBefore = snapshotWindows();
             MessagePopup.showNewMessages(loaded.getViewModel());

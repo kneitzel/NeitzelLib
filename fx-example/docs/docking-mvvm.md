@@ -41,8 +41,9 @@ The application adapter owns its change listener and derived bindings. Its
 `onClosed` and `onDiscarded` hooks release those resources explicitly. Moves,
 collapse and veto do not run those hooks. A rejected factory-created editor is
 discarded; rejection of a directly supplied Dockable leaves cleanup to its caller.
-This does not dispose the LoadedView or evict the runtime's strong Model-to-ViewModel
-identity cache. See the [MVVM lifetime contract](../../fx/docs/architecture.md).
+The same hooks close the editor's `ViewModelContext`, which closes the
+`LoadedView` and clears its Model-to-ViewModel registrations. See the
+[MVVM lifetime contract](../../fx/docs/architecture.md).
 
 `MvvmDockingTest` loads the actual example FXML and checks model/property/control
 edits before and after moves, object identity, bar ownership, global toolbar

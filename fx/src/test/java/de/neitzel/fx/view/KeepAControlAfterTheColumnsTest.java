@@ -3,7 +3,6 @@ package de.neitzel.fx.view;
 import de.neitzel.fx.view.component.ActionRow;
 import de.neitzel.fx.view.fixture.Host;
 import de.neitzel.fx.view.fixture.Visit;
-import de.neitzel.injection.ApplicationContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
@@ -67,7 +66,7 @@ class KeepAControlAfterTheColumnsTest {
         assertNotNull(fxml);
         Host host = new Host();
         host.setVisits(new ArrayList<>(List.of(new Visit("Main", "Berlin"))));
-        LoadedView loaded = ViewLoader.load(fxml, host, new ApplicationContext("de.neitzel.fx.view.component"));
+        LoadedView loaded = TestViews.load(fxml, host, new TestViews());
         return (Table) loaded.getRoot().lookup("#visitsTable");
     }
 

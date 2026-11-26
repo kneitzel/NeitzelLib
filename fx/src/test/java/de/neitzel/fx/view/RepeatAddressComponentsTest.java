@@ -3,7 +3,6 @@ package de.neitzel.fx.view;
 import de.neitzel.fx.view.component.AddressForm;
 import de.neitzel.fx.view.fixture.Address;
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.ComboBox;
@@ -61,8 +60,8 @@ class RepeatAddressComponentsTest {
             person.setAddresses(new ArrayList<>(List.of(main, oak)));
             URL fxml = RepeatAddressComponentsTest.class.getResource("plain-view.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             assertInstanceOf(ObservableList.class, loaded.property("addresses").getValue());
             @SuppressWarnings("unchecked")
             ObservableList<Address> addresses = (ObservableList<Address>) loaded.property("addresses").getValue();
@@ -88,17 +87,13 @@ class RepeatAddressComponentsTest {
             person.setAddresses(new ArrayList<>(List.of(main, oak)));
             URL fxml = RepeatAddressComponentsTest.class.getResource("repeat-addresses.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            AddressForm cached = context.getComponent(AddressForm.class);
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             VBox pane = (VBox) loaded.getRoot().lookup("#addressPane");
             assertEquals(2, pane.getChildren().size());
             AddressForm first = (AddressForm) pane.getChildren().get(0);
             AddressForm second = (AddressForm) pane.getChildren().get(1);
             assertNotSame(first, second);
-            assertNotSame(cached, first);
-            assertNotSame(cached, second);
-            assertSame(cached, context.getComponent(AddressForm.class));
             assertSame(main, first.getModel());
             assertSame(oak, second.getModel());
             assertEquals("Main", ((TextField) first.lookup("#streetField")).getText());
@@ -120,8 +115,8 @@ class RepeatAddressComponentsTest {
             person.setAddresses(new ArrayList<>(List.of(main, oak)));
             URL fxml = RepeatAddressComponentsTest.class.getResource("repeat-addresses.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             VBox pane = (VBox) loaded.getRoot().lookup("#addressPane");
             @SuppressWarnings("unchecked")
             ObservableList<Address> addresses = (ObservableList<Address>) loaded.property("addresses").getValue();
@@ -159,8 +154,8 @@ class RepeatAddressComponentsTest {
             person.setSelectedAddress(oak);
             URL fxml = RepeatAddressComponentsTest.class.getResource("repeat-addresses.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             @SuppressWarnings("unchecked")
             ComboBox<Address> selection = (ComboBox<Address>) loaded.getRoot().lookup("#selection");
             assertSame(oak, selection.getValue());
@@ -192,15 +187,13 @@ class RepeatAddressComponentsTest {
             person.setWork(work);
             URL fxml = RepeatAddressComponentsTest.class.getResource("two-address-forms.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            AddressForm cached = context.getComponent(AddressForm.class);
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             AddressForm homeForm = (AddressForm) loaded.getRoot().lookup("#homeForm");
             AddressForm workForm = (AddressForm) loaded.getRoot().lookup("#workForm");
             assertNotNull(homeForm);
             assertNotNull(workForm);
             assertNotSame(homeForm, workForm);
-            assertSame(cached, context.getComponent(AddressForm.class));
             assertSame(home, homeForm.getModel());
             assertSame(work, workForm.getModel());
             assertEquals("Main", ((TextField) homeForm.lookup("#streetField")).getText());

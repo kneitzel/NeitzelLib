@@ -2,7 +2,6 @@ package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Address;
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.beans.property.Property;
 import javafx.scene.control.Label;
@@ -51,8 +50,8 @@ class ChooseControllerAndViewModelTest {
             Person person = new Person("Ada");
             URL fxml = ChooseControllerAndViewModelTest.class.getResource("handed-name.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label handedLabel = (Label) loaded.getRoot().lookup("#handedLabel");
             assertEquals("handed-Ada", handedLabel.getText());
         });
@@ -67,8 +66,8 @@ class ChooseControllerAndViewModelTest {
             Person person = new Person("Ada");
             URL fxml = ChooseControllerAndViewModelTest.class.getResource("desk-greeting.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label deskLabel = (Label) loaded.getRoot().lookup("#deskLabel");
             assertEquals("from-the-desk", deskLabel.getText());
         });
@@ -83,8 +82,8 @@ class ChooseControllerAndViewModelTest {
             Person person = new Person("Ada");
             URL fxml = ChooseControllerAndViewModelTest.class.getResource("titled-name.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label titleLabel = (Label) loaded.getRoot().lookup("#titleLabel");
             assertEquals("titled-Ada", titleLabel.getText());
             @SuppressWarnings("unchecked")
@@ -105,8 +104,8 @@ class ChooseControllerAndViewModelTest {
             Person person = new Person("Ada");
             URL fxml = ChooseControllerAndViewModelTest.class.getResource("badge-name.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label badgeLabel = (Label) loaded.getRoot().lookup("#badgeLabel");
             assertEquals("badge-Ada", badgeLabel.getText());
             @SuppressWarnings("unchecked")
@@ -128,8 +127,8 @@ class ChooseControllerAndViewModelTest {
             person.setAddress(new Address("Main"));
             URL fxml = ChooseControllerAndViewModelTest.class.getResource("caption-address.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label captionLabel = (Label) loaded.getRoot().lookup("#captionLabel");
             assertEquals("caption-Main", captionLabel.getText());
         });
@@ -146,12 +145,12 @@ class ChooseControllerAndViewModelTest {
             URL badge = ChooseControllerAndViewModelTest.class.getResource("badge-name.fxml");
             assertNotNull(titled);
             assertNotNull(badge);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView first = ViewLoader.load(titled, person, context);
+            TestViews context = new TestViews();
+            LoadedView first = TestViews.load(titled, person, context);
             Label titleLabel = (Label) first.getRoot().lookup("#titleLabel");
             assertEquals("titled-Ada", titleLabel.getText());
-            IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> ViewLoader.load(badge, person, context));
+            IllegalStateException failure = assertThrows(IllegalStateException.class,
+                    () -> TestViews.load(badge, person, context));
             assertTrue(failure.getMessage().contains("TitledViewModel"), failure.getMessage());
             assertTrue(failure.getMessage().contains("BadgeViewModel"), failure.getMessage());
             assertEquals("titled-Ada", titleLabel.getText());
@@ -169,9 +168,9 @@ class ChooseControllerAndViewModelTest {
             URL plain = ChooseControllerAndViewModelTest.class.getResource("name-both-ways.fxml");
             assertNotNull(named);
             assertNotNull(plain);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.chosen");
-            LoadedView first = ViewLoader.load(named, person, context);
-            LoadedView second = ViewLoader.load(plain, person, context);
+            TestViews context = new TestViews();
+            LoadedView first = TestViews.load(named, person, context);
+            LoadedView second = TestViews.load(plain, person, context);
             TextField firstName = (TextField) first.getRoot().lookup("#nameField");
             TextField secondName = (TextField) second.getRoot().lookup("#nameField");
             assertEquals("Ada", firstName.getText());

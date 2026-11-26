@@ -1,12 +1,11 @@
 package de.neitzel.fx.view.fixture;
 
 import de.neitzel.fx.view.Converter;
-import jakarta.inject.Singleton;
 
 /**
  * Accepts a street written as {@code ok } plus the street, and rejects anything else.
  */
-@Singleton
+
 public class CheckedStreetConverter implements Converter {
 
     /**

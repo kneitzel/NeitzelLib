@@ -4,19 +4,28 @@ import de.neitzel.fx.example.model.Address;
 import de.neitzel.fx.example.model.Note;
 import de.neitzel.fx.example.model.Person;
 import de.neitzel.fx.example.model.Role;
+import de.neitzel.fx.example.view.AddressForm;
 import de.neitzel.fx.example.view.DeskController;
+import de.neitzel.fx.example.view.NoteForm;
+import de.neitzel.fx.example.view.VisitActions;
+import de.neitzel.fx.example.view.VisitForm;
+import de.neitzel.fx.example.view.VisitRow;
+import de.neitzel.fx.injection.NeitzelViewDependencies;
 import de.neitzel.fx.view.LoadedView;
 import de.neitzel.fx.view.MessagePopup;
 import de.neitzel.fx.view.ViewLoader;
+import de.neitzel.fx.view.ViewModelContext;
 import de.neitzel.injection.ApplicationContext;
 import de.neitzel.injection.annotation.Config;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Opens the person desk for one ordinary {@link Person}.
@@ -60,6 +69,14 @@ public class DeskApp extends Application {
         return person;
     }
 
+    /** Configures one Model and shared service context for the app or a preview. */
+    public static NeitzelViewDependencies dependencies(Person person) {
+        var context = new ApplicationContext(DeskApp.class);
+        context.getComponent(VisitActions.class).setPerson(person);
+        return new NeitzelViewDependencies(context,
+                Set.of(AddressForm.class, NoteForm.class, VisitForm.class, VisitRow.class));
+    }
+
     /**
      * Launches the desk.
      *
@@ -76,9 +93,11 @@ public class DeskApp extends Application {
      */
     @Override
     public void start(Stage stage) {
-        ApplicationContext context = new ApplicationContext(DeskApp.class);
         Person person = sample();
-        LoadedView loaded = ViewLoader.load(DeskController.class.getResource("Desk.fxml"), person, context);
+        var models = new ViewModelContext();
+        LoadedView loaded = ViewLoader.loadWithDependencies(
+                DeskController.class.getResource("Desk.fxml"), person, dependencies(person), models);
+        stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> models.close());
         MessagePopup.showNewMessages(loaded.getViewModel());
         stage.setTitle("fx example");
         stage.setScene(new Scene(loaded.getRoot()));

@@ -3,7 +3,6 @@ package de.neitzel.fx.view.readable;
 import de.neitzel.fx.view.Converter;
 import de.neitzel.fx.view.ViewModel;
 import de.neitzel.fx.view.ViewModelClass;
-import jakarta.inject.Singleton;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ReadOnlyStringProperty;
@@ -14,7 +13,7 @@ import javafx.collections.ObservableList;
 import lombok.Getter;
 
 /** Controller and presentation state for the read-only DirectBinding fixture. */
-@Singleton
+
 @ViewModelClass(ReadableSourcesController.Sources.class)
 public class ReadableSourcesController {
 
@@ -52,7 +51,7 @@ public class ReadableSourcesController {
     }
 
     /** A display-only converter, with an invalid title for testing Message reporting. */
-    @Singleton
+
     public static class Caption implements Converter {
         @Override
         public Object toControlValue(Object value) {

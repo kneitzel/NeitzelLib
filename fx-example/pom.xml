@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>neitzellib</artifactId>
-        <version>1.0.7-SNAPSHOT</version>
+        <version>1.0.7</version>
     </parent>
 
     <artifactId>fx-example</artifactId>
@@ -31,7 +31,7 @@
         <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>${h2.version}</version></dependency>
         <dependency>
             <groupId>de.neitzel.lib</groupId>
-            <artifactId>fx</artifactId>
+            <artifactId>fx-injection</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

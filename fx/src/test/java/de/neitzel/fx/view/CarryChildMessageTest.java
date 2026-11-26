@@ -3,7 +3,6 @@ package de.neitzel.fx.view;
 import de.neitzel.fx.view.fixture.Address;
 import de.neitzel.fx.view.fixture.Household;
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.beans.property.Property;
 import javafx.scene.control.TextField;
@@ -55,8 +54,8 @@ class CarryChildMessageTest {
             person.setAddress(new Address("Main"));
             URL fxml = CarryChildMessageTest.class.getResource("name-both-ways.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             ViewModel personModel = loaded.getViewModel();
             ViewModel addressModel = (ViewModel) personModel.property("address").getValue();
             addressModel.addMessage(new Message(Message.Severity.INFO, "lane is closed", "street"));
@@ -85,8 +84,8 @@ class CarryChildMessageTest {
             household.setPerson(person);
             URL fxml = CarryChildMessageTest.class.getResource("plain-view.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, household, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, household, context);
             ViewModel householdModel = loaded.getViewModel();
             ViewModel personModel = (ViewModel) householdModel.property("person").getValue();
             ViewModel addressModel = (ViewModel) personModel.property("address").getValue();
@@ -112,8 +111,8 @@ class CarryChildMessageTest {
             person.setAddress(new Address("Main"));
             URL fxml = CarryChildMessageTest.class.getResource("address-street-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             streetField.setText("nope");
 
@@ -145,8 +144,8 @@ class CarryChildMessageTest {
             person.setAddress(new Address("Main"));
             URL fxml = CarryChildMessageTest.class.getResource("address-street-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             streetField.setText("nope");
             streetField.setText("ok Oak");
@@ -173,8 +172,8 @@ class CarryChildMessageTest {
             household.setPerson(person);
             URL fxml = CarryChildMessageTest.class.getResource("household-street-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, household, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, household, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             streetField.setText("nope");
 
@@ -217,8 +216,8 @@ class CarryChildMessageTest {
             person.setAddress(new Address("Main"));
             URL fxml = CarryChildMessageTest.class.getResource("plain-view.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             ViewModel personModel = loaded.getViewModel();
             ViewModel addressModel = (ViewModel) personModel.property("address").getValue();
             addressModel.addMessage(new Message(Message.Severity.INFO, "lane is closed", "street"));
@@ -235,7 +234,7 @@ class CarryChildMessageTest {
             assertEquals("lane is closed", addressModel.getMessages().get(0).getText());
 
             Address moved = new Address("Oak");
-            LoadedView movedView = ViewLoader.load(fxml, moved, context);
+            LoadedView movedView = TestViews.load(fxml, moved, context);
             movedView.getViewModel().addMessage(new Message(Message.Severity.WARN, "under repair", "street"));
             address.setValue(movedView.getViewModel());
 
@@ -259,8 +258,8 @@ class CarryChildMessageTest {
             person.setAddress(new Address("Main"));
             URL fxml = CarryChildMessageTest.class.getResource("address-street-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             ViewModel personModel = loaded.getViewModel();
             personModel.addMessage(new Message(Message.Severity.INFO, "keep me", "form"));
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
@@ -304,8 +303,8 @@ class CarryChildMessageTest {
             household.setPerson(person);
             URL fxml = CarryChildMessageTest.class.getResource("household-street-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, household, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, household, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             streetField.setText("nope");
             streetField.setText("ok Oak");
@@ -335,8 +334,8 @@ class CarryChildMessageTest {
             person.setWork(shared);
             URL fxml = CarryChildMessageTest.class.getResource("plain-view.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             ViewModel personModel = loaded.getViewModel();
             ViewModel homeModel = (ViewModel) personModel.property("home").getValue();
             homeModel.addMessage(new Message(Message.Severity.INFO, "lane is closed", "street"));

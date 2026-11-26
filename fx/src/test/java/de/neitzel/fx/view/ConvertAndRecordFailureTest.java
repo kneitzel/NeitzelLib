@@ -1,7 +1,6 @@
 package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.beans.property.IntegerProperty;
 import javafx.scene.control.Label;
@@ -56,8 +55,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             assertEquals("years:42", ageField.getText());
         });
@@ -73,8 +72,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ageField.setText("years:11");
             assertEquals(11, person.getAge());
@@ -91,8 +90,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-view-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             Label ageLabel = (Label) loaded.getRoot().lookup("#ageLabel");
             assertEquals("shown 42", ageLabel.getText());
             ageLabel.setText("shown 99");
@@ -110,8 +109,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-and-view-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             Label ageLabel = (Label) loaded.getRoot().lookup("#ageLabel");
             assertEquals("shown 42", ageLabel.getText());
@@ -131,8 +130,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-model-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             assertEquals("years:42", ageField.getText());
             ((IntegerProperty) loaded.property("age")).set(7);
@@ -154,8 +153,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ageField.setText("nope");
             assertEquals(Integer.valueOf(42), person.getAge());
@@ -180,8 +179,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ageField.setText("nope");
             ViewModel viewModel = loaded.getViewModel();
@@ -205,8 +204,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ageField.setText("nope");
             ageField.setText("years:11");
@@ -227,8 +226,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ViewModel viewModel = loaded.getViewModel();
             ageField.setText("nope");
@@ -255,8 +254,8 @@ class ConvertAndRecordFailureTest {
             person.setAge(42);
             URL fxml = ConvertAndRecordFailureTest.class.getResource("age-both-converted.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.fixture");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             TextField ageField = (TextField) loaded.getRoot().lookup("#ageField");
             ViewModel viewModel = loaded.getViewModel();
             String log = captureErr(() -> {

@@ -48,9 +48,6 @@ final class CommandBindingApplier {
 
     static void apply(Map<String, Object> namespace, Object viewModel, CommandBinding binding,
                       ViewLifetime lifetime) {
-        if (!lifetime.managed()) {
-            throw invalid(namespace, binding, "CommandBinding requires a ViewModelContext");
-        }
         var target = target(namespace, binding);
         var command = command(namespace, binding, viewModel);
         try {

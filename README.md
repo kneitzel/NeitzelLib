@@ -56,17 +56,22 @@ JavaFX docking, saved HTML/SingleFile viewing, standalone bars and optional MVVM
 
 ### fx-test
 
-JavaFX fixtures for JUnit Jupiter. Add `de.neitzel.lib:fx-test` at the same version as `fx` with Maven scope `test`. Annotate the class with `@FxTest` and accept an `FxFixture` parameter in each test. Use `fx.run` for actions, `fx.call` for values and `fx.await("dialog closed", () -> !dialog.isShowing())` to wait from the test thread. `fx.load(fxml, model, services)` uses the production ViewLoader and a fresh ViewModelContext per test.
+JavaFX fixtures for JUnit Jupiter. Add `de.neitzel.lib:fx-test` at the same version as `fx` with Maven scope `test`. Annotate the class with `@FxTest` and accept an `FxFixture` parameter in each test. Use `fx.run` for actions, `fx.call` for values and `fx.await("dialog closed", () -> !dialog.isShowing())` to wait from the test thread. `fx.loadWithDependencies(fxml, model, dependencies)` uses the production ViewLoader and a fresh ViewModelContext per test.
 
 The extension keeps JavaFX running between tests, isolates the class with JUnit's `@Isolated`, hides windows opened by each test, closes its view context and reports unhandled FX callbacks at teardown. Complete background work before the test ends. Select the backend in the test JVM before toolkit startup, for example `-Dglass.platform=Headless`.
 
+### fx-injection
+
+Optional adapter since FX 1.0.7 for applications using Neitzel's `ApplicationContext`.
+It brings in `fx` and `injection`. See [adapter setup and migration](fx-injection/README.md).
+
 ### injection
 
-Package scanner and type-based container used by `fx`. See [injection/README.md](injection/README.md).
+Standalone package scanner and type-based container. See [injection/README.md](injection/README.md).
 
 ### fx-example
 
-Person desk that shows how to use `fx` and `injection`. Build with `./mvnw -pl fx-example -am install`, then run `./mvnw -f fx-example/pom.xml javafx:run`. See [fx-example/README.md](fx-example/README.md).
+Person desk that shows how to use FX with `fx-injection`. Build with `./mvnw -pl fx-example -am install`, then run `./mvnw -f fx-example/pom.xml javafx:run`. See [fx-example/README.md](fx-example/README.md).
 
 ### gson
 
@@ -90,6 +95,11 @@ The [complete quick start](fx/docs/quick-start.md) includes local installation, 
 
 Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 3.9.11 or later. Surefire fails the build if tests fail.
 
+## Changes in 1.0.7
+
+- Use `fx` and `fx-test` with an application-supplied `ViewDependencies` adapter.
+- Add `fx-injection` to keep using Neitzel's `ApplicationContext` from the new loaders. See [migration](fx-injection/README.md#migrate-an-existing-fx-application).
+
 ## Changes in 1.0.6
 
 - Load managed FXML Components independently and bind read-only observables, HTML and replaceable suggestion lists toward the view.
@@ -111,7 +121,7 @@ Build with Java 25. Maven wrapper version is 3.9.11; the project requires Maven 
 
 ## Use a release from Maven
 
-To use release `1.0.6`, add the Gitea registry to the consuming project's POM and use the release
+To use release `1.0.7`, add the Gitea registry to the consuming project's POM and use the release
 version for the module you need:
 
 ```xml
@@ -126,7 +136,7 @@ version for the module you need:
     <dependency>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>fx</artifactId>
-        <version>1.0.6</version>
+        <version>1.0.7</version>
     </dependency>
 </dependencies>
 ```

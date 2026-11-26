@@ -7,7 +7,7 @@
     <parent>
         <groupId>de.neitzel.lib</groupId>
         <artifactId>neitzellib</artifactId>
-        <version>1.0.7-SNAPSHOT</version>
+        <version>1.0.7</version>
     </parent>
 
     <artifactId>fx</artifactId>
@@ -70,11 +70,6 @@
         <dependency>
             <groupId>de.neitzel.lib</groupId>
             <artifactId>core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>de.neitzel.lib</groupId>
-            <artifactId>injection</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

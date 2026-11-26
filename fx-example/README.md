@@ -1,6 +1,6 @@
 # Person desk reference application
 
-This runnable application demonstrates [NeitzelLib FX](../fx/README.md) and [injection](../injection/README.md) together. It edits one Person with a home Address, nested Note, visit list, selected visit and tags. Use it as a reference for wiring a real screen; the [minimal quick start](../fx/docs/quick-start.md) is the smaller starting point for a new project.
+This runnable application demonstrates [NeitzelLib FX](../fx/README.md) with the [optional Neitzel adapter](../fx-injection/README.md). It edits one Person with a home Address, nested Note, visit list, selected visit and tags. Use it as a reference for wiring a real screen; the [minimal quick start](../fx/docs/quick-start.md) is the smaller starting point for a new project.
 
 Separate Java/FXML launchers demonstrate [standalone bars](../fx/docs/bars.md)
 and [docking](../fx/docs/docking.md) without initializing MVVM or injection.
@@ -30,12 +30,12 @@ From the NeitzelLib root with JDK 25:
 ./mvnw -f fx-example/pom.xml javafx:run
 ```
 
-The first command installs local `1.0.7-SNAPSHOT` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
+The first command installs the checkout’s Maven artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
 
 The packaged alternative, after `package` or `install`, is:
 
 ```bash
-java -jar fx-example/target/fx-example-1.0.7-SNAPSHOT.jar
+java -jar fx-example/target/fx-example-1.0.7.jar
 ```
 
 Keep the adjacent `target/libs` directory with the JAR: the manifest refers to those copied runtime dependencies. A desktop session is required. This example has no `module-info.java`; it is a classpath application.
@@ -47,7 +47,7 @@ Paths below are relative to this module. Java sources share `src/main/java/de/ne
 | File/type | Responsibility |
 | --- | --- |
 | `Main` | Plain Java launcher calling `Application.launch` |
-| `DeskApp` | Scan configuration, fresh sample Model, ViewLoader, Scene and message popup registration |
+| `DeskApp` | Scan configuration, sample Model, Component registrations in `DeskApp.dependencies(person)`, ViewLoader and window-owned Model context |
 | `model/Person`, `Address`, `Note`, `Role` | JavaBean data and enum; no JavaFX properties required |
 | `view/DeskController` and `Desk.fxml` | Screen handlers, computed greeting, controls and binding declarations |
 | `view/PersonViewModel` | Handwritten ViewModel subclass with a derived title |
@@ -81,7 +81,7 @@ normal build needs no Designer processor; Lombok still runs.
 2. Edit Age using its `years ` text format. An invalid value stays visible while the previous Model value is retained. A message explains the failure; a valid value clears that conversion failure.
 3. Edit the home street. The path-bound label follows. Empty street input fails through `StreetConverter`; the parent receives the child message with the `home.street` source prefix.
 4. Edit the nested note. AddressForm's inner NoteForm binds to its own Model. The `Opened as ...` label records initial setup rather than tracking every later city edit.
-5. Add a visit. Both the repeated forms and Table gain a row. Edit a street in one representation and observe the same Address in the other. The Table's Remove button delegates to the controller.
+5. Add a visit. Both the repeated forms and Table gain a row. Edit a street in one representation and observe the same Address in the other. The Table's Remove button uses the desk's shared `VisitActions` service.
 6. Select a visit in the ComboBox or Table. Both use the `selectedVisit` Attribute. Resize, sort and filter Table columns; filtering and sorting affect displayed rows without reordering the Model's list.
 7. Edit the visited date in ISO form (`yyyy-MM-dd`). Invalid text keeps the old date. Add a tag to see a shared ObservableList of simple values.
 8. Try the information, warning and fatal message buttons. Severity is data and logging behavior; a fatal message does not itself exit the application. Close each non-blocking popup normally.

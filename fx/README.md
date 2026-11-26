@@ -35,7 +35,7 @@
 
 `fx` includes docking and standalone bars for ordinary JavaFX applications; these controls do not require MVVM initialization. Its optional MVVM functionality binds an FXML view to an ordinary Java model. The model stays a JavaBean. The library builds one view model for that instance, loads the view, and applies the binding elements declared in the FXML.
 
-You write the model, the FXML, and, where a screen needs them, a controller, reusable components, and converters. The library creates the view model. The [injection](../injection/README.md) container creates the controller, each component, and each converter.
+You write the model, the FXML, and, where a screen needs them, a controller, reusable components, and converters. The library creates the view model. The application's `ViewDependencies` supplies controllers, components and converters.
 
 The worked example is the `fx-example` module, package `de.neitzel.fx.example`. From the NeitzelLib root, with Java 25:
 
@@ -46,9 +46,11 @@ The worked example is the `fx-example` module, package `de.neitzel.fx.example`. 
 
 The launch class is `de.neitzel.fx.example.Main`. `Main` does not extend `Application`. It calls `Application.launch(DeskApp.class, args)`, and `DeskApp.start` builds the scene on the JavaFX thread.
 
-Depend on `de.neitzel.lib:fx`. That module depends on `core`, `injection` and on JavaFX base, controls, graphics, fxml, and web. Application types the container constructs use `jakarta.inject.Singleton` or `jakarta.inject.Named`.
+Depend on `de.neitzel.lib:fx` for your own adapter. For Neitzel's
+`ApplicationContext`, depend on [`de.neitzel.lib:fx-injection`](../fx-injection/README.md).
+That artifact brings in `fx` and `injection`.
 
-Use `ViewLoader.loadComponent(type, model, context, models)` to open a reusable Component directly from its own FXML. It returns a managed `LoadedView` with the same Component, ViewModel selection and binding lifetime as an embedded instance.
+Use `ViewLoader.loadComponentWithDependencies(type, model, dependencies, models)` to open a reusable Component directly from its own FXML. It returns a managed `LoadedView` with the same Component, ViewModel selection and binding lifetime as an embedded instance.
 
 ## Dependencies
 
@@ -58,27 +60,26 @@ These are the versions configured by this source snapshot, not a promise of comp
 | --- | --- | --- |
 | JDK | Java 25 | Select a matching JDK for compilation and launch |
 | Maven | Minimum 3.9.11; wrapper 3.9.11 | Use the wrapper or an installed Maven |
-| Library | `de.neitzel.lib:fx:1.0.7-SNAPSHOT` | Install the local reactor. For the published version, see the [Maven setup](../README.md#use-a-release-from-maven). |
-| Internal modules | `fx` directly depends on `core`, `injection` and toolkit-independent `data-grid` | Resolved transitively through Maven |
+| Library | `de.neitzel.lib:fx:1.0.7` | See [Maven setup](../README.md#use-a-release-from-maven). |
+| Internal modules | `fx` directly depends on `core` and toolkit-independent `data-grid` | Resolved transitively through Maven |
 | JavaFX | 27.0.1: base, graphics, controls, FXML and web | Resolved transitively; deployment still needs platform-native artifacts |
 | Saved HTML | jsoup 1.23.2, ph-css 8.2.3, TwelveMonkeys WebP 3.15.3 | Resolved transitively by `fx`; no separate application setup |
-| Injection scanning | Reflections 0.10.2 | Brought by `injection` |
-| Injection annotations | `jakarta.inject-api` 2.0.1 | Use Jakarta annotations, not `javax.inject` |
+| Optional Neitzel DI | `fx-injection` → `injection`, Reflections and Jakarta Inject | Include when you choose Neitzel's container |
 | Logging | SLF4J API 2.0.20 | Choose one logging backend; the example uses `slf4j-simple` 2.0.20 at runtime |
 | Library build | Lombok 1.18.48 and test/analysis tooling | Not required in ordinary consumer source; use your own annotations only if wanted |
 | Designer | Optional preview API / Model processor | Needed only for the selected Designer workflow, not normal `ViewLoader` use |
 
-The quick-start POM adds only `fx` and a logging backend. Do not copy library build-time dependencies into an application just to obtain runtime binding. A project using injection alone needs the `injection` artifact and does not need JavaFX.
+The published 1.0.6 quick start uses its matching POM and APIs. Do not copy library build-time dependencies into an application just to obtain runtime binding. A project using injection alone needs the `injection` artifact and does not need JavaFX.
 
 ## Quick start
 
 `DeskApp` scans its package, loads one person into `Desk.fxml`, and asks for a dialog when a new message is added:
 
 ```java
-ApplicationContext context = new ApplicationContext(DeskApp.class);
 Person person = DeskApp.sample();
-LoadedView loaded = ViewLoader.load(
-        DeskController.class.getResource("Desk.fxml"), person, context);
+ViewModelContext models = new ViewModelContext();
+LoadedView loaded = ViewLoader.loadWithDependencies(
+        DeskController.class.getResource("Desk.fxml"), person, DeskApp.dependencies(person), models);
 MessagePopup.showNewMessages(loaded.getViewModel());
 Parent root = loaded.getRoot();
 ```
@@ -94,9 +95,9 @@ Parent root = loaded.getRoot();
 <TextField fx:id="nameField"/>
 ```
 
-`ApplicationContext` scans the package of the class you pass, and its subpackages. `DeskApp` carries `@Config(basePackage = "de.neitzel.fx.example")`, which is that package. `ViewLoader.load` reuses the view model already built for that person, or builds one, then loads the FXML and applies the binding elements.
+`ApplicationContext` scans the package of the class you pass, and its subpackages. `DeskApp` carries `@Config(basePackage = "de.neitzel.fx.example")`, which is that package. `ViewLoader.loadWithDependencies` reuses the view model already built in its Model context for that person, or builds one, then loads the FXML and applies the binding elements.
 
-One model instance has one view model. The first view fixes the view model class. The desk's controller names `PersonViewModel`, so that is the class for this person.
+One Model instance has one ViewModel per Model context. The first view fixes the view model class. The desk's controller names `PersonViewModel`, so that is the class for this person.
 
 ## The person desk
 
@@ -150,7 +151,8 @@ After the view model exists, it is the writer. A property change calls the sette
 ## Load a view
 
 ```java
-public static LoadedView load(URL fxml, Object model, ApplicationContext context)
+public static LoadedView loadWithDependencies(URL fxml, Object model,
+                                             ViewDependencies dependencies, ViewModelContext models)
 ```
 
 The load reads `fx:controller` from the document first, so it can see `@ViewModelClass`, and builds or reuses the view model. It then loads the FXML. The container supplies the controller. Components come from the container as well. The root must be a `Parent`. Bindings run after `@FXML` fields are filled. Tables under the root open last, including a table inside a scroll pane.
@@ -159,9 +161,50 @@ The load reads `fx:controller` from the document first, so it can see `@ViewMode
 
 `LoadedView.property(String)` returns the JavaFX property for an attribute name, for `latestMessage`, or for a `nameProperty()` method on the view model. A missing name returns null. A binding whose path does not resolve fails the load.
 
-FXML that cannot be read becomes `IllegalStateException` `Could not load view` and the URL. A missing controller class is `IllegalArgumentException` `No controller` and the name.
+FXML that cannot be read becomes `IllegalStateException` `Could not load view` and the URL. A missing controller class is reported with `No controller` and the name in the cause.
 
-`DeskLoadsTest.secondViewReusesTheViewModel` loads a second document, `NameLine.fxml`, for the same person. The second document names no controller and no view model class. It reuses `PersonViewModel`. Typing in the desk's name field updates the second field, and the title becomes `titled-Grace`. Loading `Desk.fxml` a second time while the first desk is showing does not work: the home `AddressForm` is the cached singleton and already has children. See [Component](#component).
+`DeskLoadsTest.secondViewReusesTheViewModel` loads a second document, `NameLine.fxml`, for the same person. The second document names no controller and no view model class. It reuses `PersonViewModel`. Typing in the desk's name field updates the second field, and the title becomes `titled-Grace`.
+
+### Use an application DI container
+
+Use `ViewDependencies` with the managed loader when your application owns a
+DI container. Construct the adapter once for that container. Open views on
+the JavaFX application thread and keep their `ViewModelContext` for their
+lifetime.
+
+```java
+ViewModelContext models = new ViewModelContext();
+LoadedView view = ViewLoader.loadWithDependencies(fxml, model, dependencies, models);
+stage.setScene(new Scene(view.getRoot()));
+stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> models.close());
+```
+
+Use `ViewLoader.loadComponentWithDependencies(ComponentType.class, model,
+dependencies, models)` for a Component's own `fx:root` document.
+`FxFixture.loadWithDependencies(fxml, model, dependencies)` loads the
+same way on the test's JavaFX thread and owns its model context.
+
+Implement the three methods of `ViewDependencies`.
+
+- `isComponent(type)` checks an exact Component registration before FXML
+  creates the object. A set of the Component classes with their own FXML is
+  sufficient. Return false for ordinary JavaFX elements.
+- `createViewObject(type)` supplies a fresh injected Controller or Component
+  and a release action in a `ViewObject`. Use concrete FXML types and an
+  unshared scope for UI classes. Register services such as storage separately
+  with the scope they need. In Spring, a named prototype bean and
+  `destroyBean(name, instance)` are one way to implement this method.
+- `findService(type)` resolves application-owned Converters and the optional
+  `Localizer`. Return `Optional.empty()` for an absent binding. Propagate
+  lookup and creation failures so the load can report the right cause.
+
+DI construction precedes `@FXML` injection. Use JavaFX `initialize()`
+for access to FXML fields and the ViewModel handoff for work that needs that
+ViewModel. When a view is closed, a dynamic child is removed or a load rolls
+back, FX detaches its bindings and calls the associated release action.
+Close your container after its views. To update a caller that used the
+published `ApplicationContext` overloads, follow the
+[Neitzel adapter migration](../fx-injection/README.md#migrate-an-existing-fx-application).
 
 ## Direct binding
 
@@ -357,13 +400,15 @@ try (var saving = new AsyncCommand<Void>(valid, executor, createSaveTask)) {
 
 ## Controller
 
-Name the class on the root with `fx:controller`. The container creates it with `getComponent`, so it is the cached singleton. `@FXML` fields are filled during load, before the bindings run.
+Name the class on the root with `fx:controller`. The adapter creates a fresh instance for the View. `@FXML` fields are filled during load, before the bindings run.
 
 Leave `fx:controller` off and the library supplies a controller, which is enough for a view that has only direct bindings. `NameLine.fxml` in the test is that shape. You cannot obtain the supplied controller from `LoadedView`.
 
 Implement `HasViewModel` when your code needs the view model. The library calls `setViewModel` after construction and before the bindings run, and only when the selected object is a `ViewModel`. The desk stores it and reads `visits`, `tags`, `name`, and `age` from it.
 
-A second view whose document names the same controller class receives that same singleton. FXML then injects the second view's fields into it. The desk is one window, so its controller fields stay on that window. Give a second screen its own controller class when each screen needs its own `@FXML` fields.
+Each load receives its own controller and `@FXML` fields. Share
+application state through a service. The desk shares `VisitActions` with
+its table rows.
 
 ## Choosing the ViewModel class
 
@@ -413,7 +458,7 @@ remain handled by the containing FXMLLoader.
 
 A component is a class the container can create. It extends `Parent` (usually a Pane subclass such as `VBox`), loads `ClassName.fxml` from its own package through `fx:root`, and is the controller of that file. It has no `fx:controller`. It exposes one JavaFX property named `model`.
 
-`AddressForm` edits the home address. `VisitForm` edits one visit in the repeated list. `NoteForm` edits a note. `VisitRow` edits one table row. Each is `@Singleton`, extends `VBox` or `HBox`, and has `modelProperty()`.
+`AddressForm` edits the home address. `VisitForm` edits one visit in the repeated list. `NoteForm` edits a note. `VisitRow` edits one table row. Each extends `VBox` or `HBox` and has `modelProperty()`. In the example, `@Singleton` marks the classes for Neitzel's scanner. The adapter creates a fresh instance for each occurrence.
 
 The home document binds the form and sets `model` from the path. When the path's last segment is complex, the value assigned is the model instance behind that view model.
 
@@ -426,9 +471,9 @@ The component's own bindings run once, the first time `model` becomes non-null. 
 
 `initialize` runs during the component's FXML load, before `model` is set. `AddressForm` uses that moment to copy the injected heading onto its label, which does not need the address. For a Component implementing `HasViewModel`, `setViewModel` runs after `model` is set to a non-null Model and before its bindings, but only when the selected presentation object extends `ViewModel`. An arbitrary replacement does not receive this callback. `AddressForm` implements `HasViewModel` and writes `Opened as ` plus the city at that moment. Editing the city afterward leaves the label on the city the form opened with. The sample home opens as `Opened as Sample City`.
 
-The first component of a class in one load is `context.getComponent`, the cached singleton. Each further one in that same load is `context.createComponent`. Repeat and table rows always use `createComponent`, so they are new instances and the cached singleton of that class stays unused by the rows. `getComponent(VisitForm.class)` after the desk loads is still the singleton, and the three forms in the visit pane are other instances.
-
-A later load starts over. Its first component of a class is the cached singleton again. The home `AddressForm` is that singleton and is already in the scene, so loading `Desk.fxml` a second time fails while building the home form: a node cannot be added to a second parent. The test's second view is a document with no component.
+Every registered FXML Component is created fresh, including Repeat children
+and table rows. The Neitzel adapter uses `createComponent` and leaves the
+context's shared registrations available to other callers.
 
 A component class needs `ClassName.fxml` beside it. A missing document fails with `No component document`. A missing `modelProperty` method fails with `No model property on`. A method that does not return a `Property` fails with `modelProperty did not return a property`.
 
@@ -438,7 +483,8 @@ A nested component is the same mechanism one level down. The child document name
 
 `AddressForm.fxml` binds `noteForm` to path `note` and contains `<NoteForm fx:id="noteForm"/>`. `NoteForm.fxml` binds its text field to path `text`. The sample home note is `Kept at home`. Editing the note field writes `text` on the existing `Note` held by `Address.note`; it does not replace that Note object.
 
-`VisitForm` does not contain `NoteForm`. A visit added after the desk has loaded is built in a new load. The first component of a class in that load is the cached singleton again, so a `NoteForm` nested in the repeated form would be the instance already showing under the home address. Keeping the note on the home form, which is loaded once, leaves that singleton where it was placed.
+`VisitForm` displays the visit fields. The desk shows a note editor in
+the home address form.
 
 A null `note` leaves the nested binding unapplied. `NoteForm` stays empty and the load succeeds. The sample home has a note, so its bindings run.
 
@@ -523,7 +569,7 @@ Add and remove update the body. A permutation or an extractor update notificatio
 
 A column attribute must be a simple value: string, boolean, enum, a primitive other than `char` and `void`, a `Number`, a `Date`, a `Calendar`, or a `java.time` temporal. `visitedOn` is a `LocalDate`, so it is a column. A complex attribute fails the load with `Attribute "` name `" is not a simple value`.
 
-Other load failures, all `IllegalArgumentException`:
+Other load failures reported in the cause:
 
 | Condition | Message |
 | --- | --- |
@@ -543,7 +589,7 @@ Use the four-argument loader when a window, dialog or dockable owns a View:
 
 ```java
 try (var models = new ViewModelContext();
-     var loaded = ViewLoader.load(fxml, model, application, models)) {
+     var loaded = ViewLoader.loadWithDependencies(fxml, model, dependencies, models)) {
     // Use loaded.getRoot() while this View is open.
 }
 ```
@@ -554,14 +600,10 @@ those on components and collection rows. Close its `ViewModelContext` once the o
 window or archive ends. The context closes remaining Views and releases the Model-to-ViewModel
 registrations. Views of the same model instance in one context share a ViewModel.
 
-The managed loader creates a fresh injected Controller or Component for each instance.
-Dependencies still come from the application context. Controllers and Components can
-implement `AutoCloseable` to release additional resources such as programmatic event handlers
-or subscriptions to application services. The library also closes these resources if FXML or
-binding setup throws. Use these handles on the FX application thread.
-
-The three-argument loader keeps its existing shared cache and Controller behavior. Manage a
-View with the four-argument loader if it needs deterministic cleanup.
+The adapter supplies a fresh Controller or Component and its release action. FX invokes
+that action on close and when it rolls back an unsuccessful load. The Neitzel adapter
+calls `AutoCloseable.close()` for UI instances that implement it. Use these handles
+on the FX application thread.
 
 ### Column width
 
@@ -649,21 +691,21 @@ A list element is not a nested view model. A failure recorded on a visit is carr
 
 ## What the container creates
 
-`ViewLoader.load` takes an `ApplicationContext`. The view model is never created by the container.
+`ViewDependencies` provides the following objects. The Model context
+creates or reuses the ViewModel.
 
-| Object | How it is created |
+| Object | How it is resolved |
 | --- | --- |
-| Controller named by `fx:controller` | `getComponent`, once |
-| Converter named on a direct binding | `getComponent` |
-| First component of a class in a load | `getComponent`, when that instance is free to place |
-| Another element of that class in the same load | `createComponent` |
-| Repeat children and table rows | `createComponent` |
+| Controller named by `fx:controller` | A fresh `ViewObject` from `createViewObject` |
+| Converter named on a direct binding | `findService` on the declared class |
+| Embedded and standalone Components, Repeat children and table rows | Exact registration and a fresh `ViewObject` per instance |
+| Optional `Localizer` | `findService(Localizer.class)` |
 
 Details of scanning, `@Singleton`, `@Named`, constructor, field, and setter injection, and `@Config` are in the [injection guide](../injection/README.md). The desk's scan root is `DeskApp`.
 
 ## When a load fails
 
-These are the `IllegalArgumentException` messages a document can produce. The view is not shown.
+The loader reports the FXML resource and preserves the exception with the specific cause.
 
 | Message | Cause |
 | --- | --- |
@@ -698,7 +740,9 @@ The reference above covers the FXML declarations and their behavior. These are t
 
 | Responsibility | Types and key members |
 | --- | --- |
-| Load | `ViewLoader.load`, `LoadedView.getRoot`, `getViewModel`, `property` |
+| Load | `ViewLoader.loadWithDependencies`, `loadComponentWithDependencies`, `LoadedView.getRoot`, `getViewModel`, `property` |
+| Lifetime | `ViewModelContext`, `LoadedView.close()` |
+| Dependency integration | `ViewDependencies`, `ViewObject` |
 | Presentation state | `ViewModel.property`, protected `storedProperty`, `HasViewModel.setViewModel`, `@ViewModelClass` |
 | Declarations | `BindingList`, `DirectBinding`, `ComputedBinding`, `Repeat`; JavaBean setters correspond to the FXML attributes described above |
 | Convert values | `Converter.toControlValue`, `toAttributeValue` |
@@ -709,7 +753,7 @@ The reference above covers the FXML declarations and their behavior. These are t
 
 `property(name)` returns `Property<?>`: cast to the known property type when writing from Java, for example `((StringProperty) loaded.property("name")).set("Grace")`. Generated accessors avoid these casts. `storedProperty` is for subclasses and reads only stored Model Attributes; it does not invoke custom reflective accessors. Internal loaders, appliers and identity-cache helpers are implementation details, not extension APIs.
 
-For threading, strong identity retention, context reuse, the absence of a general disposal API, and JPMS reflection, see [architecture and lifetime](docs/architecture.md). For an independent application POM and runnable files, use the [complete quick start](docs/quick-start.md).
+For threading, Model identity, resource release and reflective module access, see [architecture and lifetime](docs/architecture.md). For an independent application POM and runnable files using the 1.0.6 release, use the [complete quick start](docs/quick-start.md).
 
 DataGrid columns accept arbitrary string keys for group captions through the attached
 `DataGridColumn.groupLabel` property. For example,

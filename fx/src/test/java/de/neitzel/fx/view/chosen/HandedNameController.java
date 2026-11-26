@@ -2,12 +2,11 @@ package de.neitzel.fx.view.chosen;
 
 import de.neitzel.fx.view.HasViewModel;
 import de.neitzel.fx.view.ViewModel;
-import jakarta.inject.Singleton;
 
 /**
  * Controller whose computed value is taken from the ViewModel handed over before bindings.
  */
-@Singleton
+
 public class HandedNameController implements HasViewModel {
 
     /**

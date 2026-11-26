@@ -125,7 +125,7 @@ public class ApplicationContext {
     private ComponentData componentData(Class<?> type) {
         ComponentData data = components.get(type);
         if (data == null) {
-            throw new IllegalArgumentException("No component found for type: " + type.getName());
+            throw new MissingComponentException(type);
         }
         return data;
     }

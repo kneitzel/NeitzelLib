@@ -3,9 +3,12 @@ package de.neitzel.fx.example.docking.mvvm;
 import de.neitzel.fx.docking.Dockable;
 import de.neitzel.fx.docking.DockableId;
 import de.neitzel.fx.example.model.Note;
+import de.neitzel.fx.injection.NeitzelViewDependencies;
 import de.neitzel.fx.view.LoadedView;
 import de.neitzel.fx.view.ViewLoader;
+import de.neitzel.fx.view.ViewModelContext;
 import de.neitzel.injection.ApplicationContext;
+import java.util.Set;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.Property;
@@ -21,6 +24,7 @@ import lombok.Getter;
 /** Application adapter: one loaded View becomes ordinary Dockable content. */
 public final class MvvmEditor implements AutoCloseable {
     @Getter private final Note model = new Note("Edit this note, then move or float its tab.");
+    private final ViewModelContext models = new ViewModelContext();
     @Getter private final LoadedView view;
     @Getter private final Dockable dockable;
     private final Property<String> text;
@@ -35,8 +39,9 @@ public final class MvvmEditor implements AutoCloseable {
 
     @SuppressWarnings("unchecked")
     public MvvmEditor(String id) {
-        view = ViewLoader.load(MvvmEditor.class.getResource("MvvmEditor.fxml"), model,
-                new ApplicationContext(MvvmEditor.class));
+        var dependencies = new NeitzelViewDependencies(new ApplicationContext(MvvmEditor.class), Set.of());
+        view = ViewLoader.loadWithDependencies(
+                MvvmEditor.class.getResource("MvvmEditor.fxml"), model, dependencies, models);
         text = (Property<String>) view.property("text");
         TextArea input = (TextArea) view.getRoot().lookup("#text");
         dockable = new Dockable(new DockableId(id), view.getRoot());
@@ -64,7 +69,7 @@ public final class MvvmEditor implements AutoCloseable {
         dirty.set(false);
     }
 
-    /** Releases this adapter's resources, not the LoadedView or global ViewModel identity cache. */
+    /** Releases the editor's bindings and its managed View. */
     @Override public void close() {
         if (released) return;
         released = true;
@@ -76,5 +81,6 @@ public final class MvvmEditor implements AutoCloseable {
         status.setText("Released application listeners");
         clear.setOnAction(null);
         clear.setDisable(true);
+        models.close();
     }
 }

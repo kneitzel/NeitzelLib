@@ -2,7 +2,6 @@ package de.neitzel.fx.view;
 
 import de.neitzel.fx.view.fixture.Host;
 import de.neitzel.fx.view.fixture.Visit;
-import de.neitzel.injection.ApplicationContext;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseButton;
@@ -89,7 +88,7 @@ class ResizeAColumnTest {
     private static Table table(Host host) {
         URL fxml = ResizeAColumnTest.class.getResource("show-visits.fxml");
         assertNotNull(fxml);
-        LoadedView loaded = ViewLoader.load(fxml, host, new ApplicationContext("de.neitzel.fx.view.component"));
+        LoadedView loaded = TestViews.load(fxml, host, new TestViews());
         return (Table) loaded.getRoot().lookup("#visitsTable");
     }
 

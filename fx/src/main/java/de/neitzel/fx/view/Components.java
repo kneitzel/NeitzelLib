@@ -1,6 +1,5 @@
 package de.neitzel.fx.view;
 
-import de.neitzel.injection.ApplicationContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -37,35 +36,9 @@ final class Components {
     private Components() {
     }
 
-    /**
-     * Returns a builder for a type the container knows.
-     * <p>
-     * An unknown type, such as a JavaFX control, makes {@link ApplicationContext#getComponent}
-     * throw {@link IllegalArgumentException}. This method returns null so FXML constructs that
-     * type itself. A Component that extends a JavaFX class is also left to FXML when the document
-     * names that JavaFX class: the container would otherwise hand back the Component. A failure
-     * while creating a known Component is not caught. The first Component of a class in one load
-     * is the cached singleton. A second Component of that class is a new injected instance, so the
-     * document can show two of them.
-     *
-     * @param type    the type FXML is about to construct
-     * @param context the container that creates Components
-     * @return a builder for a Component, or {@code null} when the type is not a Component
-     */
-    static Builder<?> builder(Class<?> type, ApplicationContext context, ViewLifetime owner) {
-        Object component;
-        try {
-            component = owner.managed() ? context.createComponent(type) : context.getComponent(type);
-        } catch (IllegalArgumentException notAComponent) {
-            return null;
-        }
-        if (component.getClass() != type) {
-            return null;
-        }
-        if (!owner.managed() && !LoadSession.claimFirst(type)) {
-            component = context.createComponent(type.asSubclass(Object.class));
-        }
-        return new ComponentBuilder(component, context, owner.child());
+    /** Returns a Component builder or leaves the requested type to JavaFX. */
+    static Builder<?> builder(Class<?> type, ViewInstances context, ViewLifetime owner) {
+        return context.isComponent(type) ? new ComponentBuilder(type, context, owner.child()) : null;
     }
 
     /**
@@ -74,10 +47,10 @@ final class Components {
      */
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class ComponentBuilder extends AbstractMap<String, Object> implements Builder<Object> {
-        /** The injected instance. */
-        private final Object component;
+        /** The exact Component class declared by FXML. */
+        private final Class<?> type;
         /** The context used to load its document. */
-        private final ApplicationContext context;
+        private final ViewInstances context;
         private final ViewLifetime lifetime;
         /** Values already resolved by the containing FXMLLoader. */
         private final Map<String, Object> values = new LinkedHashMap<>();
@@ -108,7 +81,7 @@ final class Components {
          */
         @Override
         public Object build() {
-            Object result = load(component, context, lifetime);
+            Object result = load(context.createComponent(type, lifetime), context, lifetime);
             if (!values.isEmpty()) {
                 // A second fx:root load uses the public FXMLLoader API for bean setters,
                 // enum/numeric coercion and diagnostics, without depending on BeanAdapter
@@ -137,19 +110,9 @@ final class Components {
         }
     }
 
-    /**
-     * Creates a new Component and loads its document.
-     * <p>
-     * The instance is not the cached singleton. Its dependencies still come from
-     * {@link ApplicationContext#getComponent}. Bindings wait until {@link #setModel} runs.
-     *
-     * @param type    the Component class
-     * @param context the container that creates the instance and its dependencies
-     * @return the loaded Component
-     */
-    static Object fresh(Class<?> type, ApplicationContext context, ViewLifetime lifetime) {
-        Object component = context.createComponent(type.asSubclass(Object.class));
-        return load(component, context, lifetime);
+    /** Creates a fresh Component and loads its document before setting its Model. */
+    static Object fresh(Class<?> type, ViewInstances context, ViewLifetime lifetime) {
+        return load(context.component(type, lifetime), context, lifetime);
     }
 
     /**
@@ -161,10 +124,6 @@ final class Components {
      * @param model     the Model instance
      */
     static void setModel(Object component, Object model, ViewLifetime lifetime) {
-        if (!lifetime.managed()) {
-            modelProperty(component).setValue(model);
-            return;
-        }
         LoadSession session = LoadSession.nest();
         try {
             modelProperty(component).setValue(model);
@@ -181,8 +140,7 @@ final class Components {
      * @param context   the container that creates nested Components
      * @return the loaded Component
      */
-    private static Object load(Object component, ApplicationContext context, ViewLifetime lifetime) {
-        lifetime.ownController(component);
+    private static Object load(Object component, ViewInstances context, ViewLifetime lifetime) {
         Class<?> type = component.getClass();
         String document = type.getSimpleName() + ".fxml";
         URL fxml = type.getResource(document);
@@ -195,11 +153,11 @@ final class Components {
             FxmlHandlers.observe(loader, lifetime);
             loader.setRoot(component);
             loader.setController(component);
-            loader.setControllerFactory(nestedType -> ViewLoader.createController(context, nestedType, lifetime));
+            loader.setControllerFactory(nestedType -> context.controller(nestedType, lifetime));
             loader.setBuilderFactory(nestedType -> builder(nestedType, context, lifetime));
             loader.load();
             nested.checkFailure();
-            if (lifetime.managed() && component instanceof Node node) {
+            if (component instanceof Node node) {
                 node.getProperties().put(Components.class, Boolean.TRUE);
                 lifetime.own(() -> node.getProperties().remove(Components.class));
             }
@@ -221,7 +179,7 @@ final class Components {
      * @param context   the container that creates a named Converter
      */
     private static void watchModel(Object component, List<BindingList> lists, Map<String, Object> namespace,
-                                   ApplicationContext context, ViewLifetime lifetime) {
+                                   ViewInstances context, ViewLifetime lifetime) {
         Property<Object> model = modelProperty(component);
         boolean[] applied = {false};
         lifetime.listen(model, (observable, oldValue, newValue) -> {
@@ -239,10 +197,10 @@ final class Components {
                 for (BindingList list : lists) {
                     list.apply(namespace, viewModel, component, root, context, lifetime);
                 }
-                if (lifetime.managed()) Table.openAll(root, viewModel, context, lifetime);
+                Table.openAll(root, viewModel, context, lifetime);
             } catch (RuntimeException | Error failure) {
                 lifetime.rollback(failure);
-                if (!lifetime.managed() || !LoadSession.recordFailure(failure)) {
+                if (!LoadSession.recordFailure(failure)) {
                     throw failure;
                 }
             }

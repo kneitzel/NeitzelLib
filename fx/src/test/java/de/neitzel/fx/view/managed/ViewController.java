@@ -1,21 +1,19 @@
 package de.neitzel.fx.view.managed;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
 import lombok.Getter;
 
-@Singleton
+
 public class ViewController implements AutoCloseable {
 
-    @Singleton
+
     public static class Registry {
 
         @Getter
         private ViewController lastCreated;
 
-        @Inject
+
         public Registry() {
         }
     }
@@ -29,7 +27,7 @@ public class ViewController implements AutoCloseable {
     @Getter
     private int closeCount;
 
-    @Inject
+
     public ViewController(Registry registry) {
         this.registry = registry;
     }

@@ -1,8 +1,6 @@
 package de.neitzel.fx.view.component;
 
 import de.neitzel.fx.view.fixture.Visit;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
@@ -12,7 +10,7 @@ import javafx.scene.layout.HBox;
 /**
  * A Row that shows a visit's street and city, street first.
  */
-@Singleton
+
 public class VisitRow extends HBox {
 
     /**
@@ -29,7 +27,7 @@ public class VisitRow extends HBox {
     /**
      * Creates a row.
      */
-    @Inject
+
     public VisitRow() {
         model.addListener((observable, previous, current) -> applyHeight(current));
     }

@@ -2,8 +2,6 @@ package de.neitzel.fx.view.component;
 
 import de.neitzel.fx.view.HasViewModel;
 import de.neitzel.fx.view.ViewModel;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.fxml.FXML;
@@ -16,7 +14,7 @@ import javafx.scene.layout.VBox;
  * <p>
  * The container injects the caption service. the street label shows that service's prefix.
  */
-@Singleton
+
 public class AddressForm extends VBox implements HasViewModel {
 
     /**
@@ -54,7 +52,7 @@ public class AddressForm extends VBox implements HasViewModel {
      *
      * @param captions the service that supplies the street prefix
      */
-    @Inject
+
     public AddressForm(StreetCaption captions) {
         this.captions = captions;
     }

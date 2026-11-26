@@ -5,7 +5,6 @@ import de.neitzel.fx.view.component.Envelope;
 import de.neitzel.fx.view.component.Letter;
 import de.neitzel.fx.view.fixture.Address;
 import de.neitzel.fx.view.fixture.Person;
-import de.neitzel.injection.ApplicationContext;
 import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -55,8 +54,8 @@ class EditAddressInAComponentTest {
             person.setAddress(address);
             URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
             assertNotNull(form);
             assertSame(address, form.getModel());
@@ -76,8 +75,8 @@ class EditAddressInAComponentTest {
             Person person = new Person("Ada");
             URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
             assertNotNull(form);
             assertNull(form.getModel());
@@ -97,8 +96,8 @@ class EditAddressInAComponentTest {
             person.setAddress(new Address("Main"));
             URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
             Label streetLabel = (Label) form.lookup("#streetLabel");
             assertEquals("Lane", streetLabel.getText());
@@ -116,8 +115,8 @@ class EditAddressInAComponentTest {
             person.setAddress(address);
             URL fxml = EditAddressInAComponentTest.class.getResource("address-component.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, person, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, person, context);
             AddressForm form = (AddressForm) loaded.getRoot().lookup("#addressForm");
             assertSame(loaded.property("address").getValue(), form.receivedViewModel());
             assertEquals("kept", form.streetTextAtHandOff());
@@ -136,8 +135,8 @@ class EditAddressInAComponentTest {
             Letter letter = new Letter(new Envelope(address));
             URL fxml = EditAddressInAComponentTest.class.getResource("letter-envelope.fxml");
             assertNotNull(fxml);
-            ApplicationContext context = new ApplicationContext("de.neitzel.fx.view.component");
-            LoadedView loaded = ViewLoader.load(fxml, letter, context);
+            TestViews context = new TestViews();
+            LoadedView loaded = TestViews.load(fxml, letter, context);
             TextField streetField = (TextField) loaded.getRoot().lookup("#streetField");
             assertEquals("Main", streetField.getText());
             streetField.setText("Oak");
@@ -151,8 +150,8 @@ class EditAddressInAComponentTest {
     @Test
     void componentAttributesApplyAfterInitialization() throws Exception {
         onFx(() -> {
-            var context = new ApplicationContext("de.neitzel.fx.view.component");
-            var loaded = ViewLoader.load(getClass().getResource("address-component-attributes.fxml"),
+            var context = new TestViews();
+            var loaded = TestViews.load(getClass().getResource("address-component-attributes.fxml"),
                     new Person("Ada"), context);
             var first = (AddressForm) loaded.getRoot().lookup("#first");
             var second = (AddressForm) loaded.getRoot().lookup("#second");
@@ -165,7 +164,7 @@ class EditAddressInAComponentTest {
             assertSame(first.getModel(), second.getModel());
             assertEquals("Second", second.getCaption());
             assertEquals(280, second.getPrefWidth());
-            assertSame(first, context.getComponent(AddressForm.class));
+            org.junit.jupiter.api.Assertions.assertNotSame(first, second);
             TextField field = (TextField) first.lookup("#streetField");
             assertEquals("Main", field.getText());
             field.setText("Oak");
@@ -180,9 +179,9 @@ class EditAddressInAComponentTest {
     void invalidComponentAttributesFailTheLoad() throws Exception {
         onFx(() -> {
             for (String kind : java.util.List.of("unknown", "number")) {
-                var context = new ApplicationContext("de.neitzel.fx.view.component");
+                var context = new TestViews();
                 org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
-                        () -> ViewLoader.load(getClass().getResource("address-component-invalid-" + kind + ".fxml"),
+                        () -> TestViews.load(getClass().getResource("address-component-invalid-" + kind + ".fxml"),
                                 new Person("Ada"), context));
             }
         });

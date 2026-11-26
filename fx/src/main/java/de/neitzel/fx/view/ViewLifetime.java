@@ -22,31 +22,11 @@ final class ViewLifetime implements AutoCloseable {
         return models;
     }
 
-    boolean managed() {
-        return models != ViewModels.LEGACY;
-    }
-
     void own(Runnable removal) {
-        if (managed()) {
-            if (closed) {
-                removal.run();
-            } else {
-                cleanup.addLast(removal);
-            }
-        }
-    }
-
-    void ownController(Object controller) {
-        if (controller instanceof AutoCloseable closeable) {
-            own(() -> {
-                try {
-                    closeable.close();
-                } catch (RuntimeException failure) {
-                    throw failure;
-                } catch (Exception failure) {
-                    throw new IllegalStateException("Could not close " + controller.getClass().getName(), failure);
-                }
-            });
+        if (closed) {
+            removal.run();
+        } else {
+            cleanup.addLast(removal);
         }
     }
 
