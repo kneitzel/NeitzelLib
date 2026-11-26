@@ -20,7 +20,7 @@
         <jar.filename>${project.artifactId}-${project.version}</jar.filename>
 
         <!-- Dependency versions -->
-        <designer.version>0.1.0-SNAPSHOT</designer.version>
+        <designer.version>0.1.0</designer.version>
 
         <!-- Plugin versions -->
         <build.helper.maven.plugin>3.8.0</build.helper.maven.plugin>
@@ -105,6 +105,20 @@
     <profiles>
         <profile>
             <id>designer-preview</id>
+            <repositories>
+                <repository>
+                    <id>gitea-neitzelfxdesigner</id>
+                    <url>https://gitea.neitzel.de/api/packages/konrad/maven</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>gitea-neitzelfxdesigner</id>
+                    <url>https://gitea.neitzel.de/api/packages/konrad/maven</url>
+                    <snapshots><enabled>false</enabled></snapshots>
+                </pluginRepository>
+            </pluginRepositories>
             <dependencies>
                 <dependency>
                     <groupId>de.neitzel.fxdesigner</groupId>
