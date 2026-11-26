@@ -30,12 +30,12 @@ From the NeitzelLib root with JDK 25:
 ./mvnw -f fx-example/pom.xml javafx:run
 ```
 
-The first command installs local `1.0.6` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
+The first command installs local `1.0.7-SNAPSHOT` artifacts; the second runs only the application module. Do not combine `javafx:run` with `-am`, since the parent has no JavaFX launcher. See the [quick start](../fx/docs/quick-start.md) for test reports.
 
 The packaged alternative, after `package` or `install`, is:
 
 ```bash
-java -jar fx-example/target/fx-example-1.0.6.jar
+java -jar fx-example/target/fx-example-1.0.7-SNAPSHOT.jar
 ```
 
 Keep the adjacent `target/libs` directory with the JAR: the manifest refers to those copied runtime dependencies. A desktop session is required. This example has no `module-info.java`; it is a classpath application.
